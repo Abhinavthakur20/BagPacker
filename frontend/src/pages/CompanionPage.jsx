@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
+import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
+import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { isAuthenticated } from "../lib/auth";
 
 const tomorrow = new Date();
@@ -8,6 +11,7 @@ tomorrow.setDate(tomorrow.getDate() + 1);
 const tomorrowISO = tomorrow.toISOString().slice(0, 10);
 
 export default function CompanionPage() {
+  const navigate = useNavigate();
   const [source, setSource] = useState("New Delhi");
   const [destination, setDestination] = useState("Spiti Valley");
   const [travelDate, setTravelDate] = useState(tomorrowISO);
@@ -58,13 +62,18 @@ export default function CompanionPage() {
 
     const currentRequest = matches[index % matches.length];
     return {
-      id: currentRequest._id,
-      receiverId: currentRequest.requesterId?._id,
-      name: currentRequest.requesterId?.name || "Traveler",
+      userId: currentRequest.userId,
+      requestId: currentRequest.request?.id || null,
+      requestStatus: currentRequest.request?.status || null,
+      requestDirection: currentRequest.request?.direction || null,
+      name: currentRequest.name || "Traveler",
       route: `${currentRequest.source} -> ${currentRequest.destination}`,
-      dates: new Date(currentRequest.travelDate).toLocaleDateString("en-IN"),
+      dates: currentRequest.travelDate
+        ? new Date(currentRequest.travelDate).toLocaleDateString("en-IN")
+        : "Date flexible",
       bio: "Looking for a trusted travel companion.",
-      trust: currentRequest.requesterId?.trustScore || 0,
+      trust: currentRequest.trustScore || 0,
+      verificationStatus: currentRequest.verificationStatus || "pending",
       image:
         "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
       source: currentRequest.source,
@@ -96,26 +105,66 @@ export default function CompanionPage() {
   const onDecision = async (type) => {
     if (!current) return;
 
-    if (type === "accept") {
-      try {
+    try {
+      const isIncomingPending =
+        current.requestStatus === "pending" && current.requestDirection === "incoming";
+      const isOutgoingPending =
+        current.requestStatus === "pending" && current.requestDirection === "outgoing";
+      const isAccepted = current.requestStatus === "accepted";
+
+      if (type === "accept") {
+        if (isAccepted) {
+          navigate("/chat");
+          return;
+        }
+
+        if (isIncomingPending) {
+          await api.put(`/companions/${current.requestId}/respond`, {
+            status: "accepted",
+          });
+          setAccepted((value) => value + 1);
+          await loadCompanionData();
+          await showSuccessAlert(
+            "Companion accepted",
+            "Your chat room is now available in the chat page.",
+          );
+          return;
+        }
+
+        if (isOutgoingPending) {
+          await showSuccessAlert(
+            "Request already sent",
+            "This companion request is pending their response.",
+          );
+          return;
+        }
+
         await api.post("/companions/request", {
-          receiverId: current.receiverId,
+          receiverId: current.userId,
           source: current.source,
           destination: current.destination,
-          travelDate: current.travelDate,
-          vehicleType: "shared",
+          travelDate,
         });
-        setAccepted((value) => value + 1);
-      } catch (requestError) {
-        setError(requestError.message);
+        await loadCompanionData();
+        await showSuccessAlert("Request sent", "Companion request sent successfully.");
+        return;
       }
-    }
 
-    if (type === "decline") {
-      setDeclined((value) => value + 1);
-    }
+      if (isIncomingPending) {
+        await api.put(`/companions/${current.requestId}/respond`, {
+          status: "declined",
+        });
+        setDeclined((value) => value + 1);
+        await loadCompanionData();
+        await showSuccessAlert("Companion declined", "The request has been declined.");
+        return;
+      }
 
-    setIndex((value) => value + 1);
+      setIndex((value) => value + 1);
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Request update failed", requestError.message);
+    }
   };
 
   return (
@@ -206,7 +255,7 @@ export default function CompanionPage() {
 
                   <div className="absolute left-5 top-5 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#d8f5e8] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#0f5f3f]">
-                      Verified Pro
+                      {current.verificationStatus === "verified" ? "Verified" : "Unverified"}
                     </span>
                     <span className="rounded-full bg-[#b8e6ca] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#0b4f35]">
                       {current.trust} Trust
@@ -220,7 +269,17 @@ export default function CompanionPage() {
                     <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-white/90">
                       <span>{current.route}</span>
                       <span>{current.dates}</span>
-                      <span>SUV Shared</span>
+                      <span>
+                        {current.requestStatus === "accepted"
+                          ? "Matched"
+                          : current.requestStatus === "pending" &&
+                              current.requestDirection === "incoming"
+                            ? "Incoming Request"
+                            : current.requestStatus === "pending" &&
+                                current.requestDirection === "outgoing"
+                              ? "Request Sent"
+                              : "Available"}
+                      </span>
                     </div>
                     <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/90">
                       {current.bio}
@@ -232,7 +291,7 @@ export default function CompanionPage() {
                   <button
                     onClick={() => onDecision("decline")}
                     className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#efb9be] bg-[#fff7f8] text-[#c4515f] transition hover:scale-105"
-                    aria-label="Decline companion"
+                    aria-label="Decline or skip companion"
                   >
                     <span className="material-symbols-outlined text-[30px]">
                       close
@@ -241,10 +300,15 @@ export default function CompanionPage() {
                   <button
                     onClick={() => onDecision("accept")}
                     className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fd9d1a] text-[#2e2200] shadow-[0_14px_30px_rgba(253,157,26,0.35)] transition hover:scale-105"
-                    aria-label="Accept companion"
+                    aria-label="Primary companion action"
                   >
                     <span className="material-symbols-outlined text-[34px]">
-                      done
+                      {current.requestStatus === "accepted"
+                        ? "chat"
+                        : current.requestStatus === "pending" &&
+                            current.requestDirection === "outgoing"
+                          ? "schedule"
+                          : "done"}
                     </span>
                   </button>
                   <button
@@ -259,11 +323,13 @@ export default function CompanionPage() {
                 </div>
               </>
             ) : (
-              <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
-                {isLoading
-                  ? "Searching companions..."
-                  : "No companion matches found for this route."}
-              </div>
+              isLoading ? (
+                <LoadingPanel label="Searching companions..." className="rounded-2xl" />
+              ) : (
+                <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
+                  No companion matches found for this route.
+                </div>
+              )
             )}
           </section>
 
@@ -298,9 +364,12 @@ export default function CompanionPage() {
                       </div>
 
                       {item.isChatEnabled ? (
-                        <button className="mt-3 w-full rounded-lg bg-[#275f49] py-2 text-xs font-bold uppercase tracking-wide text-white">
+                        <Link
+                          to="/chat"
+                          className="mt-3 block w-full rounded-lg bg-[#275f49] py-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+                        >
                           Start Chat
-                        </button>
+                        </Link>
                       ) : null}
                     </div>
                   ))

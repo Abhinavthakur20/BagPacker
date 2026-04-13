@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api } from "../lib/api";
-import { persistAuth } from "../lib/auth";
+import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
+import { getDashboardPath, persistAuth } from "../lib/auth";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -59,9 +60,11 @@ export default function AuthPage() {
       });
 
       persistAuth(response.token, response.user);
-      navigate("/");
+      await showSuccessAlert("Welcome back", "Login successful.");
+      navigate(getDashboardPath(response.user?.role));
     } catch (error) {
       setFormError(error.message);
+      await showErrorAlert("Login failed", error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -78,6 +81,11 @@ export default function AuthPage() {
       return;
     }
 
+    if (role === "organizer" && !organizerForm.businessName.trim()) {
+      setFormError("Business name is required for organizer signup.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setFormError("");
@@ -90,9 +98,29 @@ export default function AuthPage() {
       });
 
       persistAuth(response.token, response.user);
-      navigate("/");
+
+      if (role === "organizer") {
+        await api.post(
+          "/organizers",
+          {
+            businessName: organizerForm.businessName,
+          },
+          {
+            token: response.token,
+          },
+        );
+      }
+
+      await showSuccessAlert(
+        "Account created",
+        role === "organizer"
+          ? "Your organizer account was created. Approval may still be pending."
+          : "Your traveler account is ready.",
+      );
+      navigate(getDashboardPath(response.user?.role));
     } catch (error) {
       setFormError(error.message);
+      await showErrorAlert("Signup failed", error.message);
     } finally {
       setIsSubmitting(false);
     }

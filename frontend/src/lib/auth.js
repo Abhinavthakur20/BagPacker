@@ -21,10 +21,22 @@ export function isAuthenticated() {
     return Boolean(getAuthToken());
 }
 
+export function getDashboardPath(role) {
+    if (role === "admin") return "/admin";
+    if (role === "organizer") return "/dashboard/organizer";
+    return "/dashboard/traveler";
+}
+
 export function persistAuth(token, user) {
     window.localStorage.setItem(TOKEN_KEY, token);
     window.localStorage.setItem(USER_KEY, JSON.stringify(user));
     window.localStorage.setItem(AUTH_FLAG_KEY, "true");
+}
+
+export function updateStoredUser(user) {
+    const currentToken = getAuthToken();
+    if (!currentToken) return;
+    persistAuth(currentToken, user);
 }
 
 export function clearAuth() {

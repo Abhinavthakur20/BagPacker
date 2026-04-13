@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
+import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
+import { isAuthenticated } from "../lib/auth";
 
 const getTripDuration = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -27,7 +29,8 @@ export default function TripDetailPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [seats, setSeats] = useState(2);
-  const [pickupPoint, setPickupPoint] = useState("");
+  const [pickupPointId, setPickupPointId] = useState("");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     const loadTrip = async () => {
@@ -38,7 +41,7 @@ export default function TripDetailPage() {
         setTripDetails(response);
 
         if (response?.pickupPoints?.length) {
-          setPickupPoint(response.pickupPoints[0].location);
+          setPickupPointId(response.pickupPoints[0]._id);
         }
       } catch (fetchError) {
         setError(fetchError.message);
@@ -50,7 +53,15 @@ export default function TripDetailPage() {
     loadTrip();
   }, [id]);
 
-  const trip = tripDetails?.trip;
+  const trip = tripDetails;
+  const tripImages = useMemo(() => {
+    const images = Array.isArray(tripDetails?.images)
+      ? tripDetails.images.map((path) => resolveMediaUrl(path)).filter(Boolean)
+      : [];
+
+    return images.length ? images : [campfireImage];
+  }, [tripDetails]);
+
   const itinerary = useMemo(() => {
     if (tripDetails?.itinerary?.length) {
       return tripDetails.itinerary.map((item) => ({
@@ -76,23 +87,36 @@ export default function TripDetailPage() {
 
   const pickupOptions = useMemo(() => {
     if (tripDetails?.pickupPoints?.length) {
-      return tripDetails.pickupPoints.map((point) => point.location);
+      return tripDetails.pickupPoints.map((point) => ({
+        value: point._id,
+        label: `${point.location} (${point.time})`,
+      }));
     }
 
-    return ["Main Pickup Point"];
+    return [];
   }, [tripDetails]);
 
   useEffect(() => {
-    if (!pickupPoint && pickupOptions.length) {
-      setPickupPoint(pickupOptions[0]);
+    if (!pickupPointId && pickupOptions.length) {
+      setPickupPointId(pickupOptions[0].value);
     }
-  }, [pickupOptions, pickupPoint]);
+  }, [pickupOptions, pickupPointId]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [id, tripImages.length]);
+
+  useEffect(() => {
+    if (trip?.availableSeats && seats > trip.availableSeats) {
+      setSeats(Math.max(1, trip.availableSeats));
+    }
+  }, [seats, trip]);
 
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="mx-auto max-w-7xl px-4 py-20 text-center text-on-surface-variant">
-          Loading trip details...
+        <div className="mx-auto max-w-7xl px-4 py-20">
+          <LoadingPanel label="Loading trip details..." />
         </div>
       </MainLayout>
     );
@@ -113,12 +137,14 @@ export default function TripDetailPage() {
   const tax = Math.round(seats * trip.pricePerPerson * 0.05);
   const subtotal = seats * trip.pricePerPerson;
   const total = subtotal + tax;
+  const canBook = trip.availableSeats > 0 && pickupPointId;
+  const bookingUrl = `/payment?tripId=${trip._id}&seats=${seats}&pickupPointId=${pickupPointId}`;
 
   return (
     <MainLayout withFooter={false}>
       <section className="relative h-[52vh] min-h-96 overflow-hidden">
         <img
-          src={campfireImage}
+          src={tripImages[activeImageIndex] || campfireImage}
           alt={trip.title}
           className="h-full w-full object-cover"
         />
@@ -150,6 +176,44 @@ export default function TripDetailPage() {
             </p>
           </div>
         </div>
+        {tripImages.length > 1 ? (
+          <>
+            <button
+              onClick={() =>
+                setActiveImageIndex((current) =>
+                  current === 0 ? tripImages.length - 1 : current - 1,
+                )
+              }
+              className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+              aria-label="Previous trip image"
+            >
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button
+              onClick={() =>
+                setActiveImageIndex((current) => (current + 1) % tripImages.length)
+              }
+              className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+              aria-label="Next trip image"
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              {tripImages.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`h-10 w-14 overflow-hidden rounded-lg border-2 ${
+                    index === activeImageIndex ? "border-secondary-container" : "border-white/30"
+                  }`}
+                  aria-label={`Open trip image ${index + 1}`}
+                >
+                  <img src={image} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
       </section>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 lg:grid-cols-12">
@@ -275,7 +339,9 @@ export default function TripDetailPage() {
                       {String(seats).padStart(2, "0")}
                     </span>
                     <button
-                      onClick={() => setSeats((s) => Math.min(9, s + 1))}
+                      onClick={() =>
+                        setSeats((s) => Math.min(Math.max(1, trip.availableSeats), s + 1))
+                      }
                       className="h-10 w-10 rounded-lg bg-primary-container text-lg font-bold text-white"
                     >
                       +
@@ -288,12 +354,14 @@ export default function TripDetailPage() {
                     Pickup Point
                   </p>
                   <select
-                    value={pickupPoint}
-                    onChange={(event) => setPickupPoint(event.target.value)}
+                    value={pickupPointId}
+                    onChange={(event) => setPickupPointId(event.target.value)}
                     className="w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm font-semibold text-primary"
                   >
                     {pickupOptions.map((point) => (
-                      <option key={point}>{point}</option>
+                      <option key={point.value} value={point.value}>
+                        {point.label}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -317,12 +385,25 @@ export default function TripDetailPage() {
                   </div>
                 </div>
 
-                <Link
-                  to="/payment"
-                  className="block rounded-2xl bg-linear-to-br from-secondary to-secondary-container px-5 py-4 text-center font-headline text-lg font-extrabold text-on-secondary-container shadow-[0_8px_24px_rgba(253,157,26,0.25)]"
-                >
-                  BOOK YOUR SEAT
-                </Link>
+                {isAuthenticated() ? (
+                  <Link
+                    to={bookingUrl}
+                    className={`block rounded-2xl px-5 py-4 text-center font-headline text-lg font-extrabold shadow-[0_8px_24px_rgba(253,157,26,0.25)] ${
+                      canBook
+                        ? "bg-linear-to-br from-secondary to-secondary-container text-on-secondary-container"
+                        : "pointer-events-none bg-surface-container-high text-outline"
+                    }`}
+                  >
+                    {trip.availableSeats > 0 ? "BOOK YOUR SEAT" : "SOLD OUT"}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/auth?mode=login"
+                    className="block rounded-2xl bg-linear-to-br from-secondary to-secondary-container px-5 py-4 text-center font-headline text-lg font-extrabold text-on-secondary-container shadow-[0_8px_24px_rgba(253,157,26,0.25)]"
+                  >
+                    LOGIN TO BOOK
+                  </Link>
+                )}
               </div>
 
               <div className="bg-surface-container-high p-4 text-center text-[10px] text-outline">

@@ -1,101 +1,215 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { io } from "socket.io-client";
 import MainLayout from "../components/MainLayout";
+import LoadingPanel from "../components/ui/LoadingPanel";
+import { api } from "../lib/api";
+import { getStoredUser, isAuthenticated } from "../lib/auth";
+
+const getSocketUrl = () => {
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+
+  if (window.location.hostname === "localhost") {
+    return "http://localhost:5000";
+  }
+
+  return window.location.origin;
+};
 
 export default function ChatPage() {
-  const contacts = [
-    {
-      id: 1,
-      name: "Arjun Mehta",
-      preview: "Check out the Spiti itinerary!",
-      time: "2:45 PM",
-      avatar:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80",
-      active: true,
-    },
-    {
-      id: 2,
-      name: "Priya Sharma",
-      preview: "Great, let's meet at the trailhead.",
-      time: "Yesterday",
-      avatar:
-        "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=120&q=80",
-      active: false,
-    },
-    {
-      id: 3,
-      name: "Vikram Singh",
-      preview: "Is the 4x4 confirmed for Leh?",
-      time: "Tue",
-      avatar:
-        "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=120&q=80",
-      active: false,
-    },
-    {
-      id: 4,
-      name: "Ananya K.",
-      preview: "The flight got delayed by 2 hours.",
-      time: "Mon",
-      avatar:
-        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-      active: false,
-    },
-  ];
-
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "other",
-      type: "text",
-      text: "Hey! I've finalized the Spiti route for our next expedition. Want to take a look?",
-      time: "2:40 PM",
-    },
-    {
-      id: 2,
-      sender: "me",
-      type: "text",
-      text: "Absolutely! Does it include the Pin Valley trek? I've heard the landscapes there are surreal this time of year.",
-      time: "2:42 PM",
-    },
-    {
-      id: 3,
-      sender: "other",
-      type: "image",
-      image:
-        "https://images.unsplash.com/photo-1609184856943-7e1a8e6a7e76?auto=format&fit=crop&w=1200&q=80",
-      time: "2:45 PM",
-    },
-    {
-      id: 4,
-      sender: "other",
-      type: "text",
-      text: "Yes! Including Pin Valley and a night stay at Key Monastery. Here is the view we're looking at.",
-      time: "2:45 PM",
-    },
-    {
-      id: 5,
-      sender: "me",
-      type: "text",
-      text: "Check out the Spiti itinerary! Looks insane. Let's book the 4x4.",
-      time: "2:46 PM",
-    },
-  ]);
-
+  const [contacts, setContacts] = useState([]);
+  const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [messagesByRoom, setMessagesByRoom] = useState({});
+  const [groupMetaByRoom, setGroupMetaByRoom] = useState({});
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const socketRef = useRef(null);
+  const user = getStoredUser();
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      return undefined;
+    }
+
+    const socket = io(getSocketUrl(), {
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("receive_message", (payload) => {
+      if (!payload?.sender || !payload?.message || !payload?.roomId) {
+        return;
+      }
+
+      setMessagesByRoom((prev) => {
+        return {
+          ...prev,
+          [payload.roomId]: [
+            ...(prev[payload.roomId] || []),
+            {
+              id: `${Date.now()}-${Math.random()}`,
+              sender: payload.sender === user?.name ? "me" : "other",
+              text: payload.message,
+              time: new Date(payload.timestamp || Date.now()).toLocaleTimeString("en-IN", {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+            },
+          ],
+        };
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [user?.name]);
+
+  useEffect(() => {
+    const loadRooms = async () => {
+      if (!isAuthenticated()) {
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError("");
+        const companionResponse = await api.get("/companions/my");
+        let tripGroups = [];
+        try {
+          tripGroups = await api.get("/group-chats/my");
+        } catch (groupError) {
+          tripGroups = [];
+          if (!String(groupError.message || "").includes("Route not found")) {
+            throw groupError;
+          }
+        }
+        const allRequests = [...(companionResponse.sent || []), ...(companionResponse.received || [])];
+        const acceptedCompanionRooms = allRequests
+          .filter((item) => item.status === "accepted" && item.chatRoomId)
+          .map((item) => {
+            const otherUser =
+              item.requesterId?._id === user?._id ? item.receiverId : item.requesterId;
+
+            return {
+              id: item.chatRoomId,
+              name: otherUser?.name || "Traveler",
+              preview: `${item.source} -> ${item.destination}`,
+              route: `${item.source} -> ${item.destination}`,
+            };
+          });
+
+        const tripRoomContacts = (Array.isArray(tripGroups) ? tripGroups : []).map((group) => ({
+          id: group.roomId,
+          name: group.tripId?.title || "Trip Group",
+          preview: `${group.tripId?.source || "Source"} -> ${group.tripId?.destination || "Destination"}`,
+          route: `${group.tripId?.source || "Source"} -> ${group.tripId?.destination || "Destination"}`,
+          type: "trip_group",
+          groupId: group._id,
+          myRole: group.myRole,
+          members: Array.isArray(group.members) ? group.members : [],
+        }));
+
+        const combinedContacts = [...tripRoomContacts, ...acceptedCompanionRooms];
+        setContacts(combinedContacts);
+        setGroupMetaByRoom(
+          tripRoomContacts.reduce((acc, item) => {
+            acc[item.id] = {
+              groupId: item.groupId,
+              myRole: item.myRole,
+              members: item.members,
+            };
+            return acc;
+          }, {}),
+        );
+        if (combinedContacts.length) {
+          setSelectedRoomId((current) => current || combinedContacts[0].id);
+        }
+      } catch (fetchError) {
+        setError(fetchError.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRooms();
+  }, [user?._id]);
+
+  useEffect(() => {
+    if (socketRef.current && selectedRoomId) {
+      socketRef.current.emit("join_room", { roomId: selectedRoomId, userId: user?._id });
+    }
+  }, [selectedRoomId, user?._id]);
+
+  const selectedContact = useMemo(
+    () => contacts.find((contact) => contact.id === selectedRoomId) || null,
+    [contacts, selectedRoomId],
+  );
+
+  const roomMessages = messagesByRoom[selectedRoomId] || [];
+  const selectedGroupMeta = groupMetaByRoom[selectedRoomId] || null;
+
+  const removeMember = async (memberUserId) => {
+    if (!selectedGroupMeta?.groupId) {
+      return;
+    }
+
+    try {
+      await api.put(
+        `/group-chats/${selectedGroupMeta.groupId}/members/${memberUserId}/remove`,
+        {},
+      );
+      setGroupMetaByRoom((current) => {
+        const updated = { ...current };
+        const roomMeta = updated[selectedRoomId];
+        if (!roomMeta) {
+          return current;
+        }
+
+        updated[selectedRoomId] = {
+          ...roomMeta,
+          members: (roomMeta.members || []).filter(
+            (member) => String(member.userId?._id || member.userId) !== String(memberUserId),
+          ),
+        };
+
+        return updated;
+      });
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  };
 
   const send = () => {
-    if (!draft.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        sender: "me",
-        type: "text",
-        text: draft,
-        time: "Now",
-      },
-    ]);
+    if (!draft.trim() || !selectedRoomId || !socketRef.current) {
+      return;
+    }
+
+    socketRef.current.emit("send_message", {
+      roomId: selectedRoomId,
+      message: draft.trim(),
+      sender: user?.name || "Traveler",
+      userId: user?._id,
+    });
+
     setDraft("");
   };
+
+  if (!isAuthenticated()) {
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-4xl px-4 py-20 text-center">
+          <p className="rounded-2xl bg-error-container p-6 font-semibold text-on-error-container">
+            Please login to use chat.
+          </p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout withFooter={false}>
@@ -105,103 +219,113 @@ export default function ChatPage() {
             Messages
           </h1>
 
-          <div className="mt-4 rounded-xl bg-[#e1dfd8] px-3 py-2.5 text-sm text-[#7a7f76]">
-            <span className="material-symbols-outlined mr-2 align-middle text-[18px]">
-              search
-            </span>
-            Search conversations...
-          </div>
+          {error ? (
+            <div className="mt-4 rounded-xl bg-[#ffd7d7] px-3 py-2.5 text-sm font-semibold text-[#8a1f1f]">
+              {error}
+            </div>
+          ) : null}
 
           <div className="mt-4 space-y-1.5">
             {contacts.map((contact) => (
               <button
                 key={contact.id}
+                onClick={() => setSelectedRoomId(contact.id)}
                 className={`flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left ${
-                  contact.active ? "bg-[#e1dfd8]" : "hover:bg-[#e5e3dd]"
+                  selectedRoomId === contact.id ? "bg-[#e1dfd8]" : "hover:bg-[#e5e3dd]"
                 }`}
               >
-                <img
-                  src={contact.avatar}
-                  alt={contact.name}
-                  className="h-11 w-11 rounded-full object-cover"
-                />
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#124f38] font-bold text-white">
+                  {contact.name.slice(0, 1)}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="truncate font-headline text-xl font-bold text-[#1b2822]">
-                      {contact.name}
-                    </p>
-                    <span className="text-[11px] text-[#80837c]">
-                      {contact.time}
-                    </span>
-                  </div>
-                  <p
-                    className={`truncate text-sm ${contact.active ? "text-[#a26216]" : "text-[#6f736b]"}`}
-                  >
-                    {contact.preview}
+                  <p className="truncate font-headline text-xl font-bold text-[#1b2822]">
+                    {contact.name}
                   </p>
+                  <p className="truncate text-sm text-[#6f736b]">{contact.preview}</p>
                 </div>
               </button>
             ))}
+
+            {!isLoading && !contacts.length ? (
+              <div className="rounded-2xl bg-[#e1dfd8] p-4 text-sm text-[#6f736b]">
+                No companion or trip group chats yet.
+              </div>
+            ) : null}
+
+            {isLoading ? (
+              <LoadingPanel
+                label="Loading chats..."
+                className="rounded-2xl !bg-[#e1dfd8] !p-6"
+              />
+            ) : null}
           </div>
         </aside>
 
         <section className="flex flex-1 flex-col bg-[#f6f4ee]">
           <header className="flex items-center justify-between border-b border-[#dbd7cd] px-6 py-4">
-            <div className="flex items-center gap-3">
-              <img
-                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80"
-                alt="Arjun Mehta"
-                className="h-11 w-11 rounded-full object-cover"
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-headline text-2xl font-extrabold text-[#132c22]">
-                    Arjun Mehta
-                  </h2>
-                  <span className="material-symbols-outlined text-[16px] text-[#069d60]">
-                    verified
-                  </span>
-                </div>
-                <p className="text-xs text-[#6e736a]">
-                  <span className="mr-1 rounded-full bg-[#bde3c9] px-2 py-0.5 font-semibold text-[#104732]">
-                    TRUST 9.8
-                  </span>
-                  Active now
-                </p>
-              </div>
+            <div>
+              <h2 className="font-headline text-2xl font-extrabold text-[#132c22]">
+                {selectedContact?.name || "Select a chat"}
+              </h2>
+              <p className="text-xs text-[#6e736a]">
+                {selectedContact?.route || "Companion and trip group rooms will appear here."}
+              </p>
             </div>
-            <div className="flex items-center gap-5 text-[#0d432d]">
-              <span className="material-symbols-outlined cursor-pointer">
-                call
-              </span>
-              <span className="material-symbols-outlined cursor-pointer">
-                videocam
-              </span>
-              <span className="material-symbols-outlined cursor-pointer">
-                more_vert
-              </span>
-            </div>
+            {selectedGroupMeta ? (
+              <p className="rounded-full bg-[#e1dfd8] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#1f2e27]">
+                {selectedGroupMeta.myRole === "admin" ? "Organizer admin" : "Trip member"}
+              </p>
+            ) : null}
           </header>
 
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-7">
-            <div className="mx-auto w-fit rounded-full bg-[#d8d6cf] px-4 py-1 text-[10px] font-bold tracking-[0.2em] text-[#656a63]">
-              TODAY
-            </div>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}
-              >
-                <div className="max-w-[84%] md:max-w-[72%]">
-                  {message.type === "image" ? (
-                    <div className="overflow-hidden rounded-2xl border-6 border-[#d8d6cf]">
-                      <img
-                        src={message.image}
-                        alt="Shared location"
-                        className="h-[250px] w-full object-cover"
-                      />
+          {selectedGroupMeta ? (
+            <div className="border-b border-[#dbd7cd] bg-[#ece8df] px-6 py-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#4a554f]">
+                Group members
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(selectedGroupMeta.members || []).map((member) => {
+                  const memberId = String(member.userId?._id || member.userId || "");
+                  const memberName = member.userId?.name || "Traveler";
+                  const canRemove =
+                    selectedGroupMeta.myRole === "admin" &&
+                    memberId &&
+                    memberId !== String(user?._id);
+
+                  return (
+                    <div
+                      key={`${selectedRoomId}-${memberId}`}
+                      className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs text-[#1f2e27]"
+                    >
+                      <span className="font-semibold">{memberName}</span>
+                      {member.role === "admin" ? (
+                        <span className="rounded-full bg-[#d8f5e8] px-2 py-0.5 text-[10px] font-bold uppercase text-[#0f5f3f]">
+                          admin
+                        </span>
+                      ) : null}
+                      {canRemove ? (
+                        <button
+                          onClick={() => removeMember(memberId)}
+                          className="rounded-full bg-[#ffd7d7] px-2 py-0.5 text-[10px] font-bold uppercase text-[#8a1f1f]"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
                     </div>
-                  ) : (
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-7">
+            {roomMessages.length ? (
+              roomMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}
+                >
+                  <div className="max-w-[84%] md:max-w-[72%]">
                     <p
                       className={`rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
                         message.sender === "me"
@@ -211,36 +335,35 @@ export default function ChatPage() {
                     >
                       {message.text}
                     </p>
-                  )}
-                  <p className="mt-1 px-1 text-[11px] text-[#8a8f86]">
-                    {message.time}
-                  </p>
+                    <p className="mt-1 px-1 text-[11px] text-[#8a8f86]">
+                      {message.time}
+                    </p>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="flex h-full items-center justify-center text-center text-sm text-[#6f736b]">
+                {selectedRoomId
+                  ? "No messages yet. Start the conversation."
+                  : "Choose an accepted companion chat to begin."}
               </div>
-            ))}
+            )}
           </div>
 
           <footer className="border-t border-[#dbd7cd] px-4 py-4 md:px-7">
             <div className="flex items-center gap-3 rounded-2xl bg-[#e1dfd8] px-3 py-2">
-              <span className="material-symbols-outlined text-[#666b63]">
-                add_circle
-              </span>
-              <span className="material-symbols-outlined text-[#666b63]">
-                mood
-              </span>
               <input
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && send()}
                 placeholder="Type a message..."
                 className="flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[#848880]"
+                disabled={!selectedRoomId}
               />
-              <span className="material-symbols-outlined text-[#666b63]">
-                attach_file
-              </span>
               <button
                 onClick={send}
-                className="rounded-xl bg-[#fd9d1a] px-4 py-2 text-[#2e2200]"
+                disabled={!selectedRoomId}
+                className="rounded-xl bg-[#fd9d1a] px-4 py-2 text-[#2e2200] disabled:opacity-60"
               >
                 <span className="material-symbols-outlined">send</span>
               </button>
@@ -248,20 +371,6 @@ export default function ChatPage() {
           </footer>
         </section>
       </div>
-
-      <footer className="border-t border-[#dbd7cd] bg-[#003c25] px-5 py-4 text-[#d9f4e8]">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between text-xs">
-          <p className="font-headline text-3xl font-extrabold text-[#fd9d1a]">
-            BagPacker
-          </p>
-          <p>© 2024 BagPacker Expedition Tech. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <span>Privacy</span>
-            <span>Terms</span>
-            <span>Support</span>
-          </div>
-        </div>
-      </footer>
     </MainLayout>
   );
 }

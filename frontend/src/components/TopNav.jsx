@@ -1,7 +1,13 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
 import { navLinks } from "../data/mockData";
-import { clearAuth, isAuthenticated } from "../lib/auth";
+import {
+  clearAuth,
+  getDashboardPath,
+  getStoredUser,
+  isAuthenticated,
+} from "../lib/auth";
+import { showConfirmAlert, showSuccessAlert } from "../lib/alerts";
 
 const getLinkClass = ({ isActive }) =>
   [
@@ -14,9 +20,33 @@ const getLinkClass = ({ isActive }) =>
 export default function TopNav() {
   const navigate = useNavigate();
   const isLoggedIn = isAuthenticated();
+  const user = getStoredUser();
+  const dashboardPath = getDashboardPath(user?.role);
+  const resolvedNavLinks = isLoggedIn
+    ? navLinks.map((item) =>
+        item.to === "/dashboard/traveler"
+          ? {
+              ...item,
+              label: user?.role === "admin" ? "Admin Panel" : "Dashboard",
+              to: dashboardPath,
+            }
+          : item,
+      )
+    : navLinks;
 
-  const logout = () => {
+  const logout = async () => {
+    const result = await showConfirmAlert({
+      title: "Logout from BagPacker?",
+      text: "You can log back in anytime from the auth page.",
+      confirmButtonText: "Logout",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
     clearAuth();
+    await showSuccessAlert("Logged out", "Your session has been cleared.");
     navigate("/");
   };
 
@@ -31,7 +61,7 @@ export default function TopNav() {
           BagPacker
         </NavLink>
         <div className="hidden items-center gap-8 md:flex">
-          {navLinks.map((item) => (
+          {resolvedNavLinks.map((item) => (
             <NavLink key={item.to} to={item.to} className={getLinkClass}>
               {item.label}
             </NavLink>
@@ -39,6 +69,12 @@ export default function TopNav() {
         </div>
         {isLoggedIn ? (
           <div className="flex items-center gap-3 text-primary">
+            <NavLink
+              to={dashboardPath}
+              className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-surface-container-low"
+            >
+              {user?.role === "admin" ? "Admin" : "Dashboard"}
+            </NavLink>
             <NavLink
               to="/profile"
               className="material-symbols-outlined rounded-full p-2 hover:bg-surface-container-low"

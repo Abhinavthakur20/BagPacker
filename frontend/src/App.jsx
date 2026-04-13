@@ -15,6 +15,13 @@ import CompanionPage from "./pages/CompanionPage";
 import ChatPage from "./pages/ChatPage";
 import CreateTripPage from "./pages/CreateTripPage";
 import ProfilePage from "./pages/ProfilePage";
+import AlertHost from "./components/ui/AlertHost";
+import { getDashboardPath, getStoredUser } from "./lib/auth";
+
+function DashboardRedirect() {
+  const user = getStoredUser();
+  return <Navigate to={getDashboardPath(user?.role)} replace />;
+}
 
 function App() {
   const location = useLocation();
@@ -77,7 +84,7 @@ function App() {
           <Route path=":id" element={<TripDetailPage />} />
         </Route>
         <Route path="/dashboard">
-          <Route index element={<Navigate to="traveler" replace />} />
+          <Route index element={<DashboardRedirect />} />
           <Route path="traveler" element={<TravelerDashboardPage />} />
           <Route path="organizer" element={<OrganizerDashboardPage />} />
         </Route>
@@ -88,6 +95,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <AlertHost />
     </div>
   );
 }

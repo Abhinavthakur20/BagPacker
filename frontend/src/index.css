@@ -54,3 +54,7 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
+
+.border-3 {
+  border-width: 3px;
+}

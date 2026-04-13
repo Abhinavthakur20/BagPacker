@@ -1,6 +1,7 @@
 import { getAuthToken } from "./auth";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+const API_ORIGIN = API_BASE_URL.startsWith("http") ? new URL(API_BASE_URL).origin : "";
 
 async function request(path, options = {}) {
     const { method = "GET", body, headers = {}, token } = options;
@@ -46,4 +47,20 @@ export const api = {
         request(path, { ...options, method: "POST", body }),
     put: (path, body, options) => request(path, { ...options, method: "PUT", body }),
     del: (path, options) => request(path, { ...options, method: "DELETE" }),
+};
+
+export const resolveMediaUrl = (mediaPath = "") => {
+    if (!mediaPath) {
+        return "";
+    }
+
+    if (/^https?:\/\//i.test(mediaPath)) {
+        return mediaPath;
+    }
+
+    if (mediaPath.startsWith("/") && API_ORIGIN) {
+        return `${API_ORIGIN}${mediaPath}`;
+    }
+
+    return mediaPath;
 };

@@ -1,321 +1,897 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../lib/api";
+import LoadingPanel from "../components/ui/LoadingPanel";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../lib/alerts";
+import { isAuthenticated } from "../lib/auth";
+
+const blankItinerary = { dayNumber: 1, activities: "", accommodation: "" };
+const blankPickup = { location: "", time: "", sequence: 1 };
+const clampValue = (value, min, max) => Math.min(Math.max(value, min), max);
+const fileSignature = (file) => `${file.name}-${file.size}-${file.lastModified}`;
 
 export default function CreateTripPage() {
+  const navigate = useNavigate();
+  const [organizer, setOrganizer] = useState(null);
   const [tripForm, setTripForm] = useState({
     title: "",
+    source: "",
     destination: "",
     startDate: "",
     endDate: "",
-    totalSeats: "",
-    price: "",
+    totalSeats: 1,
+    pricePerPerson: 0,
     description: "",
   });
+  const [itinerary, setItinerary] = useState([blankItinerary]);
+  const [pickupPoints, setPickupPoints] = useState([blankPickup]);
+  const [tripImages, setTripImages] = useState([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [pendingCropFiles, setPendingCropFiles] = useState([]);
+  const [activeCropFile, setActiveCropFile] = useState(null);
+  const [cropArea, setCropArea] = useState({ width: 0, height: 0 });
+  const [cropBox, setCropBox] = useState({ x: 0, y: 0, size: 0 });
+  const [isCropDragging, setIsCropDragging] = useState(false);
+  const [isCroppingImage, setIsCroppingImage] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const cropImageRef = useRef(null);
+  const dragStateRef = useRef(null);
+
+  const previewUrls = useMemo(
+    () => tripImages.map((file) => URL.createObjectURL(file)),
+    [tripImages],
+  );
+  const activeCropUrl = useMemo(
+    () => (activeCropFile ? URL.createObjectURL(activeCropFile) : ""),
+    [activeCropFile],
+  );
+
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
+  useEffect(() => {
+    return () => {
+      if (activeCropUrl) {
+        URL.revokeObjectURL(activeCropUrl);
+      }
+    };
+  }, [activeCropUrl]);
+
+  useEffect(() => {
+    if (previewIndex >= previewUrls.length) {
+      setPreviewIndex(0);
+    }
+  }, [previewIndex, previewUrls.length]);
+
+  useEffect(() => {
+    if (!activeCropFile && pendingCropFiles.length) {
+      setActiveCropFile(pendingCropFiles[0]);
+      setPendingCropFiles((prev) => prev.slice(1));
+    }
+  }, [activeCropFile, pendingCropFiles]);
+
+  useEffect(() => {
+    const loadOrganizer = async () => {
+      if (!isAuthenticated()) {
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const organizerProfile = await api.get("/organizers/me");
+        setOrganizer(organizerProfile);
+      } catch (fetchError) {
+        setError(fetchError.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadOrganizer();
+  }, []);
 
   const updateTripField = (field, value) => {
     setTripForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateItinerary = (index, field, value) => {
+    setItinerary((prev) =>
+      prev.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
+
+  const updatePickupPoint = (index, field, value) => {
+    setPickupPoints((prev) =>
+      prev.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
+
+  const addItineraryRow = () => {
+    setItinerary((prev) => [
+      ...prev,
+      { dayNumber: prev.length + 1, activities: "", accommodation: "" },
+    ]);
+  };
+
+  const addPickupRow = () => {
+    setPickupPoints((prev) => [
+      ...prev,
+      { location: "", time: "", sequence: prev.length + 1 },
+    ]);
+  };
+
+  const onSelectTripImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) {
+      return;
+    }
+    const knownFiles = new Set([
+      ...tripImages.map((file) => fileSignature(file)),
+      ...pendingCropFiles.map((file) => fileSignature(file)),
+      ...(activeCropFile ? [fileSignature(activeCropFile)] : []),
+    ]);
+    const occupiedSlots =
+      tripImages.length + pendingCropFiles.length + (activeCropFile ? 1 : 0);
+    const remainingSlots = Math.max(0, 10 - occupiedSlots);
+    const filesToQueue = [];
+
+    for (const file of files) {
+      if (filesToQueue.length >= remainingSlots) {
+        break;
+      }
+
+      const signature = fileSignature(file);
+      if (knownFiles.has(signature)) {
+        continue;
+      }
+
+      knownFiles.add(signature);
+      filesToQueue.push(file);
+    }
+
+    if (filesToQueue.length) {
+      setPendingCropFiles((previous) => [...previous, ...filesToQueue]);
+    }
+
+    event.target.value = "";
+  };
+
+  const addTripImage = (file) => {
+    setTripImages((previous) => {
+      if (previous.length >= 10) {
+        return previous;
+      }
+      const signature = fileSignature(file);
+      const alreadyAdded = previous.some(
+        (current) => fileSignature(current) === signature,
+      );
+      return alreadyAdded ? previous : [...previous, file];
+    });
+  };
+
+  const moveToNextCropFile = () => {
+    dragStateRef.current = null;
+    setIsCropDragging(false);
+    setCropArea({ width: 0, height: 0 });
+    setCropBox({ x: 0, y: 0, size: 0 });
+    setActiveCropFile(null);
+  };
+
+  const onCropImageLoad = (event) => {
+    const image = event.currentTarget;
+    const width = image.clientWidth;
+    const height = image.clientHeight;
+    const maxSquare = Math.floor(Math.min(width, height));
+
+    if (!width || !height || !maxSquare) {
+      return;
+    }
+
+    const initialSize = Math.floor(maxSquare * 0.7);
+    setCropArea({ width, height });
+    setCropBox({
+      size: initialSize,
+      x: Math.floor((width - initialSize) / 2),
+      y: Math.floor((height - initialSize) / 2),
+    });
+  };
+
+  const onCropPointerDown = (event) => {
+    if (!cropArea.width || !cropArea.height || !cropBox.size) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startBoxX: cropBox.x,
+      startBoxY: cropBox.y,
+    };
+    setIsCropDragging(true);
+  };
+
+  const onCropPointerMove = (event) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - dragState.startX;
+    const deltaY = event.clientY - dragState.startY;
+    const maxX = cropArea.width - cropBox.size;
+    const maxY = cropArea.height - cropBox.size;
+
+    setCropBox((previous) => ({
+      ...previous,
+      x: clampValue(dragState.startBoxX + deltaX, 0, Math.max(0, maxX)),
+      y: clampValue(dragState.startBoxY + deltaY, 0, Math.max(0, maxY)),
+    }));
+  };
+
+  const onCropPointerUp = (event) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    dragStateRef.current = null;
+    setIsCropDragging(false);
+  };
+
+  const onCropSizeChange = (event) => {
+    const nextSize = Number(event.target.value);
+    if (!cropArea.width || !cropArea.height || !nextSize) {
+      return;
+    }
+
+    const maxSize = Math.floor(Math.min(cropArea.width, cropArea.height));
+    const clampedSize = clampValue(nextSize, 1, maxSize);
+    setCropBox((previous) => ({
+      size: clampedSize,
+      x: clampValue(previous.x, 0, cropArea.width - clampedSize),
+      y: clampValue(previous.y, 0, cropArea.height - clampedSize),
+    }));
+  };
+
+  const applySquareCrop = async () => {
+    if (!activeCropFile || !cropImageRef.current || !cropBox.size) {
+      return;
+    }
+
+    try {
+      setIsCroppingImage(true);
+      const image = cropImageRef.current;
+      const naturalWidth = image.naturalWidth;
+      const naturalHeight = image.naturalHeight;
+      const displayWidth = image.clientWidth;
+      const displayHeight = image.clientHeight;
+
+      if (!naturalWidth || !naturalHeight || !displayWidth || !displayHeight) {
+        moveToNextCropFile();
+        return;
+      }
+
+      const scaleX = naturalWidth / displayWidth;
+      const scaleY = naturalHeight / displayHeight;
+      const sourceX = clampValue(
+        Math.round(cropBox.x * scaleX),
+        0,
+        Math.max(0, naturalWidth - 1),
+      );
+      const sourceY = clampValue(
+        Math.round(cropBox.y * scaleY),
+        0,
+        Math.max(0, naturalHeight - 1),
+      );
+      const sourceSize = Math.max(
+        1,
+        Math.min(
+          Math.round(cropBox.size * scaleX),
+          Math.round(cropBox.size * scaleY),
+          naturalWidth - sourceX,
+          naturalHeight - sourceY,
+        ),
+      );
+
+      const canvas = document.createElement("canvas");
+      canvas.width = sourceSize;
+      canvas.height = sourceSize;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        moveToNextCropFile();
+        return;
+      }
+
+      context.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        sourceSize,
+        sourceSize,
+      );
+
+      const webpBlob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, "image/webp", 0.92);
+      });
+      const resultBlob =
+        webpBlob ||
+        (await new Promise((resolve) => {
+          canvas.toBlob(resolve, "image/png");
+        }));
+
+      if (!resultBlob) {
+        moveToNextCropFile();
+        return;
+      }
+
+      const originalName = activeCropFile.name.replace(/\.[^/.]+$/, "");
+      const extension = resultBlob.type === "image/webp" ? "webp" : "png";
+      const croppedFile = new File([resultBlob], `${originalName}-square.${extension}`, {
+        type: resultBlob.type,
+        lastModified: Date.now(),
+      });
+
+      addTripImage(croppedFile);
+    } finally {
+      setIsCroppingImage(false);
+      moveToNextCropFile();
+    }
+  };
+
+  const useOriginalImage = () => {
+    if (!activeCropFile) {
+      return;
+    }
+    addTripImage(activeCropFile);
+    moveToNextCropFile();
+  };
+
+  const skipCurrentImage = () => {
+    moveToNextCropFile();
+  };
+
+  const removeTripImage = (indexToRemove) => {
+    setTripImages((previous) => previous.filter((_, index) => index !== indexToRemove));
+  };
+
+  const submitTrip = async () => {
+    const result = await showConfirmAlert({
+      title: "Create this trip?",
+      text: "This will publish the trip with its itinerary and pickup points.",
+      confirmButtonText: "Create Trip",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError("");
+      setSuccessMessage("");
+
+      const normalizedItinerary = itinerary.map((item, index) => ({
+        dayNumber: Number(item.dayNumber || index + 1),
+        activities: item.activities,
+        accommodation: item.accommodation || null,
+      }));
+      const normalizedPickupPoints = pickupPoints.map((item, index) => ({
+        location: item.location,
+        time: item.time,
+        sequence: Number(item.sequence || index + 1),
+      }));
+
+      const payload = new FormData();
+      payload.append("title", tripForm.title);
+      payload.append("source", tripForm.source);
+      payload.append("destination", tripForm.destination);
+      payload.append("startDate", tripForm.startDate);
+      payload.append("endDate", tripForm.endDate);
+      payload.append("totalSeats", String(Number(tripForm.totalSeats)));
+      payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
+      payload.append("description", tripForm.description);
+      payload.append("itinerary", JSON.stringify(normalizedItinerary));
+      payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
+      tripImages.forEach((image) => {
+        payload.append("tripImages", image);
+      });
+
+      await api.post("/trips", payload);
+      setSuccessMessage("Trip created successfully.");
+      await showSuccessAlert("Trip created", "Your expedition has been published successfully.");
+      navigate("/dashboard/organizer");
+    } catch (submitError) {
+      setError(submitError.message);
+      await showErrorAlert("Trip creation failed", submitError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isAuthenticated()) {
+    return (
+      <div className="min-h-screen bg-[#efeee9] px-4 py-20 text-center">
+        <div className="mx-auto max-w-3xl rounded-3xl bg-[#f7f5ef] p-10 shadow-lg">
+          <p className="font-semibold text-[#8a1f1f]">
+            Please login as an organizer to create trips.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#efeee9] text-[#171717]">
       <header className="border-b border-[#ddd8cf] bg-[#f4f2ec]">
         <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-5 py-4">
-          <h1 className="font-headline text-4xl font-extrabold text-[#132c22]">
+          <Link
+            to="/"
+            className="font-headline text-4xl font-extrabold text-[#132c22]"
+          >
             BagPacker
-          </h1>
+          </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium text-[#1d2a24] md:flex">
-            <a href="/" className="hover:text-[#8f5300]">
-              Home
-            </a>
-            <a href="/trips/search" className="hover:text-[#8f5300]">
+            <Link to="/dashboard/organizer" className="hover:text-[#8f5300]">
+              Organizer Dashboard
+            </Link>
+            <Link to="/trips/search" className="hover:text-[#8f5300]">
               Search Trips
-            </a>
-            <a href="/companion" className="hover:text-[#8f5300]">
+            </Link>
+            <Link to="/companion" className="hover:text-[#8f5300]">
               Find Companion
-            </a>
-            <a
-              href="/payment"
-              className="border-b-2 border-[#fd9d1a] pb-1 text-[#8f5300]"
-            >
-              My Bookings
-            </a>
-            <a href="/chat" className="hover:text-[#8f5300]">
-              Chat
-            </a>
+            </Link>
           </nav>
-          <div className="flex items-center gap-2 text-[#213229]">
-            <span className="material-symbols-outlined">account_circle</span>
-            <span className="material-symbols-outlined">logout</span>
-          </div>
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col lg:min-h-[calc(100vh-72px)] lg:flex-row">
-        <aside className="w-full border-b border-[#ddd8cf] px-5 py-6 lg:w-[250px] lg:border-b-0 lg:border-r">
+      <div className="mx-auto max-w-[1280px] space-y-6 px-5 py-8">
+        <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="font-headline text-xl font-extrabold text-[#123d2d]">
-              ORGANIZER PORTAL
-            </h2>
-            <p className="text-xs font-medium text-[#6b6c66]">
-              Manage your expeditions
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#a26216]">
+              Organizer Workspace
             </p>
-          </div>
-
-          <nav className="mt-8 space-y-2 text-sm font-semibold">
-            {[
-              ["dashboard", "Dashboard", false],
-              ["map", "My Trips", true],
-              ["groups", "Companions", false],
-              ["chat", "Messages", false],
-              ["settings", "Settings", false],
-            ].map(([icon, label, active]) => (
-              <button
-                key={label}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
-                  active
-                    ? "bg-[#124f38] text-white shadow"
-                    : "text-[#1f2a25] hover:bg-[#e6e2d9]"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  {icon}
-                </span>
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
-
-          <button className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#fd9d1a] px-4 py-3 text-sm font-extrabold text-[#2d2000] shadow-sm">
-            <span className="material-symbols-outlined text-[18px]">
-              add_circle
-            </span>
-            Create New Trip
-          </button>
-        </aside>
-
-        <main className="flex-1 px-5 py-6 md:px-7 lg:px-8">
-          <header className="mb-6">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a26216]">
-              Step 1 of 4
-            </p>
-            <h2 className="mt-1 font-headline text-5xl font-extrabold text-[#0f3d2d]">
+            <h1 className="font-headline text-5xl font-extrabold text-[#0f3d2d]">
               Create New Expedition
-            </h2>
+            </h1>
             <p className="mt-2 max-w-3xl text-[#6f736b]">
-              Craft a memorable journey for fellow explorers. Provide detailed
-              information to ensure a high trust score and more bookings.
+              Build a complete trip with schedule and pickup points in one submission.
             </p>
-          </header>
-
-          <div className="mb-7 grid grid-cols-4 border-b border-[#d9d4cb] text-xs font-semibold text-[#6f736b]">
-            {["Basic Details", "Itinerary", "Pickup Points", "Preview"].map(
-              (item, index) => (
-                <div key={item} className="relative py-3">
-                  <span className={index === 0 ? "text-[#1f2a25]" : ""}>
-                    {item}
-                  </span>
-                  {index === 0 ? (
-                    <span className="absolute bottom-0 left-0 h-[3px] w-full rounded-full bg-[#0f3d2d]" />
-                  ) : null}
-                </div>
-              ),
-            )}
           </div>
+          <span
+            className={`rounded-full px-4 py-2 text-sm font-bold uppercase ${
+              organizer?.approvalStatus === "approved"
+                ? "bg-[#d8f5e5] text-[#0f5132]"
+                : organizer?.approvalStatus === "rejected"
+                  ? "bg-[#ffd7d7] text-[#8a1f1f]"
+                  : "bg-[#ffe9cd] text-[#9b5600]"
+            }`}
+          >
+            {organizer?.approvalStatus || "loading"}
+          </span>
+        </header>
 
-          <div className="grid gap-5 xl:grid-cols-[2fr_1fr]">
-            <section className="space-y-5">
-              <article className="rounded-2xl bg-[#f7f5ef] p-5 shadow-sm md:p-6">
-                <h3 className="flex items-center gap-2 font-headline text-3xl font-bold text-[#132c22]">
-                  <span className="material-symbols-outlined text-[#a26216]">
-                    info
-                  </span>
+        {error ? (
+          <div className="rounded-2xl bg-[#ffd7d7] p-4 font-semibold text-[#8a1f1f]">
+            {error}
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div className="rounded-2xl bg-[#d8f5e5] p-4 font-semibold text-[#0f5132]">
+            {successMessage}
+          </div>
+        ) : null}
+
+        {isLoading ? (
+          <LoadingPanel label="Loading organizer profile..." />
+        ) : null}
+
+        {!isLoading && organizer?.approvalStatus !== "approved" ? (
+          <div className="rounded-3xl bg-[#f7f5ef] p-10 text-center shadow-sm">
+            <h2 className="font-headline text-3xl font-extrabold text-[#132c22]">
+              Organizer approval is still {organizer?.approvalStatus || "pending"}
+            </h2>
+            <p className="mt-3 text-[#6f736b]">
+              Trips can only be created after the organizer profile is approved by an admin.
+            </p>
+            <Link
+              to="/dashboard/organizer"
+              className="mt-6 inline-block rounded-xl bg-[#0f3d2d] px-6 py-3 font-bold text-white"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        ) : null}
+
+        {!isLoading && organizer?.approvalStatus === "approved" ? (
+          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+            <section className="space-y-6">
+              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+                <h2 className="font-headline text-3xl font-bold text-[#132c22]">
                   Core Trip Information
-                </h3>
-
-                <div className="mt-5 grid gap-4">
-                  <label className="grid gap-2">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                      Trip Title
-                    </span>
-                    <input
-                      className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                      placeholder="e.g., Mystical Spiti Valley Winter Expedition"
-                      value={tripForm.title}
-                      onChange={(e) => updateTripField("title", e.target.value)}
-                    />
-                  </label>
-
-                  <label className="grid gap-2">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                      Target Cities (Comma Separated)
-                    </span>
-                    <input
-                      className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                      placeholder="Manali, Kaza, Langza, Hikkim"
-                      value={tripForm.destination}
-                      onChange={(e) =>
-                        updateTripField("destination", e.target.value)
-                      }
-                    />
-                  </label>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="grid gap-2">
-                      <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                        Start Date
-                      </span>
-                      <input
-                        type="date"
-                        className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                        value={tripForm.startDate}
-                        onChange={(e) =>
-                          updateTripField("startDate", e.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                        End Date
-                      </span>
-                      <input
-                        type="date"
-                        className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                        value={tripForm.endDate}
-                        onChange={(e) =>
-                          updateTripField("endDate", e.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="grid gap-2">
-                      <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                        Price Per Person (₹)
-                      </span>
-                      <input
-                        type="number"
-                        className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                        placeholder="₹ 24,999"
-                        value={tripForm.price}
-                        onChange={(e) =>
-                          updateTripField("price", e.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                        Total Seats
-                      </span>
-                      <input
-                        type="number"
-                        className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                        placeholder="12"
-                        value={tripForm.totalSeats}
-                        onChange={(e) =>
-                          updateTripField("totalSeats", e.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
-
-                  <label className="grid gap-2">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#555b55]">
-                      Trip Description
-                    </span>
-                    <textarea
-                      rows={5}
-                      className="rounded-xl border border-[#e3dfd6] bg-[#eeebe4] px-4 py-3"
-                      placeholder="Describe the vibe, the sights, and why someone should join this trip..."
-                      value={tripForm.description}
-                      onChange={(e) =>
-                        updateTripField("description", e.target.value)
-                      }
-                    />
-                  </label>
+                </h2>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <input
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    placeholder="Trip title"
+                    value={tripForm.title}
+                    onChange={(event) => updateTripField("title", event.target.value)}
+                  />
+                  <input
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    placeholder="Source city"
+                    value={tripForm.source}
+                    onChange={(event) => updateTripField("source", event.target.value)}
+                  />
+                  <input
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    placeholder="Destination city"
+                    value={tripForm.destination}
+                    onChange={(event) => updateTripField("destination", event.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    placeholder="Price per person"
+                    value={tripForm.pricePerPerson}
+                    onChange={(event) =>
+                      updateTripField("pricePerPerson", event.target.value)
+                    }
+                  />
+                  <input
+                    type="date"
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    value={tripForm.startDate}
+                    onChange={(event) => updateTripField("startDate", event.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    value={tripForm.endDate}
+                    onChange={(event) => updateTripField("endDate", event.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3 md:col-span-2"
+                    placeholder="Total seats"
+                    value={tripForm.totalSeats}
+                    onChange={(event) => updateTripField("totalSeats", event.target.value)}
+                  />
+                  <textarea
+                    rows={5}
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3 md:col-span-2"
+                    placeholder="Trip description"
+                    value={tripForm.description}
+                    onChange={(event) => updateTripField("description", event.target.value)}
+                  />
                 </div>
               </article>
 
-              <article className="rounded-2xl border-2 border-dashed border-[#c7c2b7] bg-[#efece4] p-10 text-center">
-                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#c4e8d0] text-[#124f38]">
-                  <span className="material-symbols-outlined">add_a_photo</span>
-                </span>
-                <p className="mt-5 text-xl font-bold text-[#1f2a25]">
-                  Upload Hero Images
+              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="font-headline text-3xl font-bold text-[#132c22]">
+                    Day-wise Itinerary
+                  </h2>
+                  <button
+                    onClick={addItineraryRow}
+                    className="rounded-xl bg-[#124f38] px-4 py-2 text-sm font-bold text-white"
+                  >
+                    Add Day
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {itinerary.map((item, index) => (
+                    <div key={`itinerary-${index}`} className="grid gap-3 md:grid-cols-[120px_1fr_1fr]">
+                      <input
+                        type="number"
+                        min="1"
+                        className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                        value={item.dayNumber}
+                        onChange={(event) =>
+                          updateItinerary(index, "dayNumber", event.target.value)
+                        }
+                      />
+                      <input
+                        className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                        placeholder="Activities"
+                        value={item.activities}
+                        onChange={(event) =>
+                          updateItinerary(index, "activities", event.target.value)
+                        }
+                      />
+                      <input
+                        className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                        placeholder="Accommodation"
+                        value={item.accommodation}
+                        onChange={(event) =>
+                          updateItinerary(index, "accommodation", event.target.value)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="font-headline text-3xl font-bold text-[#132c22]">
+                    Pickup Points
+                  </h2>
+                  <button
+                    onClick={addPickupRow}
+                    className="rounded-xl bg-[#124f38] px-4 py-2 text-sm font-bold text-white"
+                  >
+                    Add Point
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {pickupPoints.map((item, index) => (
+                    <div key={`pickup-${index}`} className="grid gap-3 md:grid-cols-[1fr_180px_120px]">
+                      <input
+                        className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                        placeholder="Pickup location"
+                        value={item.location}
+                        onChange={(event) =>
+                          updatePickupPoint(index, "location", event.target.value)
+                        }
+                      />
+                      <input
+                        className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                        placeholder="Time"
+                        value={item.time}
+                        onChange={(event) =>
+                          updatePickupPoint(index, "time", event.target.value)
+                        }
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                        value={item.sequence}
+                        onChange={(event) =>
+                          updatePickupPoint(index, "sequence", event.target.value)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="font-headline text-3xl font-bold text-[#132c22]">
+                    Trip Image Carousel
+                  </h2>
+                  <p className="rounded-full bg-[#e6efe8] px-3 py-1 text-xs font-bold uppercase text-[#124f38]">
+                    {tripImages.length}/10 selected
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  multiple
+                  onChange={onSelectTripImages}
+                  className="w-full rounded-xl bg-[#eeebe4] px-4 py-3 text-sm"
+                />
+                <p className="mt-2 text-xs text-[#6f736b]">
+                  You can choose multiple files at once. Each image opens a square crop step.
                 </p>
-                <p className="mt-1 text-sm text-[#666a63]">
-                  Drag and drop up to 5 high-res landscape photos
-                </p>
+
+                {previewUrls.length ? (
+                  <div className="mt-5 space-y-3">
+                    <div className="relative overflow-hidden rounded-2xl bg-[#dad5ca]">
+                      <img
+                        src={previewUrls[previewIndex]}
+                        alt={`Trip preview ${previewIndex + 1}`}
+                        className="h-64 w-full object-cover"
+                      />
+                      {previewUrls.length > 1 ? (
+                        <>
+                          <button
+                            onClick={() =>
+                              setPreviewIndex((current) =>
+                                current === 0 ? previewUrls.length - 1 : current - 1,
+                              )
+                            }
+                            className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white"
+                            aria-label="Previous trip image"
+                          >
+                            <span className="material-symbols-outlined">chevron_left</span>
+                          </button>
+                          <button
+                            onClick={() =>
+                              setPreviewIndex((current) => (current + 1) % previewUrls.length)
+                            }
+                            className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white"
+                            aria-label="Next trip image"
+                          >
+                            <span className="material-symbols-outlined">chevron_right</span>
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto">
+                      {previewUrls.map((previewUrl, index) => (
+                        <div key={`${previewUrl}-${index}`} className="space-y-1">
+                          <button
+                            onClick={() => setPreviewIndex(index)}
+                            className={`h-16 min-w-20 overflow-hidden rounded-lg border-2 ${
+                              index === previewIndex ? "border-[#124f38]" : "border-transparent"
+                            }`}
+                            aria-label={`Preview trip image ${index + 1}`}
+                          >
+                            <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+                          </button>
+                          <button
+                            onClick={() => removeTripImage(index)}
+                            className="w-full rounded-md bg-[#fce0e0] px-1 py-1 text-[10px] font-bold uppercase text-[#8a1f1f]"
+                            aria-label={`Remove trip image ${index + 1}`}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-[#6f736b]">
+                    Select multiple images to preview your trip carousel.
+                  </p>
+                )}
               </article>
             </section>
 
-            <aside className="space-y-4">
-              <article className="overflow-hidden rounded-2xl bg-[#f7f5ef] shadow-sm">
-                <div className="h-30 bg-[#154c37]" />
-                <div className="p-4">
-                  <span className="inline-block rounded bg-[#fd9d1a] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#2d2000]">
-                    Live Preview
-                  </span>
-                  <h4 className="mt-3 font-headline text-3xl font-bold text-[#1f2a25]">
-                    {tripForm.title || "Trip Title Appears Here"}
-                  </h4>
-                  <div className="mt-3 flex items-center justify-between text-sm text-[#5f625d]">
-                    <span>
-                      ★ {tripForm.destination ? "4.8 (26)" : "0.0 (0)"}
-                    </span>
-                    <span className="font-semibold text-[#1d2823]">
-                      {tripForm.price ? `₹ ${tripForm.price}` : "₹ --,--"}
-                    </span>
-                  </div>
-                  <div className="mt-3 space-y-1 text-xs text-[#676b64]">
-                    <p>📅 Select dates to preview</p>
-                    <p>👥 {tripForm.totalSeats || "0"}+ seats available</p>
-                  </div>
+            <aside className="space-y-6">
+              <article className="rounded-3xl bg-[#154c37] p-6 text-white shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#b6e5c7]">
+                  Live Preview
+                </p>
+                <h3 className="mt-4 font-headline text-4xl font-bold">
+                  {tripForm.title || "Trip title appears here"}
+                </h3>
+                <p className="mt-3 text-sm text-[#d3efe0]">
+                  {tripForm.source || "Source"} to {tripForm.destination || "Destination"}
+                </p>
+                <div className="mt-6 space-y-2 text-sm text-[#d3efe0]">
+                  <p>Price: {Number(tripForm.pricePerPerson) > 0 ? `INR ${tripForm.pricePerPerson}` : "INR --"}</p>
+                  <p>Seats: {tripForm.totalSeats || 0}</p>
+                  <p>Itinerary days: {itinerary.length}</p>
+                  <p>Pickup points: {pickupPoints.length}</p>
+                  <p>Carousel images: {tripImages.length}</p>
                 </div>
               </article>
 
-              <article className="rounded-2xl bg-[#154c37] p-5 text-white shadow-sm">
-                <span className="inline-flex rounded-md bg-[#b6e5c7] p-2 text-[#104330]">
-                  <span className="material-symbols-outlined text-[16px]">
-                    verified_user
-                  </span>
-                </span>
-                <h4 className="mt-4 font-headline text-2xl font-bold">
-                  Trust Score Tip
-                </h4>
-                <p className="mt-2 text-sm text-[#d3efe0]">
-                  Detailed descriptions and clear cancellation policies increase
-                  your trust score by up to 40%. Be specific about inclusions.
+              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+                <h3 className="font-headline text-2xl font-bold text-[#132c22]">
+                  Ready to publish?
+                </h3>
+                <p className="mt-3 text-sm text-[#6f736b]">
+                  Submission will create the trip with itinerary and pickup points in one request.
                 </p>
+                <button
+                  onClick={submitTrip}
+                  disabled={isSubmitting}
+                  className="mt-6 w-full rounded-xl bg-[#0f3d2d] px-6 py-4 font-bold text-white disabled:opacity-60"
+                >
+                  {isSubmitting ? "Creating Trip..." : "Create Trip"}
+                </button>
               </article>
             </aside>
           </div>
-
-          <div className="mt-7 flex items-center justify-end gap-4">
-            <button className="rounded-xl px-6 py-3 text-sm font-semibold text-[#2a2d29]">
-              Cancel
-            </button>
-            <button className="rounded-xl bg-[#0f3d2d] px-7 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(15,61,45,0.35)]">
-              Next: Itinerary →
-            </button>
-          </div>
-        </main>
+        ) : null}
       </div>
 
-      <footer className="bg-[#003c25] px-5 py-5 text-[#d9f4e8]">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col items-start justify-between gap-3 text-xs sm:flex-row sm:items-center">
-          <p className="font-headline text-2xl font-extrabold text-[#fd9d1a]">
-            BagPacker
-          </p>
-          <div className="flex gap-5 text-[#d3ebe0]">
-            <span>About Us</span>
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Support</span>
-            <span>Careers</span>
+      {activeCropFile ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-[#f7f5ef] p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-headline text-3xl font-bold text-[#132c22]">
+                  Square Crop
+                </h2>
+                <p className="text-sm text-[#6f736b]">
+                  Drag the square to choose the visible area. Remaining queue:{" "}
+                  {pendingCropFiles.length}
+                </p>
+              </div>
+              <button
+                onClick={skipCurrentImage}
+                disabled={isCroppingImage}
+                className="rounded-lg bg-[#fce0e0] px-3 py-2 text-xs font-bold uppercase text-[#8a1f1f] disabled:opacity-60"
+              >
+                Skip
+              </button>
+            </div>
+
+            <div className="relative overflow-hidden rounded-xl bg-[#dad5ca]">
+              <img
+                ref={cropImageRef}
+                src={activeCropUrl}
+                alt="Crop preview"
+                onLoad={onCropImageLoad}
+                className="max-h-[65vh] w-full select-none object-contain"
+                draggable={false}
+              />
+              {cropBox.size ? (
+                <div
+                  className="absolute inset-0 touch-none"
+                  onPointerMove={onCropPointerMove}
+                  onPointerUp={onCropPointerUp}
+                  onPointerCancel={onCropPointerUp}
+                >
+                  <div
+                    className={`absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.4)] ${
+                      isCropDragging ? "cursor-grabbing" : "cursor-grab"
+                    }`}
+                    onPointerDown={onCropPointerDown}
+                    style={{
+                      width: `${cropBox.size}px`,
+                      height: `${cropBox.size}px`,
+                      transform: `translate(${cropBox.x}px, ${cropBox.y}px)`,
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#124f38]">
+                Crop size
+              </label>
+              <input
+                type="range"
+                min="1"
+                max={Math.max(1, Math.floor(Math.min(cropArea.width, cropArea.height)))}
+                value={Math.max(1, cropBox.size)}
+                onChange={onCropSizeChange}
+                className="w-full"
+              />
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
+              <button
+                onClick={useOriginalImage}
+                disabled={isCroppingImage}
+                className="rounded-lg border border-[#124f38] px-4 py-2 text-sm font-bold text-[#124f38] disabled:opacity-60"
+              >
+                Use Original
+              </button>
+              <button
+                onClick={applySquareCrop}
+                disabled={isCroppingImage || !cropBox.size}
+                className="rounded-lg bg-[#124f38] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {isCroppingImage ? "Applying..." : "Apply Square Crop"}
+              </button>
+            </div>
           </div>
-          <p>© 2024 BagPacker Expedition Tech. All rights reserved.</p>
         </div>
-      </footer>
+      ) : null}
     </div>
   );
 }
