@@ -4,6 +4,7 @@ const Booking = require("../booking/bookingModel");
 const Trip = require("../trip/tripModel");
 
 const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const normalizeText = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
 
 const getDayRange = (value) => {
   const date = new Date(value);
@@ -26,10 +27,13 @@ const buildChatRoomId = (firstUserId, secondUserId) =>
 
 const findCompanions = async (req, res) => {
   try {
-    const source = String(req.query.source || "").trim();
-    const destination = String(req.query.destination || "").trim();
+    const source = normalizeText(req.query.source);
+    const destination = normalizeText(req.query.destination);
     const date = String(req.query.date || "").trim();
     const range = date ? getDayRange(date) : null;
+    if (date && !range) {
+      return res.status(400).json({ message: "Valid date query is required" });
+    }
 
     const tripFilters = {
       status: "active",
@@ -47,7 +51,7 @@ const findCompanions = async (req, res) => {
       tripFilters.startDate = { $gte: range.start, $lte: range.end };
     }
 
-    const trips = await Trip.find(tripFilters).select("_id source destination startDate");
+    const trips = await Trip.find(tripFilters).select("_id source destination startDate").lean();
 
     if (!trips.length) {
       return res.status(200).json([]);
@@ -61,19 +65,27 @@ const findCompanions = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .populate("travelerId", "name trustScore verificationStatus role")
-      .populate("tripId", "source destination startDate");
+      .populate("tripId", "source destination startDate")
+      .lean();
 
     const candidatesByUser = new Map();
 
     for (const booking of candidateBookings) {
       const traveler = booking.travelerId;
-      if (!traveler || traveler.role !== "traveler") {
+      if (!traveler || traveler.role !== "traveler" || traveler.verificationStatus === "rejected") {
         continue;
       }
 
       const travelerId = String(traveler._id);
-      if (!candidatesByUser.has(travelerId)) {
-        candidatesByUser.set(travelerId, booking);
+      const tripStartDate = booking?.tripId?.startDate ? new Date(booking.tripId.startDate) : null;
+      const dateDistanceScore =
+        range && tripStartDate ? Math.abs(tripStartDate.getTime() - range.start.getTime()) : 0;
+      const trustScore = Number(traveler.trustScore || 0);
+
+      const candidateScore = dateDistanceScore - trustScore * 60 * 1000;
+      const existing = candidatesByUser.get(travelerId);
+      if (!existing || candidateScore < existing.score) {
+        candidatesByUser.set(travelerId, { booking, score: candidateScore });
       }
     }
 
@@ -102,9 +114,11 @@ const findCompanions = async (req, res) => {
       requestFilters.travelDate = { $gte: range.start, $lte: range.end };
     }
 
-    const companionRequests = await CompanionRequest.find(requestFilters).sort({
-      createdAt: -1,
-    });
+    const companionRequests = await CompanionRequest.find(requestFilters)
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
     const latestRequestByUser = new Map();
 
     for (const request of companionRequests) {
@@ -120,7 +134,7 @@ const findCompanions = async (req, res) => {
 
     const results = candidateUserIds
       .map((candidateUserId) => {
-        const booking = candidatesByUser.get(candidateUserId);
+        const booking = candidatesByUser.get(candidateUserId)?.booking;
         const traveler = booking?.travelerId;
         const trip = booking?.tripId;
         const request = latestRequestByUser.get(candidateUserId) || null;
@@ -146,7 +160,42 @@ const findCompanions = async (req, res) => {
       })
       .filter((item) => item.userId);
 
-    return res.status(200).json(results);
+    const requestPriority = (item) => {
+      if (!item.request) {
+        return 1;
+      }
+      if (item.request.status === "pending" && item.request.direction === "incoming") {
+        return 0;
+      }
+      if (item.request.status === "pending" && item.request.direction === "outgoing") {
+        return 2;
+      }
+      if (item.request.status === "accepted") {
+        return 3;
+      }
+      return 4;
+    };
+
+    results.sort((first, second) => {
+      const firstPriority = requestPriority(first);
+      const secondPriority = requestPriority(second);
+      if (firstPriority !== secondPriority) {
+        return firstPriority - secondPriority;
+      }
+
+      const trustDelta = Number(second.trustScore || 0) - Number(first.trustScore || 0);
+      if (trustDelta !== 0) {
+        return trustDelta;
+      }
+
+      const firstTime = first.travelDate ? new Date(first.travelDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const secondTime = second.travelDate
+        ? new Date(second.travelDate).getTime()
+        : Number.MAX_SAFE_INTEGER;
+      return firstTime - secondTime;
+    });
+
+    return res.status(200).json(results.slice(0, 100));
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -155,23 +204,26 @@ const findCompanions = async (req, res) => {
 const sendCompanionRequest = async (req, res) => {
   try {
     const { receiverId, source, destination, travelDate, vehicleType } = req.body;
+    const normalizedSource = normalizeText(source);
+    const normalizedDestination = normalizeText(destination);
 
     if (String(receiverId) === String(req.user._id)) {
       return res.status(400).json({ message: "You cannot send a companion request to yourself" });
     }
 
     const range = getDayRange(travelDate);
+    if (!range) {
+      return res.status(400).json({ message: "Valid travelDate is required" });
+    }
     const duplicateFilter = {
       requesterId: req.user._id,
       receiverId,
-      source: source.trim(),
-      destination: destination.trim(),
+      source: { $regex: `^${escapeRegex(normalizedSource)}$`, $options: "i" },
+      destination: { $regex: `^${escapeRegex(normalizedDestination)}$`, $options: "i" },
       status: "pending",
     };
 
-    if (range) {
-      duplicateFilter.travelDate = { $gte: range.start, $lte: range.end };
-    }
+    duplicateFilter.travelDate = { $gte: range.start, $lte: range.end };
 
     const existingRequest = await CompanionRequest.findOne(duplicateFilter);
 
@@ -182,8 +234,8 @@ const sendCompanionRequest = async (req, res) => {
     const request = await CompanionRequest.create({
       requesterId: req.user._id,
       receiverId,
-      source: source.trim(),
-      destination: destination.trim(),
+      source: normalizedSource,
+      destination: normalizedDestination,
       travelDate,
       vehicleType: vehicleType || null,
     });

@@ -79,6 +79,7 @@ export default function CompanionPage() {
       source: currentRequest.source,
       destination: currentRequest.destination,
       travelDate: currentRequest.travelDate,
+      chatRoomId: currentRequest.request?.chatRoomId || null,
     };
   }, [index, matches]);
 
@@ -89,6 +90,7 @@ export default function CompanionPage() {
       route: `${item.source} -> ${item.destination}`,
       status: item.status,
       isChatEnabled: item.status === "accepted",
+      chatRoomId: item.chatRoomId || null,
     }));
 
     const receivedRows = (myRequests.received || []).map((item) => ({
@@ -97,6 +99,7 @@ export default function CompanionPage() {
       route: `${item.source} -> ${item.destination}`,
       status: item.status,
       isChatEnabled: item.status === "accepted",
+      chatRoomId: item.chatRoomId || null,
     }));
 
     return [...sentRows, ...receivedRows];
@@ -365,7 +368,7 @@ export default function CompanionPage() {
 
                       {item.isChatEnabled ? (
                         <Link
-                          to="/chat"
+                          to={item.chatRoomId ? `/chat?roomId=${encodeURIComponent(item.chatRoomId)}` : "/chat"}
                           className="mt-3 block w-full rounded-lg bg-[#275f49] py-2 text-center text-xs font-bold uppercase tracking-wide text-white"
                         >
                           Start Chat

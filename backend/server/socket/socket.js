@@ -1,5 +1,8 @@
 let ioInstance = null;
 const GroupChat = require("../api/groupChat/groupChatModel");
+const ChatMessage = require("../api/chat/chatMessageModel");
+const { canAccessChatRoom } = require("../api/chat/chatAccess");
+const User = require("../api/user/userModel");
 
 const initSocket = (io) => {
   ioInstance = io;
@@ -12,39 +15,53 @@ const initSocket = (io) => {
         return;
       }
 
-      if (roomId.startsWith("trip_")) {
-        const group = await GroupChat.findOne({ roomId }).select("members");
-        const canJoin = group?.members?.some(
-          (member) => String(member.userId) === String(userId) && !member.isRemoved,
-        );
-        if (!canJoin) {
-          return;
-        }
+      const canJoin = await canAccessChatRoom({ roomId, userId });
+      if (!canJoin) {
+        return;
       }
 
       socket.join(roomId);
     });
 
-    socket.on("send_message", async ({ roomId, message, sender, userId }) => {
-      if (!roomId || !message || !sender || !userId) {
+    socket.on("send_message", async ({ roomId, message, userId }) => {
+      if (!roomId || !message || !userId) {
         return;
       }
 
+      const trimmedMessage = String(message).trim();
+      if (!trimmedMessage) {
+        return;
+      }
+
+      const canSend = await canAccessChatRoom({ roomId, userId });
+      if (!canSend) {
+        return;
+      }
+
+      const senderUser = await User.findById(userId).select("name");
+      if (!senderUser) {
+        return;
+      }
+
+      const savedMessage = await ChatMessage.create({
+        roomId,
+        senderId: userId,
+        senderName: senderUser.name,
+        message: trimmedMessage,
+        sentAt: new Date(),
+      });
+
       if (roomId.startsWith("trip_")) {
-        const group = await GroupChat.findOne({ roomId }).select("members");
-        const canSend = group?.members?.some(
-          (member) => String(member.userId) === String(userId) && !member.isRemoved,
-        );
-        if (!canSend) {
-          return;
-        }
+        await GroupChat.updateOne({ roomId }, { $set: { updatedAt: savedMessage.sentAt } });
       }
 
       io.to(roomId).emit("receive_message", {
+        id: String(savedMessage._id),
         roomId,
-        message,
-        sender,
-        timestamp: new Date().toISOString(),
+        message: savedMessage.message,
+        sender: savedMessage.senderName,
+        senderId: String(savedMessage.senderId),
+        timestamp: savedMessage.sentAt.toISOString(),
       });
     });
 

@@ -25,7 +25,9 @@ export default function ChatPage() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const socketRef = useRef(null);
+  const loadedRoomsRef = useRef(new Set());
   const user = getStoredUser();
 
   useEffect(() => {
@@ -45,13 +47,19 @@ export default function ChatPage() {
       }
 
       setMessagesByRoom((prev) => {
+        const roomMessages = prev[payload.roomId] || [];
+        const messageId = String(payload.id || `${Date.now()}-${Math.random()}`);
+        if (roomMessages.some((item) => item.id === messageId)) {
+          return prev;
+        }
+
         return {
           ...prev,
           [payload.roomId]: [
-            ...(prev[payload.roomId] || []),
+            ...roomMessages,
             {
-              id: `${Date.now()}-${Math.random()}`,
-              sender: payload.sender === user?.name ? "me" : "other",
+              id: messageId,
+              sender: String(payload.senderId) === String(user?._id) ? "me" : "other",
               text: payload.message,
               time: new Date(payload.timestamp || Date.now()).toLocaleTimeString("en-IN", {
                 hour: "numeric",
@@ -67,7 +75,7 @@ export default function ChatPage() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user?.name]);
+  }, [user?._id, user?.name]);
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -145,6 +153,49 @@ export default function ChatPage() {
     }
   }, [selectedRoomId, user?._id]);
 
+  useEffect(() => {
+    const loadRoomMessages = async () => {
+      if (!selectedRoomId || loadedRoomsRef.current.has(selectedRoomId)) {
+        return;
+      }
+
+      try {
+        setIsMessagesLoading(true);
+        const history = await api.get(`/chat/rooms/${encodeURIComponent(selectedRoomId)}/messages`);
+        const normalized = (Array.isArray(history) ? history : []).map((item) => ({
+          id: String(item._id),
+          sender: String(item.senderId) === String(user?._id) ? "me" : "other",
+          text: item.message,
+          time: new Date(item.sentAt || Date.now()).toLocaleTimeString("en-IN", {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        }));
+
+        setMessagesByRoom((current) => {
+          const existing = current[selectedRoomId] || [];
+          const existingById = new Map(existing.map((item) => [String(item.id), item]));
+
+          for (const item of normalized) {
+            existingById.set(String(item.id), item);
+          }
+
+          return {
+            ...current,
+            [selectedRoomId]: [...existingById.values()],
+          };
+        });
+        loadedRoomsRef.current.add(selectedRoomId);
+      } catch (requestError) {
+        setError(requestError.message);
+      } finally {
+        setIsMessagesLoading(false);
+      }
+    };
+
+    loadRoomMessages();
+  }, [selectedRoomId, user?._id]);
+
   const selectedContact = useMemo(
     () => contacts.find((contact) => contact.id === selectedRoomId) || null,
     [contacts, selectedRoomId],
@@ -192,7 +243,6 @@ export default function ChatPage() {
     socketRef.current.emit("send_message", {
       roomId: selectedRoomId,
       message: draft.trim(),
-      sender: user?.name || "Traveler",
       userId: user?._id,
     });
 
@@ -319,7 +369,11 @@ export default function ChatPage() {
           ) : null}
 
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-7">
-            {roomMessages.length ? (
+            {isMessagesLoading ? (
+              <div className="flex h-full items-center justify-center text-center text-sm text-[#6f736b]">
+                Loading messages...
+              </div>
+            ) : roomMessages.length ? (
               roomMessages.map((message) => (
                 <div
                   key={message.id}
