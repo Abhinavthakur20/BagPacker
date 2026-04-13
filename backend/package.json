@@ -7,7 +7,8 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "seed:admin": "node server/seedAdmin.js",
-    "seed:test-users": "node server/seedTestUsers.js"
+    "seed:test-users": "node server/seedTestUsers.js",
+    "job:trip-maintenance": "node server/runTripMaintenance.js"
   },
   "keywords": [],
   "author": "",
