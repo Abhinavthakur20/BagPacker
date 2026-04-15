@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
-import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
+import { showConfirmAlert, showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import {
+  clearAuth,
   getDashboardPath,
   getStoredUser,
   isAuthenticated,
@@ -12,6 +13,7 @@ import {
 } from "../lib/auth";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({ name: "", phone: "" });
@@ -111,6 +113,22 @@ export default function ProfilePage() {
     }
   };
 
+  const logout = async () => {
+    const result = await showConfirmAlert({
+      title: "Logout from BagPacker?",
+      text: "You can log back in anytime from the auth page.",
+      confirmButtonText: "Logout",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    clearAuth();
+    await showSuccessAlert("Logged out", "Your session has been cleared.");
+    navigate("/");
+  };
+
   if (!isAuthenticated()) {
     return (
       <MainLayout>
@@ -154,12 +172,20 @@ export default function ProfilePage() {
                 {profile?.role || storedUser?.role || "traveler"}
               </p>
             </div>
-            <Link
-              to={getDashboardPath(profile?.role || storedUser?.role)}
-              className="rounded-xl bg-white/10 px-5 py-3 text-sm font-bold backdrop-blur-sm"
-            >
-              Go To Dashboard
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to={getDashboardPath(profile?.role || storedUser?.role)}
+                className="rounded-xl bg-white/10 px-5 py-3 text-sm font-bold backdrop-blur-sm"
+              >
+                Go To Dashboard
+              </Link>
+              <button
+                onClick={logout}
+                className="rounded-xl bg-[#b94a57] px-5 py-3 text-sm font-bold text-white"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 

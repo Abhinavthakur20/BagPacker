@@ -15,12 +15,20 @@ export default function CompanionPage() {
   const [source, setSource] = useState("New Delhi");
   const [destination, setDestination] = useState("Spiti Valley");
   const [travelDate, setTravelDate] = useState(tomorrowISO);
+  const [postSource, setPostSource] = useState("New Delhi");
+  const [postDestination, setPostDestination] = useState("Spiti Valley");
+  const [postTravelDate, setPostTravelDate] = useState(tomorrowISO);
+  const [postMaxCompanions, setPostMaxCompanions] = useState(2);
+  const [postNote, setPostNote] = useState("");
   const [matches, setMatches] = useState([]);
+  const [personalPosts, setPersonalPosts] = useState([]);
+  const [myPersonalPosts, setMyPersonalPosts] = useState([]);
   const [myRequests, setMyRequests] = useState({ sent: [], received: [] });
   const [index, setIndex] = useState(0);
   const [accepted, setAccepted] = useState(0);
   const [declined, setDeclined] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState("");
 
   const loggedIn = isAuthenticated();
@@ -33,19 +41,27 @@ export default function CompanionPage() {
     try {
       setIsLoading(true);
       setError("");
-      const [foundMatches, requests] = await Promise.all([
+      const [foundMatches, requests, foundPosts, minePosts] = await Promise.all([
         api.get(
           `/companions/find?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${travelDate}`,
         ),
         api.get("/companions/my"),
+        api.get(
+          `/companions/posts?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${travelDate}`,
+        ),
+        api.get("/companions/posts/mine"),
       ]);
 
       setMatches(Array.isArray(foundMatches) ? foundMatches : []);
+      setPersonalPosts(Array.isArray(foundPosts) ? foundPosts : []);
+      setMyPersonalPosts(Array.isArray(minePosts) ? minePosts : []);
       setMyRequests(requests || { sent: [], received: [] });
       setIndex(0);
     } catch (fetchError) {
       setError(fetchError.message);
       setMatches([]);
+      setPersonalPosts([]);
+      setMyPersonalPosts([]);
       setMyRequests({ sent: [], received: [] });
     } finally {
       setIsLoading(false);
@@ -57,47 +73,87 @@ export default function CompanionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn]);
 
-  const current = useMemo(() => {
-    if (!matches.length) return null;
-
-    const currentRequest = matches[index % matches.length];
-    return {
-      userId: currentRequest.userId,
-      requestId: currentRequest.request?.id || null,
-      requestStatus: currentRequest.request?.status || null,
-      requestDirection: currentRequest.request?.direction || null,
-      name: currentRequest.name || "Traveler",
-      route: `${currentRequest.source} -> ${currentRequest.destination}`,
-      dates: currentRequest.travelDate
-        ? new Date(currentRequest.travelDate).toLocaleDateString("en-IN")
-        : "Date flexible",
+  const discoverItems = useMemo(() => {
+    const bookingItems = (matches || []).map((item) => ({
+      kind: "booking",
+      id: `booking-${item.userId}`,
+      userId: item.userId,
+      requestId: item.request?.id || null,
+      requestStatus: item.request?.status || null,
+      requestDirection: item.request?.direction || null,
+      name: item.name || "Traveler",
+      route: `${item.source} -> ${item.destination}`,
+      dates: item.travelDate ? new Date(item.travelDate).toLocaleDateString("en-IN") : "Date flexible",
       bio: "Looking for a trusted travel companion.",
-      trust: currentRequest.trustScore || 0,
-      verificationStatus: currentRequest.verificationStatus || "pending",
+      trust: item.trustScore || 0,
+      verificationStatus: item.verificationStatus || "pending",
+      source: item.source,
+      destination: item.destination,
+      travelDate: item.travelDate,
+      chatRoomId: item.request?.chatRoomId || null,
+      seatsLeft: null,
+      maxCompanions: null,
+      note: "",
+      postId: null,
+    }));
+
+    const postItems = (personalPosts || []).map((item) => ({
+      kind: "post",
+      id: `post-${item.postId}`,
+      userId: item.ownerId,
+      requestId: item.request?.id || null,
+      requestStatus: item.request?.status || null,
+      requestDirection: item.request?.direction || null,
+      name: item.ownerName || "Traveler",
+      route: `${item.source} -> ${item.destination}`,
+      dates: item.travelDate ? new Date(item.travelDate).toLocaleDateString("en-IN") : "Date flexible",
+      bio: item.note || "Open personal trip post.",
+      trust: item.trustScore || 0,
+      verificationStatus: item.verificationStatus || "pending",
+      source: item.source,
+      destination: item.destination,
+      travelDate: item.travelDate,
+      chatRoomId: item.request?.chatRoomId || null,
+      seatsLeft: item.seatsLeft,
+      maxCompanions: item.maxCompanions,
+      note: item.note || "",
+      postId: item.postId,
+    }));
+
+    return [...postItems, ...bookingItems];
+  }, [matches, personalPosts]);
+
+  const current = useMemo(() => {
+    if (!discoverItems.length) return null;
+
+    return {
+      ...discoverItems[index % discoverItems.length],
       image:
         "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
-      source: currentRequest.source,
-      destination: currentRequest.destination,
-      travelDate: currentRequest.travelDate,
-      chatRoomId: currentRequest.request?.chatRoomId || null,
     };
-  }, [index, matches]);
+  }, [discoverItems, index]);
 
   const requestRows = useMemo(() => {
     const sentRows = (myRequests.sent || []).map((item) => ({
       key: `sent-${item._id}`,
+      requestId: item._id,
       name: item.receiverId?.name || "Traveler",
       route: `${item.source} -> ${item.destination}`,
       status: item.status,
+      requestType: item.requestType || "booking_match",
+      direction: "outgoing",
       isChatEnabled: item.status === "accepted",
       chatRoomId: item.chatRoomId || null,
     }));
 
     const receivedRows = (myRequests.received || []).map((item) => ({
       key: `received-${item._id}`,
+      requestId: item._id,
       name: item.requesterId?.name || "Traveler",
       route: `${item.source} -> ${item.destination}`,
       status: item.status,
+      requestType: item.requestType || "booking_match",
+      direction: "incoming",
       isChatEnabled: item.status === "accepted",
       chatRoomId: item.chatRoomId || null,
     }));
@@ -109,6 +165,7 @@ export default function CompanionPage() {
     if (!current) return;
 
     try {
+      const isPost = current.kind === "post";
       const isIncomingPending =
         current.requestStatus === "pending" && current.requestDirection === "incoming";
       const isOutgoingPending =
@@ -142,12 +199,22 @@ export default function CompanionPage() {
           return;
         }
 
-        await api.post("/companions/request", {
-          receiverId: current.userId,
-          source: current.source,
-          destination: current.destination,
-          travelDate,
-        });
+        if (isPost) {
+          if (Number(current.seatsLeft || 0) <= 0) {
+            await showErrorAlert("Post full", "This personal trip post has no seats left.");
+            return;
+          }
+          await api.post("/companions/posts/request", {
+            postId: current.postId,
+          });
+        } else {
+          await api.post("/companions/request", {
+            receiverId: current.userId,
+            source: current.source,
+            destination: current.destination,
+            travelDate,
+          });
+        }
         await loadCompanionData();
         await showSuccessAlert("Request sent", "Companion request sent successfully.");
         return;
@@ -164,6 +231,49 @@ export default function CompanionPage() {
       }
 
       setIndex((value) => value + 1);
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Request update failed", requestError.message);
+    }
+  };
+
+  const createPersonalTripPost = async () => {
+    if (!loggedIn) {
+      return;
+    }
+
+    try {
+      setIsPosting(true);
+      setError("");
+      await api.post("/companions/posts", {
+        source: postSource,
+        destination: postDestination,
+        travelDate: postTravelDate,
+        maxCompanions: Number(postMaxCompanions),
+        note: postNote,
+      });
+      setPostNote("");
+      await loadCompanionData();
+      await showSuccessAlert("Post created", "Your personal trip post is now live.");
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Post creation failed", requestError.message);
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const respondFromRequestList = async (requestId, status) => {
+    try {
+      await api.put(`/companions/${requestId}/respond`, { status });
+      if (status === "accepted") {
+        setAccepted((value) => value + 1);
+        await showSuccessAlert("Companion accepted", "Your chat room is now available in the chat page.");
+      } else {
+        setDeclined((value) => value + 1);
+        await showSuccessAlert("Companion declined", "The request has been declined.");
+      }
+      await loadCompanionData();
     } catch (requestError) {
       setError(requestError.message);
       await showErrorAlert("Request update failed", requestError.message);
@@ -219,7 +329,7 @@ export default function CompanionPage() {
           <aside className="space-y-5">
             <article className="rounded-2xl bg-linear-to-br from-[#154f39] to-[#0f3f2e] p-6 text-white shadow-lg">
               <p className="font-headline text-6xl font-extrabold leading-none">
-                {matches.length}
+                {discoverItems.length}
               </p>
               <p className="mt-3 text-3xl font-semibold leading-snug">
                 Compatible
@@ -272,6 +382,11 @@ export default function CompanionPage() {
                     <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-white/90">
                       <span>{current.route}</span>
                       <span>{current.dates}</span>
+                      {current.kind === "post" ? (
+                        <span>
+                          Seats left: {current.seatsLeft}/{current.maxCompanions}
+                        </span>
+                      ) : null}
                       <span>
                         {current.requestStatus === "accepted"
                           ? "Matched"
@@ -286,6 +401,9 @@ export default function CompanionPage() {
                     </div>
                     <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/90">
                       {current.bio}
+                    </p>
+                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-white/70">
+                      {current.kind === "post" ? "Personal Trip Post" : "Booking Match"}
                     </p>
                   </div>
                 </article>
@@ -302,6 +420,7 @@ export default function CompanionPage() {
                   </button>
                   <button
                     onClick={() => onDecision("accept")}
+                    disabled={current.kind === "post" && !current.requestId && Number(current.seatsLeft || 0) <= 0}
                     className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fd9d1a] text-[#2e2200] shadow-[0_14px_30px_rgba(253,157,26,0.35)] transition hover:scale-105"
                     aria-label="Primary companion action"
                   >
@@ -330,7 +449,7 @@ export default function CompanionPage() {
                 <LoadingPanel label="Searching companions..." className="rounded-2xl" />
               ) : (
                 <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
-                  No companion matches found for this route.
+                  No companion matches or personal trip posts found for this route.
                 </div>
               )
             )}
@@ -338,6 +457,54 @@ export default function CompanionPage() {
 
           <aside>
             <article className="rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
+              <h2 className="font-headline text-2xl font-bold text-[#202925]">
+                Create Personal Trip Post
+              </h2>
+              <div className="mt-3 space-y-2">
+                <input
+                  value={postSource}
+                  onChange={(event) => setPostSource(event.target.value)}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  placeholder="Source city"
+                />
+                <input
+                  value={postDestination}
+                  onChange={(event) => setPostDestination(event.target.value)}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  placeholder="Destination city"
+                />
+                <input
+                  type="date"
+                  value={postTravelDate}
+                  onChange={(event) => setPostTravelDate(event.target.value)}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                />
+                <select
+                  value={postMaxCompanions}
+                  onChange={(event) => setPostMaxCompanions(Number(event.target.value))}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                >
+                  <option value={2}>2 companions</option>
+                  <option value={3}>3 companions</option>
+                </select>
+                <textarea
+                  value={postNote}
+                  onChange={(event) => setPostNote(event.target.value)}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  placeholder="Optional note for your post"
+                  rows={3}
+                />
+                <button
+                  onClick={createPersonalTripPost}
+                  disabled={!loggedIn || isPosting}
+                  className="w-full rounded-lg bg-[#275f49] px-3 py-2 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-60"
+                >
+                  {isPosting ? "Posting..." : "Create Post"}
+                </button>
+              </div>
+            </article>
+
+            <article className="mt-5 rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
               <h2 className="flex items-center gap-2 font-headline text-3xl font-bold text-[#202925]">
                 My Requests
                 <span className="rounded-full bg-[#aa5f00] px-2 py-0.5 text-[11px] font-bold text-white">
@@ -365,6 +532,26 @@ export default function CompanionPage() {
                           {item.status}
                         </span>
                       </div>
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#818780]">
+                        {item.requestType === "personal_trip_post" ? "Personal Trip Post" : "Booking Match"}
+                      </p>
+
+                      {item.direction === "incoming" && item.status === "pending" ? (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => respondFromRequestList(item.requestId, "accepted")}
+                            className="rounded-lg bg-[#275f49] py-2 text-xs font-bold uppercase tracking-wide text-white"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => respondFromRequestList(item.requestId, "declined")}
+                            className="rounded-lg bg-[#b94a57] py-2 text-xs font-bold uppercase tracking-wide text-white"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : null}
 
                       {item.isChatEnabled ? (
                         <Link
@@ -379,6 +566,41 @@ export default function CompanionPage() {
                 ) : (
                   <div className="rounded-xl bg-white p-3 text-sm text-[#6b7069]">
                     No requests yet.
+                  </div>
+                )}
+              </div>
+            </article>
+
+            <article className="mt-5 rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 font-headline text-2xl font-bold text-[#202925]">
+                My Personal Posts
+                <span className="rounded-full bg-[#275f49] px-2 py-0.5 text-[11px] font-bold text-white">
+                  {myPersonalPosts.length}
+                </span>
+              </h2>
+              <div className="mt-4 space-y-3">
+                {myPersonalPosts.length ? (
+                  myPersonalPosts.map((item) => (
+                    <div key={item._id} className="rounded-xl border-l-3 border-[#275f49] bg-white p-3">
+                      <p className="font-semibold text-[#262e2a]">
+                        {item.source} -&gt; {item.destination}
+                      </p>
+                      <p className="mt-0.5 text-xs text-[#7b7f77]">
+                        {item.travelDate
+                          ? new Date(item.travelDate).toLocaleDateString("en-IN")
+                          : "Date flexible"}
+                      </p>
+                      <p className="mt-1 text-[11px] text-[#6e736a]">
+                        Accepted: {(item.acceptedCompanionIds || []).length}/{item.maxCompanions}
+                      </p>
+                      {item.note ? (
+                        <p className="mt-1 text-xs text-[#6e736a]">{item.note}</p>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl bg-white p-3 text-sm text-[#6b7069]">
+                    No personal posts yet.
                   </div>
                 )}
               </div>

@@ -1,4 +1,5 @@
 const CompanionRequest = require("./companionRequestModel");
+const PersonalTripPost = require("./personalTripPostModel");
 const Notification = require("../notification/notificationModel");
 const Booking = require("../booking/bookingModel");
 const Trip = require("../trip/tripModel");
@@ -238,12 +239,200 @@ const sendCompanionRequest = async (req, res) => {
       destination: normalizedDestination,
       travelDate,
       vehicleType: vehicleType || null,
+      requestType: "booking_match",
     });
 
     await Notification.create({
       userId: receiverId,
       type: "companion_request",
       message: `${req.user.name} sent you a companion request.`,
+    });
+
+    return res.status(201).json(request);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const createPersonalTripPost = async (req, res) => {
+  try {
+    const source = normalizeText(req.body.source);
+    const destination = normalizeText(req.body.destination);
+    const range = getDayRange(req.body.travelDate);
+    const maxCompanions = Number(req.body.maxCompanions);
+    const note = String(req.body.note || "").trim();
+
+    if (!range) {
+      return res.status(400).json({ message: "Valid travelDate is required" });
+    }
+
+    if (![2, 3].includes(maxCompanions)) {
+      return res.status(400).json({ message: "maxCompanions must be 2 or 3" });
+    }
+
+    const post = await PersonalTripPost.create({
+      ownerId: req.user._id,
+      source,
+      destination,
+      travelDate: range.start,
+      maxCompanions,
+      note,
+    });
+
+    return res.status(201).json(post);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const listPersonalTripPosts = async (req, res) => {
+  try {
+    const source = normalizeText(req.query.source);
+    const destination = normalizeText(req.query.destination);
+    const date = String(req.query.date || "").trim();
+    const range = date ? getDayRange(date) : null;
+    if (date && !range) {
+      return res.status(400).json({ message: "Valid date query is required" });
+    }
+
+    const filters = {
+      ownerId: { $ne: req.user._id },
+      status: "active",
+    };
+
+    if (source) {
+      filters.source = { $regex: escapeRegex(source), $options: "i" };
+    }
+
+    if (destination) {
+      filters.destination = { $regex: escapeRegex(destination), $options: "i" };
+    }
+
+    if (range) {
+      filters.travelDate = { $gte: range.start, $lte: range.end };
+    }
+
+    const posts = await PersonalTripPost.find(filters)
+      .sort({ createdAt: -1 })
+      .populate("ownerId", "name trustScore verificationStatus role")
+      .lean();
+
+    if (!posts.length) {
+      return res.status(200).json([]);
+    }
+
+    const postIds = posts.map((post) => post._id);
+    const existingRequests = await CompanionRequest.find({
+      requestType: "personal_trip_post",
+      personalTripPostId: { $in: postIds },
+      $or: [
+        { requesterId: req.user._id },
+        { receiverId: req.user._id },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const latestRequestByPostId = new Map();
+    for (const request of existingRequests) {
+      const key = String(request.personalTripPostId);
+      if (!latestRequestByPostId.has(key)) {
+        latestRequestByPostId.set(key, request);
+      }
+    }
+
+    const results = posts
+      .map((post) => {
+        const owner = post.ownerId;
+        if (!owner || owner.role !== "traveler" || owner.verificationStatus === "rejected") {
+          return null;
+        }
+
+        const acceptedCount = Array.isArray(post.acceptedCompanionIds)
+          ? post.acceptedCompanionIds.length
+          : 0;
+        const request = latestRequestByPostId.get(String(post._id)) || null;
+
+        return {
+          postId: post._id,
+          ownerId: owner._id,
+          ownerName: owner.name || "Traveler",
+          trustScore: owner.trustScore || 0,
+          verificationStatus: owner.verificationStatus || "pending",
+          source: post.source,
+          destination: post.destination,
+          travelDate: post.travelDate,
+          maxCompanions: post.maxCompanions,
+          acceptedCount,
+          seatsLeft: Math.max(0, Number(post.maxCompanions || 0) - acceptedCount),
+          note: post.note || "",
+          request: request
+            ? {
+                id: request._id,
+                status: request.status,
+                direction:
+                  String(request.receiverId) === String(req.user._id) ? "incoming" : "outgoing",
+                chatRoomId: request.chatRoomId || null,
+              }
+            : null,
+        };
+      })
+      .filter(Boolean);
+
+    return res.status(200).json(results.slice(0, 100));
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const requestPersonalTripPost = async (req, res) => {
+  try {
+    const post = await PersonalTripPost.findById(req.body.postId).select(
+      "ownerId source destination travelDate maxCompanions acceptedCompanionIds status",
+    );
+
+    if (!post || post.status !== "active") {
+      return res.status(404).json({ message: "Personal trip post not found" });
+    }
+
+    if (String(post.ownerId) === String(req.user._id)) {
+      return res.status(400).json({ message: "You cannot request your own post" });
+    }
+
+    const acceptedCount = Array.isArray(post.acceptedCompanionIds)
+      ? post.acceptedCompanionIds.length
+      : 0;
+    if (acceptedCount >= Number(post.maxCompanions || 0)) {
+      return res.status(400).json({ message: "This post is already full" });
+    }
+
+    const duplicateRequest = await CompanionRequest.findOne({
+      requestType: "personal_trip_post",
+      personalTripPostId: post._id,
+      requesterId: req.user._id,
+      receiverId: post.ownerId,
+      status: "pending",
+    });
+
+    if (duplicateRequest) {
+      return res.status(400).json({ message: "A pending request already exists for this post" });
+    }
+
+    const request = await CompanionRequest.create({
+      requesterId: req.user._id,
+      receiverId: post.ownerId,
+      source: post.source,
+      destination: post.destination,
+      travelDate: post.travelDate,
+      vehicleType: null,
+      requestType: "personal_trip_post",
+      personalTripPostId: post._id,
+    });
+
+    await Notification.create({
+      userId: post.ownerId,
+      type: "companion_request",
+      message: `${req.user.name} requested to join your personal trip post.`,
     });
 
     return res.status(201).json(request);
@@ -269,6 +458,36 @@ const respondToCompanionRequest = async (req, res) => {
 
     request.status = req.body.status;
     if (req.body.status === "accepted") {
+      if (
+        request.requestType === "personal_trip_post" &&
+        request.personalTripPostId
+      ) {
+        const post = await PersonalTripPost.findById(request.personalTripPostId).select(
+          "ownerId maxCompanions acceptedCompanionIds status",
+        );
+        if (!post || String(post.ownerId) !== String(req.user._id)) {
+          return res.status(404).json({ message: "Related personal trip post not found" });
+        }
+        if (post.status !== "active") {
+          return res.status(400).json({ message: "This personal trip post is not active" });
+        }
+
+        const acceptedCompanionIds = Array.isArray(post.acceptedCompanionIds)
+          ? post.acceptedCompanionIds.map((item) => String(item))
+          : [];
+        if (acceptedCompanionIds.length >= Number(post.maxCompanions || 0)) {
+          return res.status(400).json({ message: "This personal trip post is already full" });
+        }
+
+        const requesterId = String(request.requesterId);
+        if (!acceptedCompanionIds.includes(requesterId)) {
+          post.acceptedCompanionIds.push(request.requesterId);
+        }
+        if (post.acceptedCompanionIds.length >= Number(post.maxCompanions || 0)) {
+          post.status = "closed";
+        }
+        await post.save();
+      }
       request.chatRoomId = buildChatRoomId(request.requesterId, request.receiverId);
     }
 
@@ -291,10 +510,12 @@ const getMyCompanionRequests = async (req, res) => {
     const [sent, received] = await Promise.all([
       CompanionRequest.find({ requesterId: req.user._id })
         .sort({ createdAt: -1 })
-        .populate("requesterId receiverId", "name email phone trustScore verificationStatus role"),
+        .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
+        .populate("personalTripPostId", "source destination travelDate maxCompanions note status"),
       CompanionRequest.find({ receiverId: req.user._id })
         .sort({ createdAt: -1 })
-        .populate("requesterId receiverId", "name email phone trustScore verificationStatus role"),
+        .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
+        .populate("personalTripPostId", "source destination travelDate maxCompanions note status"),
     ]);
 
     return res.status(200).json({ sent, received });
@@ -303,9 +524,25 @@ const getMyCompanionRequests = async (req, res) => {
   }
 };
 
+const getMyPersonalTripPosts = async (req, res) => {
+  try {
+    const posts = await PersonalTripPost.find({ ownerId: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json(posts);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   findCompanions,
   sendCompanionRequest,
+  createPersonalTripPost,
+  listPersonalTripPosts,
+  requestPersonalTripPost,
   respondToCompanionRequest,
   getMyCompanionRequests,
+  getMyPersonalTripPosts,
 };

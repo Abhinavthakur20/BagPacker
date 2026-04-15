@@ -1,13 +1,11 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
 import { navLinks } from "../data/mockData";
 import {
-  clearAuth,
   getDashboardPath,
   getStoredUser,
   isAuthenticated,
 } from "../lib/auth";
-import { showConfirmAlert, showSuccessAlert } from "../lib/alerts";
 
 const getLinkClass = ({ isActive }) =>
   [
@@ -18,7 +16,6 @@ const getLinkClass = ({ isActive }) =>
   ].join(" ");
 
 export default function TopNav() {
-  const navigate = useNavigate();
   const isLoggedIn = isAuthenticated();
   const user = getStoredUser();
   const dashboardPath = getDashboardPath(user?.role);
@@ -33,22 +30,6 @@ export default function TopNav() {
           : item,
       )
     : navLinks;
-
-  const logout = async () => {
-    const result = await showConfirmAlert({
-      title: "Logout from BagPacker?",
-      text: "You can log back in anytime from the auth page.",
-      confirmButtonText: "Logout",
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    clearAuth();
-    await showSuccessAlert("Logged out", "Your session has been cleared.");
-    navigate("/");
-  };
 
   return (
     <nav className="glass-nav fixed top-0 z-40 w-full border-b border-outline-variant/30 bg-gray-300/95 shadow-[0_12px_32px_rgba(28,28,24,0.06)]">
@@ -70,24 +51,11 @@ export default function TopNav() {
         {isLoggedIn ? (
           <div className="flex items-center gap-3 text-primary">
             <NavLink
-              to={dashboardPath}
-              className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-surface-container-low"
-            >
-              {user?.role === "admin" ? "Admin" : "Dashboard"}
-            </NavLink>
-            <NavLink
               to="/profile"
               className="material-symbols-outlined rounded-full p-2 hover:bg-surface-container-low"
             >
               account_circle
             </NavLink>
-            <button
-              onClick={logout}
-              className="material-symbols-outlined rounded-full p-2 hover:bg-surface-container-low"
-              aria-label="Logout"
-            >
-              logout
-            </button>
           </div>
         ) : (
           <div className="flex items-center gap-2">

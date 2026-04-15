@@ -39,6 +39,18 @@ const companionRequestSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "declined"],
       default: "pending",
     },
+    requestType: {
+      type: String,
+      enum: ["booking_match", "personal_trip_post"],
+      default: "booking_match",
+      index: true,
+    },
+    personalTripPostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PersonalTripPost",
+      default: null,
+      index: true,
+    },
     chatRoomId: {
       type: String,
       default: null,
