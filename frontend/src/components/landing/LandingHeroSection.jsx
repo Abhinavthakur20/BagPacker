@@ -34,7 +34,7 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
 
     const intervalId = setInterval(() => {
       setActiveImageIndex((prev) => (prev + 1) % heroSlides.length);
-    }, 3000);
+    }, 2000);
 
     return () => clearInterval(intervalId);
   }, [isPaused]);
