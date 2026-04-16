@@ -1,8 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
-import { navLinks } from "../data/mockData";
 import {
-  getDashboardPath,
   getStoredUser,
   isAuthenticated,
 } from "../lib/auth";
@@ -19,25 +17,38 @@ export default function TopNav() {
   const isLoggedIn = isAuthenticated();
   const user = getStoredUser();
   const role = user?.role;
-  const dashboardPath = getDashboardPath(user?.role);
-  const resolvedNavLinks = isLoggedIn
-    ? navLinks
-        .filter((item) => {
-          if (item.to === "/companion" || item.to === "/payment" || item.to === "/dashboard/traveler") {
-            return role === "traveler";
-          }
-          return true;
-        })
-        .map((item) =>
-          item.to === "/dashboard/traveler"
-            ? {
-                ...item,
-                label: user?.role === "admin" ? "Admin Panel" : "Dashboard",
-                to: dashboardPath,
-              }
-            : item,
-        )
-    : navLinks.filter((item) => item.to !== "/dashboard/traveler");
+  const resolvedNavLinks = (() => {
+    if (!isLoggedIn) {
+      return [
+        { label: "Home", to: "/" },
+        { label: "Search Trips", to: "/trips/search" },
+      ];
+    }
+
+    if (role === "admin") {
+      return [
+        { label: "Home", to: "/" },
+        { label: "Admin Panel", to: "/admin" },
+      ];
+    }
+
+    if (role === "organizer") {
+      return [
+        { label: "Home", to: "/" },
+        { label: "Organizer Dashboard", to: "/dashboard/organizer" },
+        { label: "Create Trip", to: "/trips/new" },
+        { label: "Chat", to: "/chat" },
+      ];
+    }
+
+    return [
+      { label: "Home", to: "/" },
+      { label: "Search Trips", to: "/trips/search" },
+      { label: "Find Companion", to: "/companion" },
+      { label: "My Bookings", to: "/dashboard/traveler" },
+      { label: "Chat", to: "/chat" },
+    ];
+  })();
 
   return (
     <nav className="glass-nav fixed top-0 z-40 w-full border-b border-outline-variant/30 bg-gray-300/95 shadow-[0_12px_32px_rgba(28,28,24,0.06)]">

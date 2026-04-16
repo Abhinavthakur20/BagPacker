@@ -461,9 +461,6 @@ export default function CreateTripPage() {
             <Link to="/trips/search" className="hover:text-[#8f5300]">
               Search Trips
             </Link>
-            <Link to="/companion" className="hover:text-[#8f5300]">
-              Find Companion
-            </Link>
           </nav>
         </div>
       </header>
