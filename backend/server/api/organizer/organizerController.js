@@ -1,4 +1,5 @@
 const Organizer = require("./organizerModel");
+const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
 const registerOrganizerProfile = async (req, res) => {
   try {
@@ -10,11 +11,22 @@ const registerOrganizerProfile = async (req, res) => {
       return res.status(400).json({ message: "Organizer profile already exists" });
     }
 
+    let licenseUrl = null;
+    if (req.file) {
+      const uploadedLicense = await uploadBufferToCloudinary({
+        buffer: req.file.buffer,
+        originalname: req.file.originalname,
+        folder: "bagpacker/organizer-licenses",
+        resourceType: "auto",
+      });
+      licenseUrl = uploadedLicense.secure_url;
+    }
+
     const organizer = await Organizer.create({
       userId: req.user._id,
       businessName: businessName.trim(),
       gstNumber: gstNumber ? gstNumber.trim() : undefined,
-      licenseUrl: req.file ? `/uploads/${req.file.filename}` : null,
+      licenseUrl,
       bankAccountDetails: bankAccountDetails ? bankAccountDetails.trim() : null,
     });
 

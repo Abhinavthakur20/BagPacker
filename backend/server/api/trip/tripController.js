@@ -4,6 +4,7 @@ const Itinerary = require("./itineraryModel");
 const PickupPoint = require("./pickupPointModel");
 const Trip = require("./tripModel");
 const { ensureTripGroupChat } = require("../groupChat/groupChatController");
+const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
 const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -194,7 +195,17 @@ const createTrip = async (req, res) => {
     }
 
     const tripImages = Array.isArray(req.files)
-      ? req.files.map((file) => `/uploads/${file.filename}`)
+      ? await Promise.all(
+          req.files.map(async (file) => {
+            const uploadedImage = await uploadBufferToCloudinary({
+              buffer: file.buffer,
+              originalname: file.originalname,
+              folder: "bagpacker/trip-images",
+              resourceType: "image",
+            });
+            return uploadedImage.secure_url;
+          }),
+        )
       : [];
 
     const trip = await Trip.create({

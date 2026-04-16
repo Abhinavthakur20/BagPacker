@@ -1,4 +1,5 @@
 const User = require("./userModel");
+const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -53,10 +54,17 @@ const uploadGovernmentId = async (req, res) => {
       return res.status(400).json({ message: "Government ID file is required" });
     }
 
+    const uploadedFile = await uploadBufferToCloudinary({
+      buffer: req.file.buffer,
+      originalname: req.file.originalname,
+      folder: "bagpacker/government-ids",
+      resourceType: "auto",
+    });
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
       {
-        governmentIdUrl: `/uploads/${req.file.filename}`,
+        governmentIdUrl: uploadedFile.secure_url,
         verificationStatus: "pending",
       },
       { returnDocument: "after", runValidators: true },

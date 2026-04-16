@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import {
   clearAuth,
@@ -314,7 +314,7 @@ export default function ProfilePage() {
 
                 {profile?.governmentIdUrl ? (
                   <a
-                    href={profile.governmentIdUrl}
+                    href={resolveMediaUrl(profile.governmentIdUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-4 inline-block text-sm font-bold text-secondary underline"

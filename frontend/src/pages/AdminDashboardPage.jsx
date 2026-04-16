@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -272,7 +272,7 @@ export default function AdminDashboardPage() {
                         <p className="text-sm text-on-surface-variant">{verification.email}</p>
                         {verification.governmentIdUrl ? (
                           <a
-                            href={verification.governmentIdUrl}
+                            href={resolveMediaUrl(verification.governmentIdUrl)}
                             target="_blank"
                             rel="noreferrer"
                             className="mt-2 inline-block text-sm font-bold text-secondary underline"
