@@ -16,6 +16,7 @@ import ChatPage from "./pages/ChatPage";
 import CreateTripPage from "./pages/CreateTripPage";
 import ProfilePage from "./pages/ProfilePage";
 import AlertHost from "./components/ui/AlertHost";
+import RoleRoute from "./components/RoleRoute";
 import { getDashboardPath, getStoredUser } from "./lib/auth";
 
 function DashboardRedirect() {
@@ -80,18 +81,67 @@ function App() {
         <Route path="/trips">
           <Route index element={<Navigate to="search" replace />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="new" element={<CreateTripPage />} />
+          <Route
+            path="new"
+            element={
+              <RoleRoute allowedRoles={["organizer"]}>
+                <CreateTripPage />
+              </RoleRoute>
+            }
+          />
           <Route path=":id" element={<TripDetailPage />} />
         </Route>
         <Route path="/dashboard">
           <Route index element={<DashboardRedirect />} />
-          <Route path="traveler" element={<TravelerDashboardPage />} />
-          <Route path="organizer" element={<OrganizerDashboardPage />} />
+          <Route
+            path="traveler"
+            element={
+              <RoleRoute allowedRoles={["traveler"]}>
+                <TravelerDashboardPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="organizer"
+            element={
+              <RoleRoute allowedRoles={["organizer"]}>
+                <OrganizerDashboardPage />
+              </RoleRoute>
+            }
+          />
         </Route>
-        <Route path="/admin" element={<AdminDashboardPage />} />
-        <Route path="/payment" element={<PaymentPage />} />
-        <Route path="/companion" element={<CompanionPage />} />
-        <Route path="/chat" element={<ChatPage />} />
+        <Route
+          path="/admin"
+          element={
+            <RoleRoute allowedRoles={["admin"]}>
+              <AdminDashboardPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/payment"
+          element={
+            <RoleRoute allowedRoles={["traveler"]}>
+              <PaymentPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/companion"
+          element={
+            <RoleRoute allowedRoles={["traveler"]}>
+              <CompanionPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <RoleRoute allowedRoles={["traveler", "organizer", "admin"]}>
+              <ChatPage />
+            </RoleRoute>
+          }
+        />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

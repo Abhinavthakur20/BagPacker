@@ -11,11 +11,12 @@ const {
   sendCompanionRequest,
 } = require("../api/companion/companionController");
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, roleMiddleware(["traveler"]));
 
 router.get("/find", findCompanions);
 router.get("/posts", listPersonalTripPosts);

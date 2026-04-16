@@ -18,18 +18,26 @@ const getLinkClass = ({ isActive }) =>
 export default function TopNav() {
   const isLoggedIn = isAuthenticated();
   const user = getStoredUser();
+  const role = user?.role;
   const dashboardPath = getDashboardPath(user?.role);
   const resolvedNavLinks = isLoggedIn
-    ? navLinks.map((item) =>
-        item.to === "/dashboard/traveler"
-          ? {
-              ...item,
-              label: user?.role === "admin" ? "Admin Panel" : "Dashboard",
-              to: dashboardPath,
-            }
-          : item,
-      )
-    : navLinks;
+    ? navLinks
+        .filter((item) => {
+          if (item.to === "/companion" || item.to === "/payment" || item.to === "/dashboard/traveler") {
+            return role === "traveler";
+          }
+          return true;
+        })
+        .map((item) =>
+          item.to === "/dashboard/traveler"
+            ? {
+                ...item,
+                label: user?.role === "admin" ? "Admin Panel" : "Dashboard",
+                to: dashboardPath,
+              }
+            : item,
+        )
+    : navLinks.filter((item) => item.to !== "/dashboard/traveler");
 
   return (
     <nav className="glass-nav fixed top-0 z-40 w-full border-b border-outline-variant/30 bg-gray-300/95 shadow-[0_12px_32px_rgba(28,28,24,0.06)]">

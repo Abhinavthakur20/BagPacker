@@ -7,11 +7,12 @@ const {
   getMyBookings,
 } = require("../api/booking/bookingController");
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, roleMiddleware(["traveler"]));
 
 router.post(
   "/",
