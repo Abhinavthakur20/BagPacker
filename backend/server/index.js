@@ -4,6 +4,9 @@ const path = require("path");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { Server } = require("socket.io");
+
+dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
+
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -17,8 +20,6 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const { initSocket } = require("./socket/socket");
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
