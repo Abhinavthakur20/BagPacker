@@ -2,7 +2,7 @@ Admin - admin@bagpacker.com
 Password- Admin@123
 
 
-traveler -   keerat12@gamil.com
+traveler - keerat12@gamil.com
 Password - 123456
 
 traveler - thakurabhinav16160@gmail.com
