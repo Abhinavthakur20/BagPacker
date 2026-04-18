@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api, resolveMediaUrl } from "../lib/api";
@@ -7,9 +8,11 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../lib/alerts";
-import { getStoredUser, isAuthenticated } from "../lib/auth";
 
 export default function AdminDashboardPage() {
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = Boolean(token);
   const [users, setUsers] = useState([]);
   const [pendingOrganizers, setPendingOrganizers] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
@@ -17,8 +20,6 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-
-  const user = getStoredUser();
 
   const loadAdminData = async () => {
     try {
@@ -44,12 +45,12 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isLoggedIn) {
       return;
     }
 
     loadAdminData();
-  }, []);
+  }, [isLoggedIn]);
 
   const metrics = useMemo(
     () => [
@@ -139,7 +140,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">

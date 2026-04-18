@@ -1,22 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import { api } from "../lib/api";
-import { getStoredUser, isAuthenticated } from "../lib/auth";
 
 export default function OrganizerDashboardPage() {
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = Boolean(token);
   const [organizer, setOrganizer] = useState(null);
   const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const user = getStoredUser();
-
   useEffect(() => {
     const loadDashboard = async () => {
-      if (!isAuthenticated()) {
+      if (!isLoggedIn) {
         return;
       }
 
@@ -39,7 +40,7 @@ export default function OrganizerDashboardPage() {
     };
 
     loadDashboard();
-  }, []);
+  }, [isLoggedIn]);
 
   const metrics = useMemo(() => {
     const totalBookingsEstimate = trips.reduce(
@@ -61,7 +62,7 @@ export default function OrganizerDashboardPage() {
     ];
   }, [trips]);
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">

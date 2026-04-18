@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import { api } from "../lib/api";
-import { getStoredUser, isAuthenticated, updateStoredUser } from "../lib/auth";
+import { setUser } from "../store/authSlice";
 
 export default function TravelerDashboardPage() {
-  const [profile, setProfile] = useState(getStoredUser());
+  const dispatch = useDispatch();
+  const storedUser = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
+  const isLoggedIn = Boolean(token);
+  const [profile, setProfile] = useState(storedUser);
   const [bookings, setBookings] = useState([]);
   const [companionRequests, setCompanionRequests] = useState({ sent: [], received: [] });
   const [notifications, setNotifications] = useState([]);
@@ -17,7 +22,7 @@ export default function TravelerDashboardPage() {
 
   useEffect(() => {
     const loadDashboard = async () => {
-      if (!isAuthenticated()) {
+      if (!isLoggedIn) {
         return;
       }
 
@@ -34,7 +39,7 @@ export default function TravelerDashboardPage() {
         ]);
 
         setProfile(userProfile);
-        updateStoredUser(userProfile);
+        dispatch(setUser(userProfile));
         setBookings(Array.isArray(userBookings) ? userBookings : []);
         setCompanionRequests(companions || { sent: [], received: [] });
         setRecommendedTrips(Array.isArray(trips) ? trips.slice(0, 3) : []);
@@ -47,7 +52,11 @@ export default function TravelerDashboardPage() {
     };
 
     loadDashboard();
-  }, []);
+  }, [dispatch, isLoggedIn]);
+
+  useEffect(() => {
+    setProfile(storedUser);
+  }, [storedUser]);
 
   const stats = useMemo(
     () => [
@@ -81,7 +90,7 @@ export default function TravelerDashboardPage() {
     }
   };
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">

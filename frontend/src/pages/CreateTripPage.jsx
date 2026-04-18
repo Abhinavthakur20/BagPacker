@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import LoadingPanel from "../components/ui/LoadingPanel";
@@ -7,7 +8,6 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../lib/alerts";
-import { isAuthenticated } from "../lib/auth";
 
 const blankItinerary = { dayNumber: 1, activities: "", accommodation: "" };
 const blankPickup = { location: "", time: "", sequence: 1 };
@@ -15,6 +15,8 @@ const clampValue = (value, min, max) => Math.min(Math.max(value, min), max);
 const fileSignature = (file) => `${file.name}-${file.size}-${file.lastModified}`;
 
 export default function CreateTripPage() {
+  const token = useSelector((state) => state.auth.token);
+  const isLoggedIn = Boolean(token);
   const navigate = useNavigate();
   const [organizer, setOrganizer] = useState(null);
   const [tripForm, setTripForm] = useState({
@@ -82,7 +84,7 @@ export default function CreateTripPage() {
 
   useEffect(() => {
     const loadOrganizer = async () => {
-      if (!isAuthenticated()) {
+      if (!isLoggedIn) {
         return;
       }
 
@@ -98,7 +100,7 @@ export default function CreateTripPage() {
     };
 
     loadOrganizer();
-  }, []);
+  }, [isLoggedIn]);
 
   const updateTripField = (field, value) => {
     setTripForm((prev) => ({ ...prev, [field]: value }));
@@ -432,7 +434,7 @@ export default function CreateTripPage() {
     }
   };
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#efeee9] px-4 py-20 text-center">
         <div className="mx-auto max-w-3xl rounded-3xl bg-[#f7f5ef] p-10 shadow-lg">

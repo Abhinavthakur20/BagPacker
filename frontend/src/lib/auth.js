@@ -1,8 +1,19 @@
 const TOKEN_KEY = "bagpacker_token";
 const USER_KEY = "bagpacker_user";
 const AUTH_FLAG_KEY = "bagpacker_auth";
+let authTokenGetter = null;
+
+export function setAuthTokenGetter(getter) {
+    authTokenGetter = typeof getter === "function" ? getter : null;
+}
 
 export function getAuthToken() {
+    if (authTokenGetter) {
+        const tokenFromStore = authTokenGetter();
+        if (tokenFromStore) {
+            return tokenFromStore;
+        }
+    }
     return window.localStorage.getItem(TOKEN_KEY) || "";
 }
 

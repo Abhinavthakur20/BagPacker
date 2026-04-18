@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api, resolveMediaUrl } from "../lib/api";
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from "../lib/alerts";
-import {
-  clearAuth,
-  getDashboardPath,
-  getStoredUser,
-  isAuthenticated,
-  updateStoredUser,
-} from "../lib/auth";
+import { getDashboardPath } from "../lib/auth";
+import { logout as logoutAction, setUser } from "../store/authSlice";
 
 export default function ProfilePage() {
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.token);
+  const storedUser = useSelector((state) => state.auth.user);
+  const isLoggedIn = Boolean(token);
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -24,11 +24,9 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const storedUser = getStoredUser();
-
   useEffect(() => {
     const loadProfile = async () => {
-      if (!isAuthenticated()) {
+      if (!isLoggedIn) {
         return;
       }
 
@@ -53,7 +51,7 @@ export default function ProfilePage() {
     };
 
     loadProfile();
-  }, []);
+  }, [isLoggedIn]);
 
   const verificationTone = useMemo(() => {
     if (profile?.verificationStatus === "verified") {
@@ -73,7 +71,7 @@ export default function ProfilePage() {
 
       const updatedProfile = await api.put("/users/profile", form);
       setProfile(updatedProfile);
-      updateStoredUser(updatedProfile);
+      dispatch(setUser(updatedProfile));
       setSuccessMessage("Profile updated successfully.");
       await showSuccessAlert("Profile updated", "Your account details were saved.");
     } catch (saveError) {
@@ -101,7 +99,7 @@ export default function ProfilePage() {
 
       const response = await api.post("/users/upload-id", formData);
       setProfile(response.user);
-      updateStoredUser(response.user);
+      dispatch(setUser(response.user));
       setSuccessMessage("Government ID uploaded successfully.");
       setIdFile(null);
       await showSuccessAlert("ID uploaded", "Your verification document is now pending review.");
@@ -124,12 +122,12 @@ export default function ProfilePage() {
       return;
     }
 
-    clearAuth();
+    dispatch(logoutAction());
     await showSuccessAlert("Logged out", "Your session has been cleared.");
     navigate("/");
   };
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">

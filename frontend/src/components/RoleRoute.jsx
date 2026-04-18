@@ -1,12 +1,15 @@
 import { Navigate } from "react-router-dom";
-import { getDashboardPath, getStoredUser, isAuthenticated } from "../lib/auth";
+import { useSelector } from "react-redux";
+import { getDashboardPath } from "../lib/auth";
 
 export default function RoleRoute({ allowedRoles = [], children }) {
-  if (!isAuthenticated()) {
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+
+  if (!token) {
     return <Navigate to="/auth?mode=login" replace />;
   }
 
-  const user = getStoredUser();
   const role = user?.role;
 
   if (!role) {

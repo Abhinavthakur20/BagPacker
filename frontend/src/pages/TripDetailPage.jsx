@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api, resolveMediaUrl } from "../lib/api";
-import { isAuthenticated } from "../lib/auth";
 
 const getTripDuration = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -24,6 +24,8 @@ const getTripDuration = (startDate, endDate) => {
 };
 
 export default function TripDetailPage() {
+  const token = useSelector((state) => state.auth.token);
+  const isLoggedIn = Boolean(token);
   const { id } = useParams();
   const [tripDetails, setTripDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -385,7 +387,7 @@ export default function TripDetailPage() {
                   </div>
                 </div>
 
-                {isAuthenticated() ? (
+                {isLoggedIn ? (
                   <Link
                     to={bookingUrl}
                     className={`block rounded-2xl px-5 py-4 text-center font-headline text-lg font-extrabold shadow-[0_8px_24px_rgba(253,157,26,0.25)] ${

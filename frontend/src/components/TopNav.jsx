@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { NavLink, useLocation } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
-import {
-  getStoredUser,
-  isAuthenticated,
-} from "../lib/auth";
 
 const getLinkClass = ({ isActive }) =>
   [
@@ -16,8 +13,9 @@ const getLinkClass = ({ isActive }) =>
 
 export default function TopNav() {
   const location = useLocation();
-  const isLoggedIn = isAuthenticated();
-  const user = getStoredUser();
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = Boolean(token);
   const role = user?.role;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 

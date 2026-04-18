@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
-import { getDashboardPath, loadGoogleScript, persistAuth } from "../lib/auth";
+import { getDashboardPath, loadGoogleScript } from "../lib/auth";
+import { setAuth } from "../store/authSlice";
 
 export default function AuthPage() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialMode = useMemo(
@@ -76,7 +79,7 @@ export default function AuthPage() {
         password: loginForm.password,
       });
 
-      persistAuth(response.token, response.user);
+      dispatch(setAuth({ token: response.token, user: response.user }));
       await showSuccessAlert("Welcome back", "Login successful.");
       navigate(getDashboardPath(response.user?.role));
     } catch (error) {
@@ -114,7 +117,7 @@ export default function AuthPage() {
         role,
       });
 
-      persistAuth(response.token, response.user);
+      dispatch(setAuth({ token: response.token, user: response.user }));
 
       if (role === "organizer") {
         await api.post(
@@ -170,7 +173,7 @@ export default function AuthPage() {
                 role: googleRoleRef.current,
               });
 
-              persistAuth(authResponse.token, authResponse.user);
+              dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
               await showSuccessAlert("Welcome", "Signed in with Google.");
               navigate(getDashboardPath(authResponse.user?.role));
             } catch (error) {

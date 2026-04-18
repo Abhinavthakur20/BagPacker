@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import LocomotiveScroll from "locomotive-scroll";
@@ -17,17 +18,23 @@ import CreateTripPage from "./pages/CreateTripPage";
 import ProfilePage from "./pages/ProfilePage";
 import AlertHost from "./components/ui/AlertHost";
 import RoleRoute from "./components/RoleRoute";
-import { getDashboardPath, getStoredUser } from "./lib/auth";
+import { getDashboardPath, setAuthTokenGetter } from "./lib/auth";
 
 function DashboardRedirect() {
-  const user = getStoredUser();
+  const user = useSelector((state) => state.auth.user);
   return <Navigate to={getDashboardPath(user?.role)} replace />;
 }
 
 function App() {
+  const token = useSelector((state) => state.auth.token);
   const location = useLocation();
   const scrollContainerRef = useRef(null);
   const locomotiveRef = useRef(null);
+
+  useEffect(() => {
+    setAuthTokenGetter(() => token);
+    return () => setAuthTokenGetter(null);
+  }, [token]);
 
   useEffect(() => {
     if (!scrollContainerRef.current) return;

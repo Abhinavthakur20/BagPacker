@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { io } from "socket.io-client";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
-import { getStoredUser, isAuthenticated } from "../lib/auth";
 
 const getSocketUrl = () => {
   if (import.meta.env.VITE_SOCKET_URL) {
@@ -18,6 +18,9 @@ const getSocketUrl = () => {
 };
 
 export default function ChatPage() {
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = Boolean(token);
   const [contacts, setContacts] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [messagesByRoom, setMessagesByRoom] = useState({});
@@ -29,10 +32,8 @@ export default function ChatPage() {
   const [isMobileRoomsOpen, setIsMobileRoomsOpen] = useState(false);
   const socketRef = useRef(null);
   const loadedRoomsRef = useRef(new Set());
-  const user = getStoredUser();
-
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isLoggedIn) {
       return undefined;
     }
 
@@ -76,11 +77,11 @@ export default function ChatPage() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user?._id, user?.name]);
+  }, [isLoggedIn, user?._id, user?.name]);
 
   useEffect(() => {
     const loadRooms = async () => {
-      if (!isAuthenticated()) {
+      if (!isLoggedIn) {
         return;
       }
 
@@ -146,7 +147,7 @@ export default function ChatPage() {
     };
 
     loadRooms();
-  }, [user?._id]);
+  }, [isLoggedIn, user?._id]);
 
   useEffect(() => {
     if (socketRef.current && selectedRoomId) {
@@ -256,7 +257,7 @@ export default function ChatPage() {
     setDraft("");
   };
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">

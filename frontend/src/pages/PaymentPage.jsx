@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
@@ -9,9 +10,11 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../lib/alerts";
-import { getStoredUser, isAuthenticated } from "../lib/auth";
 
 export default function PaymentPage() {
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = Boolean(token);
   const [searchParams] = useSearchParams();
   const [tripDetails, setTripDetails] = useState(null);
   const [bookings, setBookings] = useState([]);
@@ -26,10 +29,8 @@ export default function PaymentPage() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const tripId = searchParams.get("tripId");
-  const user = getStoredUser();
-
   const loadBookings = async () => {
-    if (!isAuthenticated()) {
+    if (!isLoggedIn) {
       return;
     }
 
@@ -43,7 +44,7 @@ export default function PaymentPage() {
 
   useEffect(() => {
     const loadPage = async () => {
-      if (!isAuthenticated()) {
+      if (!isLoggedIn) {
         return;
       }
 
@@ -71,7 +72,7 @@ export default function PaymentPage() {
     };
 
     loadPage();
-  }, [tripId]);
+  }, [isLoggedIn, tripId]);
 
   useEffect(() => {
     if (!pickupPointId && tripDetails?.pickupPoints?.length) {
@@ -161,7 +162,7 @@ export default function PaymentPage() {
     }
   };
 
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-4xl px-4 py-20">

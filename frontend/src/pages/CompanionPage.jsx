@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
-import { isAuthenticated } from "../lib/auth";
 
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -13,6 +13,8 @@ const DEFAULT_SOURCE = "New Delhi";
 const DEFAULT_DESTINATION = "Spiti Valley";
 
 export default function CompanionPage() {
+  const token = useSelector((state) => state.auth.token);
+  const loggedIn = Boolean(token);
   const navigate = useNavigate();
   const [source, setSource] = useState(DEFAULT_SOURCE);
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
@@ -32,8 +34,6 @@ export default function CompanionPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState("");
-
-  const loggedIn = isAuthenticated();
 
   const loadCompanionData = async (overrides = {}) => {
     if (!loggedIn) {
