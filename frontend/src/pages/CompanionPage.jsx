@@ -9,14 +9,16 @@ import { isAuthenticated } from "../lib/auth";
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
 const tomorrowISO = tomorrow.toISOString().slice(0, 10);
+const DEFAULT_SOURCE = "New Delhi";
+const DEFAULT_DESTINATION = "Spiti Valley";
 
 export default function CompanionPage() {
   const navigate = useNavigate();
-  const [source, setSource] = useState("New Delhi");
-  const [destination, setDestination] = useState("Spiti Valley");
+  const [source, setSource] = useState(DEFAULT_SOURCE);
+  const [destination, setDestination] = useState(DEFAULT_DESTINATION);
   const [travelDate, setTravelDate] = useState(tomorrowISO);
-  const [postSource, setPostSource] = useState("New Delhi");
-  const [postDestination, setPostDestination] = useState("Spiti Valley");
+  const [postSource, setPostSource] = useState(DEFAULT_SOURCE);
+  const [postDestination, setPostDestination] = useState(DEFAULT_DESTINATION);
   const [postTravelDate, setPostTravelDate] = useState(tomorrowISO);
   const [postMaxCompanions, setPostMaxCompanions] = useState(2);
   const [postNote, setPostNote] = useState("");
@@ -33,21 +35,25 @@ export default function CompanionPage() {
 
   const loggedIn = isAuthenticated();
 
-  const loadCompanionData = async () => {
+  const loadCompanionData = async (overrides = {}) => {
     if (!loggedIn) {
       return;
     }
+
+    const activeSource = overrides.source ?? source;
+    const activeDestination = overrides.destination ?? destination;
+    const activeTravelDate = overrides.travelDate ?? travelDate;
 
     try {
       setIsLoading(true);
       setError("");
       const [foundMatches, requests, foundPosts, minePosts] = await Promise.all([
         api.get(
-          `/companions/find?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${travelDate}`,
+          `/companions/find?source=${encodeURIComponent(activeSource)}&destination=${encodeURIComponent(activeDestination)}&date=${activeTravelDate}`,
         ),
         api.get("/companions/my"),
         api.get(
-          `/companions/posts?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${travelDate}`,
+          `/companions/posts?source=${encodeURIComponent(activeSource)}&destination=${encodeURIComponent(activeDestination)}&date=${activeTravelDate}`,
         ),
         api.get("/companions/posts/mine"),
       ]);
@@ -72,6 +78,17 @@ export default function CompanionPage() {
     loadCompanionData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn]);
+
+  const resetSearchFilters = async () => {
+    setSource(DEFAULT_SOURCE);
+    setDestination(DEFAULT_DESTINATION);
+    setTravelDate(tomorrowISO);
+    await loadCompanionData({
+      source: DEFAULT_SOURCE,
+      destination: DEFAULT_DESTINATION,
+      travelDate: tomorrowISO,
+    });
+  };
 
   const discoverItems = useMemo(() => {
     const bookingItems = (matches || []).map((item) => ({
@@ -283,6 +300,18 @@ export default function CompanionPage() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-10">
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a5b18]">
+            Companion Finder
+          </p>
+          <h1 className="mt-1 font-headline text-3xl font-extrabold text-[#132c22] sm:text-4xl">
+            Find your travel companion
+          </h1>
+          <p className="mt-1 text-sm text-[#6b7069]">
+            Match by route and date, then connect instantly.
+          </p>
+        </div>
+
         {!loggedIn ? (
           <div className="mb-6 rounded-2xl bg-error-container p-4 text-center font-semibold text-on-error-container">
             Please login to find and manage companion requests.
@@ -295,30 +324,50 @@ export default function CompanionPage() {
           </div>
         ) : null}
 
-        <div className="mb-6 rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-4">
-            <input
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-              className="rounded-xl bg-white px-4 py-3 text-sm"
-              placeholder="Source city"
-            />
-            <input
-              value={destination}
-              onChange={(event) => setDestination(event.target.value)}
-              className="rounded-xl bg-white px-4 py-3 text-sm"
-              placeholder="Destination city"
-            />
-            <input
-              type="date"
-              value={travelDate}
-              onChange={(event) => setTravelDate(event.target.value)}
-              className="rounded-xl bg-white px-4 py-3 text-sm"
-            />
+        <div className="mb-6 rounded-2xl bg-[#f1eee7] p-3 shadow-sm">
+          <div className="mb-3">
+            <p className="text-sm font-bold text-[#1d2a24]">Find Travel Companions</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="relative block">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-[#6d746d]">
+                trip_origin
+              </span>
+              <input
+                value={source}
+                onChange={(event) => setSource(event.target.value)}
+                className="w-full rounded-xl bg-white px-10 py-3 text-sm"
+                placeholder="From"
+              />
+            </label>
+            <label className="relative block">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-[#6d746d]">
+                near_me
+              </span>
+              <input
+                value={destination}
+                onChange={(event) => setDestination(event.target.value)}
+                className="w-full rounded-xl bg-white px-10 py-3 text-sm"
+                placeholder="To"
+              />
+            </label>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <label className="relative block">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-[#6d746d]">
+                calendar_month
+              </span>
+              <input
+                type="date"
+                value={travelDate}
+                onChange={(event) => setTravelDate(event.target.value)}
+                className="w-full rounded-xl bg-white px-10 py-3 text-sm"
+              />
+            </label>
             <button
-              onClick={loadCompanionData}
+              onClick={() => loadCompanionData()}
               disabled={!loggedIn || isLoading}
-              className="rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-linear-to-r from-primary to-[#0f5a3d] px-4 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? "Loading..." : "Find Matches"}
             </button>
@@ -327,32 +376,39 @@ export default function CompanionPage() {
 
         <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_290px]">
           <aside className="space-y-5">
-            <article className="rounded-2xl bg-linear-to-br from-[#154f39] to-[#0f3f2e] p-6 text-white shadow-lg">
-              <p className="font-headline text-6xl font-extrabold leading-none">
-                {discoverItems.length}
+            <article className="rounded-2xl bg-linear-to-br from-[#154f39] to-[#0f3f2e] p-4 text-white shadow-lg">
+              <div className="flex items-end justify-between gap-2">
+                <p className="font-headline text-5xl font-extrabold leading-none">
+                  {discoverItems.length}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/80">
+                  Live
+                </p>
+              </div>
+              <p className="mt-2 text-2xl font-semibold leading-tight">
+                Compatible companions
               </p>
-              <p className="mt-3 text-3xl font-semibold leading-snug">
-                Compatible
-                <br />
-                companions available
-              </p>
-              <p className="mt-3 text-sm text-white/75">
+              <p className="mt-1 text-sm text-white/75">
                 Matching your selected route
               </p>
             </article>
 
-            <article className="rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#7f847c]">
+            <article className="rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
+              <p className="text-sm font-bold text-[#2f3a35]">
                 Decision Stats
               </p>
-              <div className="mt-4 rounded-xl bg-white px-4 py-3 text-sm text-[#555b55]">
-                Accepted:{" "}
-                <span className="font-bold text-[#0f5f3f]">{accepted}</span>
-                <br />
-                Declined:{" "}
-                <span className="font-bold text-[#a64040]">{declined}</span>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-full bg-[#d8f5e5] px-3 py-2 text-xs font-semibold text-[#0f5f3f]">
+                  Accepted{" "}
+                  <span className="font-black">{accepted}</span>
+                </div>
+                <div className="rounded-full bg-[#ffdfe2] px-3 py-2 text-xs font-semibold text-[#a64040]">
+                  Declined{" "}
+                  <span className="font-black">{declined}</span>
+                </div>
               </div>
             </article>
+
           </aside>
 
           <section>
@@ -448,8 +504,23 @@ export default function CompanionPage() {
               isLoading ? (
                 <LoadingPanel label="Searching companions..." className="rounded-2xl" />
               ) : (
-                <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
-                  No companion matches or personal trip posts found for this route.
+                <div className="rounded-2xl bg-surface-container-low p-8 text-center">
+                  <span className="material-symbols-outlined text-4xl text-[#6f736b]">
+                    travel_explore
+                  </span>
+                  <p className="mt-3 font-semibold text-[#2a322d]">
+                    No companions found for this route
+                  </p>
+                  <p className="mt-1 text-sm text-[#6f736b]">
+                    Try a broader date or nearby destination.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={resetSearchFilters}
+                    className="mt-4 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white"
+                  >
+                    Reset filters
+                  </button>
                 </div>
               )
             )}
