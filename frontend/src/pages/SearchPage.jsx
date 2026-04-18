@@ -62,6 +62,7 @@ export default function SearchPage() {
   const [carouselTick, setCarouselTick] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
     const sourceParam = params.get("from");
@@ -139,12 +140,19 @@ export default function SearchPage() {
 
   const cards = visibleTrips;
 
+  const applySearch = () => {
+    setSubmittedSource(fromCity);
+    setSubmittedDestination(toCity);
+    setSubmittedDate(travelDate);
+    setShowMobileFilters(false);
+  };
+
   return (
     <MainLayout>
       <div className="mx-auto w-full max-w-7xl px-4 py-10 md:px-8">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="font-headline text-5xl font-extrabold tracking-tight text-primary">
+            <h1 className="font-headline text-3xl font-extrabold tracking-tight text-primary sm:text-4xl md:text-5xl">
               Expeditions Found
             </h1>
             <p className="mt-1 text-on-surface-variant">
@@ -153,6 +161,14 @@ export default function SearchPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(true)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white md:hidden"
+            >
+              <span className="material-symbols-outlined text-base">tune</span>
+              Filters
+            </button>
             <label className="text-sm font-medium text-on-surface-variant">
               Sort by:
             </label>
@@ -170,7 +186,7 @@ export default function SearchPage() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-12">
-          <aside className="md:col-span-3">
+          <aside className="hidden md:col-span-3 md:block">
             <div className="sticky top-28 rounded-2xl bg-surface-container-low p-6">
               <h2 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary">
                 <span className="material-symbols-outlined">tune</span>
@@ -251,11 +267,7 @@ export default function SearchPage() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    setSubmittedSource(fromCity);
-                    setSubmittedDestination(toCity);
-                    setSubmittedDate(travelDate);
-                  }}
+                  onClick={applySearch}
                   className="w-full rounded-xl bg-primary-container py-3 font-bold text-white hover:bg-primary"
                 >
                   Apply Search
@@ -317,12 +329,12 @@ export default function SearchPage() {
 
                       <div className="p-5 lg:flex lg:h-full lg:flex-col">
                         <div className="space-y-3">
-                          <div className="flex items-start justify-between gap-4">
-                            <h2 className="font-headline text-2xl font-bold leading-tight text-primary">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                            <h2 className="break-words font-headline text-xl font-bold leading-tight text-primary sm:text-2xl">
                               {trip.title}
                             </h2>
-                            <div className="text-right">
-                              <p className="font-headline text-2xl font-black text-primary">
+                            <div className="text-left sm:text-right">
+                              <p className="font-headline text-xl font-black text-primary sm:text-2xl">
                                 {formatINR(trip.price)}
                               </p>
                               <p className="text-[10px] uppercase tracking-[0.12em] text-on-surface-variant">
@@ -420,6 +432,100 @@ export default function SearchPage() {
           </section>
         </div>
       </div>
+
+      {showMobileFilters ? (
+        <div className="fixed inset-0 z-50 bg-black/45 p-4 md:hidden">
+          <div className="mx-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-headline text-2xl font-bold text-primary">
+                Filters
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container-low text-primary"
+                aria-label="Close filters"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                  From
+                </label>
+                <input
+                  value={fromCity}
+                  onChange={(e) => setFromCity(e.target.value)}
+                  placeholder="Source city"
+                  className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                  To
+                </label>
+                <input
+                  value={toCity}
+                  onChange={(e) => setToCity(e.target.value)}
+                  placeholder="Destination city"
+                  className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={travelDate}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                  className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
+                />
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Budget
+                  </label>
+                  <span className="text-sm font-bold text-primary">
+                    {formatINR(maxBudget)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="5000"
+                  max="50000"
+                  step="500"
+                  value={maxBudget}
+                  onChange={(e) => setMaxBudget(Number(e.target.value))}
+                  className="w-full accent-secondary"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                  Min. Seats Needed
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={seatsNeeded}
+                  onChange={(e) => setSeatsNeeded(Number(e.target.value || 1))}
+                  className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
+                />
+              </div>
+              <button
+                onClick={applySearch}
+                className="w-full rounded-xl bg-primary py-3 font-bold text-white"
+              >
+                Apply Search
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </MainLayout>
   );
 }

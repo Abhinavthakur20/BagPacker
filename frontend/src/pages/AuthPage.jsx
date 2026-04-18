@@ -38,6 +38,7 @@ export default function AuthPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
   const googleButtonRef = useRef(null);
   const googleRoleRef = useRef(role);
 
@@ -46,6 +47,16 @@ export default function AuthPage() {
   useEffect(() => {
     googleRoleRef.current = role;
   }, [role]);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      const viewportWidth = window.innerWidth || 320;
+      setGoogleButtonWidth(Math.max(220, Math.min(360, viewportWidth - 56)));
+    };
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
 
   const updateUserField = (field, value) => {
     setUserForm((prev) => ({ ...prev, [field]: value }));
@@ -176,7 +187,7 @@ export default function AuthPage() {
           size: "large",
           text: mode === "signup" ? "signup_with" : "signin_with",
           shape: "pill",
-          width: 320,
+          width: googleButtonWidth,
         });
       } catch (error) {
         if (isActive) {
@@ -193,7 +204,7 @@ export default function AuthPage() {
         googleButtonRef.current.innerHTML = "";
       }
     };
-  }, [mode, navigate]);
+  }, [googleButtonWidth, mode, navigate]);
 
   return (
     <MainLayout>
@@ -449,7 +460,7 @@ export default function AuthPage() {
                 </div>
                 <div
                   ref={googleButtonRef}
-                  className="flex min-h-11 items-center justify-center"
+                  className="flex min-h-11 w-full items-center justify-center overflow-hidden"
                 />
               </div>
             </section>

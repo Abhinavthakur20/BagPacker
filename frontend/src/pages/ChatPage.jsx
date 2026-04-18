@@ -26,6 +26,7 @@ export default function ChatPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [isMobileRoomsOpen, setIsMobileRoomsOpen] = useState(false);
   const socketRef = useRef(null);
   const loadedRoomsRef = useRef(new Set());
   const user = getStoredUser();
@@ -204,6 +205,12 @@ export default function ChatPage() {
   const roomMessages = messagesByRoom[selectedRoomId] || [];
   const selectedGroupMeta = groupMetaByRoom[selectedRoomId] || null;
 
+  useEffect(() => {
+    if (selectedRoomId) {
+      setIsMobileRoomsOpen(false);
+    }
+  }, [selectedRoomId]);
+
   const removeMember = async (memberUserId) => {
     if (!selectedGroupMeta?.groupId) {
       return;
@@ -263,7 +270,7 @@ export default function ChatPage() {
 
   return (
     <MainLayout withFooter={false}>
-      <div className="mx-auto flex h-[calc(100vh-82px)] w-full max-w-[1440px] overflow-hidden bg-[#efeee9]">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[1440px] bg-[#efeee9]">
         <aside className="hidden w-[320px] border-r border-[#dbd7cd] bg-[#efeee9] p-4 md:block">
           <h1 className="font-headline text-4xl font-extrabold text-[#132c22]">
             Messages
@@ -311,18 +318,26 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <section className="flex flex-1 flex-col bg-[#f6f4ee]">
-          <header className="flex items-center justify-between border-b border-[#dbd7cd] px-6 py-4">
+        <section className="flex min-w-0 flex-1 flex-col bg-[#f6f4ee]">
+          <header className="flex items-center justify-between border-b border-[#dbd7cd] px-4 py-4 md:px-6">
             <div>
-              <h2 className="font-headline text-2xl font-extrabold text-[#132c22]">
+              <h2 className="break-words font-headline text-xl font-extrabold text-[#132c22] sm:text-2xl">
                 {selectedContact?.name || "Select a chat"}
               </h2>
               <p className="text-xs text-[#6e736a]">
                 {selectedContact?.route || "Companion and trip group rooms will appear here."}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileRoomsOpen(true)}
+              className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#e1dfd8] px-3 py-2 text-sm font-bold text-[#1f2e27] md:hidden"
+            >
+              <span className="material-symbols-outlined text-base">chat</span>
+              Rooms
+            </button>
             {selectedGroupMeta ? (
-              <p className="rounded-full bg-[#e1dfd8] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#1f2e27]">
+              <p className="hidden rounded-full bg-[#e1dfd8] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#1f2e27] md:block">
                 {selectedGroupMeta.myRole === "admin" ? "Organizer admin" : "Trip member"}
               </p>
             ) : null}
@@ -368,7 +383,7 @@ export default function ChatPage() {
             </div>
           ) : null}
 
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-7">
+            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-7 md:py-5">
             {isMessagesLoading ? (
               <div className="flex h-full items-center justify-center text-center text-sm text-[#6f736b]">
                 Loading messages...
@@ -404,7 +419,7 @@ export default function ChatPage() {
             )}
           </div>
 
-          <footer className="border-t border-[#dbd7cd] px-4 py-4 md:px-7">
+          <footer className="border-t border-[#dbd7cd] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-7 md:py-4">
             <div className="flex items-center gap-3 rounded-2xl bg-[#e1dfd8] px-3 py-2">
               <input
                 value={draft}
@@ -425,6 +440,60 @@ export default function ChatPage() {
           </footer>
         </section>
       </div>
+
+      {isMobileRoomsOpen ? (
+        <div className="fixed inset-0 z-50 bg-black/45 p-4 md:hidden">
+          <div className="mx-auto flex h-[calc(100dvh-2rem)] max-w-xl flex-col rounded-2xl bg-[#efeee9] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-headline text-2xl font-bold text-[#132c22]">
+                Messages
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsMobileRoomsOpen(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#e1dfd8] text-[#1f2e27]"
+                aria-label="Close rooms list"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {error ? (
+              <div className="mb-3 rounded-xl bg-[#ffd7d7] px-3 py-2.5 text-sm font-semibold text-[#8a1f1f]">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+              {contacts.map((contact) => (
+                <button
+                  key={`mobile-room-${contact.id}`}
+                  onClick={() => setSelectedRoomId(contact.id)}
+                  className={`flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left ${
+                    selectedRoomId === contact.id ? "bg-[#e1dfd8]" : "hover:bg-[#e5e3dd]"
+                  }`}
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#124f38] font-bold text-white">
+                    {contact.name.slice(0, 1)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-headline text-lg font-bold text-[#1b2822]">
+                      {contact.name}
+                    </p>
+                    <p className="truncate text-sm text-[#6f736b]">{contact.preview}</p>
+                  </div>
+                </button>
+              ))}
+
+              {!isLoading && !contacts.length ? (
+                <div className="rounded-2xl bg-[#e1dfd8] p-4 text-sm text-[#6f736b]">
+                  No companion or trip group chats yet.
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </MainLayout>
   );
 }

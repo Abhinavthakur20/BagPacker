@@ -32,18 +32,18 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-20 border-t border-white/10 bg-primary text-surface">
-      <div className="mx-auto w-full max-w-7xl px-6 py-12">
-        <div className="grid gap-10 lg:grid-cols-12">
+    <footer className="mt-12 border-t border-white/10 bg-primary text-surface md:mt-20">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 md:py-12">
+        <div className="grid gap-8 md:gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="font-headline text-3xl font-extrabold text-secondary-container">
+            <p className="font-headline text-4xl font-extrabold text-secondary-container">
               BagPacker
             </p>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-surface/85">
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-surface/85">
               Discover trusted expeditions, verified organizers, and compatible
               travel companions across India. Plan smarter, travel safer.
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-4 hidden flex-wrap gap-2 sm:flex">
               {["Organizer Verified", "Secure Payments", "24x7 Support"].map(
                 (pill) => (
                   <span
@@ -56,7 +56,7 @@ export default function Footer() {
               )}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4">
+            <div className="mt-5 hidden rounded-2xl border border-white/15 bg-white/5 p-4 sm:block">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary-container">
                 Get Weekly Trip Drops
               </p>
@@ -78,7 +78,57 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-8">
-            <div className="grid gap-8 md:grid-cols-3">
+            <div className="space-y-3 md:hidden">
+              <details className="rounded-xl border border-white/15 bg-white/5 px-4 py-3">
+                <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.18em] text-secondary-container">
+                  Trip Categories
+                </summary>
+                <div className="mt-3 grid gap-2 text-sm text-surface/90">
+                  {tripStyles.map((item) => (
+                    <button
+                      key={item}
+                      className="text-left hover:text-secondary-container"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </details>
+
+              <details className="rounded-xl border border-white/15 bg-white/5 px-4 py-3">
+                <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.18em] text-secondary-container">
+                  Quick Links
+                </summary>
+                <div className="mt-3 grid gap-2 text-sm text-surface/90">
+                  {footerLinks.map((link) => (
+                    <button
+                      key={link}
+                      className="text-left hover:text-secondary-container"
+                    >
+                      {link}
+                    </button>
+                  ))}
+                </div>
+              </details>
+
+              <details className="rounded-xl border border-white/15 bg-white/5 px-4 py-3">
+                <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.18em] text-secondary-container">
+                  Resources
+                </summary>
+                <div className="mt-3 grid gap-2 text-sm text-surface/85">
+                  {resources.map((item) => (
+                    <button
+                      key={item}
+                      className="text-left hover:text-secondary-container"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </div>
+
+            <div className="hidden gap-8 md:grid md:grid-cols-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary-container">
                   Trip Categories
@@ -138,7 +188,7 @@ export default function Footer() {
                 <p>help@bagpacker.in | +91-80000-12345</p>
                 <p>Mon - Sat, 9:00 AM to 7:00 PM</p>
               </div>
-              <div className="flex flex-wrap gap-4 text-surface/90">
+              <div className="flex flex-wrap gap-3 text-surface/90 md:gap-4">
                 {socialLinks.map((item) => (
                   <button key={item} className="hover:text-secondary-container">
                     {item}
@@ -149,7 +199,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-5 text-xs text-surface/70 md:flex-row md:items-center md:justify-between">
+        <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-surface/70 md:mt-10 md:flex-row md:items-center md:justify-between md:pt-5">
           <p>© {year} BagPacker Expedition Tech. All rights reserved.</p>
           <p>Built for modern Indian explorers.</p>
         </div>

@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
 import {
   getStoredUser,
@@ -14,9 +15,12 @@ const getLinkClass = ({ isActive }) =>
   ].join(" ");
 
 export default function TopNav() {
+  const location = useLocation();
   const isLoggedIn = isAuthenticated();
   const user = getStoredUser();
   const role = user?.role;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const resolvedNavLinks = (() => {
     if (!isLoggedIn) {
       return [
@@ -50,6 +54,10 @@ export default function TopNav() {
     ];
   })();
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname, location.search]);
+
   return (
     <nav className="glass-nav fixed top-0 z-40 w-full border-b border-outline-variant/30 bg-gray-300/95 shadow-[0_12px_32px_rgba(28,28,24,0.06)]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
@@ -60,6 +68,7 @@ export default function TopNav() {
           <BsSuitcase className="text-[1.8rem]" aria-hidden="true" />
           BagPacker
         </NavLink>
+
         <div className="hidden items-center gap-8 md:flex">
           {resolvedNavLinks.map((item) => (
             <NavLink key={item.to} to={item.to} className={getLinkClass}>
@@ -67,31 +76,95 @@ export default function TopNav() {
             </NavLink>
           ))}
         </div>
-        {isLoggedIn ? (
-          <div className="flex items-center gap-3 text-primary">
+
+        <div className="hidden items-center gap-2 md:flex">
+          {isLoggedIn ? (
             <NavLink
               to="/profile"
-              className="material-symbols-outlined rounded-full p-2 hover:bg-surface-container-low"
+              aria-label="Open profile"
+              className="material-symbols-outlined rounded-full p-2 text-primary transition hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               account_circle
             </NavLink>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
+          ) : (
+            <>
+              <NavLink
+                to="/auth?mode=login"
+                className="rounded-lg px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/auth?mode=signup"
+                className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
+              >
+                Sign Up
+              </NavLink>
+            </>
+          )}
+        </div>
+
+        <button
+          type="button"
+          aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={isMobileMenuOpen}
+          onClick={() => setIsMobileMenuOpen((value) => !value)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-primary transition hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:hidden"
+        >
+          <span className="material-symbols-outlined text-[1.45rem]">
+            {isMobileMenuOpen ? "close" : "menu"}
+          </span>
+        </button>
+      </div>
+
+      <div
+        className={`border-t border-outline-variant/30 bg-surface-container-lowest px-4 pb-4 pt-3 shadow-[0_12px_30px_rgba(28,28,24,0.08)] transition md:hidden ${
+          isMobileMenuOpen ? "block" : "hidden"
+        }`}
+      >
+        <div className="grid gap-1">
+          {resolvedNavLinks.map((item) => (
             <NavLink
-              to="/auth?mode=login"
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-primary hover:bg-surface-container-low"
+              key={`mobile-${item.to}`}
+              to={item.to}
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-3 text-sm font-semibold transition ${
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-on-surface hover:bg-surface-container-low"
+                }`
+              }
             >
-              Login
+              {item.label}
             </NavLink>
+          ))}
+        </div>
+
+        <div className="mt-3 border-t border-outline-variant/25 pt-3">
+          {isLoggedIn ? (
             <NavLink
-              to="/auth?mode=signup"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-container"
+              to="/profile"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white"
             >
-              Sign Up
+              Profile
             </NavLink>
-          </div>
-        )}
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <NavLink
+                to="/auth?mode=login"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-sm font-semibold text-primary"
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/auth?mode=signup"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white"
+              >
+                Sign Up
+              </NavLink>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

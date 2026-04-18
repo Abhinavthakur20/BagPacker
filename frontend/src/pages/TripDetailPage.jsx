@@ -142,19 +142,19 @@ export default function TripDetailPage() {
 
   return (
     <MainLayout withFooter={false}>
-      <section className="relative h-[52vh] min-h-96 overflow-hidden">
+      <section className="relative h-[52vh] min-h-80 overflow-hidden sm:min-h-96">
         <img
           src={tripImages[activeImageIndex] || campfireImage}
           alt={trip.title}
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-linear-to-t from-primary/80 via-primary/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl p-8 text-white md:p-12">
+        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl p-5 text-white sm:p-8 md:p-12">
           <p className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-4 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-on-secondary-container">
             <span className="material-symbols-outlined text-sm">star</span>
             Trending Expedition
           </p>
-          <h1 className="mt-4 font-headline text-5xl font-extrabold leading-none tracking-tight md:text-7xl">
+          <h1 className="mt-4 break-words font-headline text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
             {trip.title}
           </h1>
           <div className="mt-5 flex flex-wrap items-center gap-6 text-sm text-surface-variant">
@@ -184,7 +184,7 @@ export default function TripDetailPage() {
                   current === 0 ? tripImages.length - 1 : current - 1,
                 )
               }
-              className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+               className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:left-4"
               aria-label="Previous trip image"
             >
               <span className="material-symbols-outlined">chevron_left</span>
@@ -193,19 +193,19 @@ export default function TripDetailPage() {
               onClick={() =>
                 setActiveImageIndex((current) => (current + 1) % tripImages.length)
               }
-              className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+               className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:right-4"
               aria-label="Next trip image"
             >
               <span className="material-symbols-outlined">chevron_right</span>
             </button>
-            <div className="absolute bottom-4 right-4 flex gap-2">
+             <div className="absolute bottom-3 right-3 hidden gap-2 sm:bottom-4 sm:right-4 sm:flex">
               {tripImages.map((image, index) => (
                 <button
                   key={`${image}-${index}`}
                   onClick={() => setActiveImageIndex(index)}
-                  className={`h-10 w-14 overflow-hidden rounded-lg border-2 ${
-                    index === activeImageIndex ? "border-secondary-container" : "border-white/30"
-                  }`}
+                   className={`h-10 w-14 overflow-hidden rounded-lg border-2 ${
+                     index === activeImageIndex ? "border-secondary-container" : "border-white/30"
+                   }`}
                   aria-label={`Open trip image ${index + 1}`}
                 >
                   <img src={image} alt="" className="h-full w-full object-cover" />
@@ -331,7 +331,7 @@ export default function TripDetailPage() {
                   <div className="flex items-center justify-between rounded-xl border border-outline-variant/20 bg-surface-container-low p-4">
                     <button
                       onClick={() => setSeats((s) => Math.max(1, s - 1))}
-                      className="h-10 w-10 rounded-lg bg-surface text-lg font-bold text-primary"
+                      className="h-12 w-12 rounded-lg bg-surface text-lg font-bold text-primary"
                     >
                       -
                     </button>
@@ -342,7 +342,7 @@ export default function TripDetailPage() {
                       onClick={() =>
                         setSeats((s) => Math.min(Math.max(1, trip.availableSeats), s + 1))
                       }
-                      className="h-10 w-10 rounded-lg bg-primary-container text-lg font-bold text-white"
+                      className="h-12 w-12 rounded-lg bg-primary-container text-lg font-bold text-white"
                     >
                       +
                     </button>

@@ -447,10 +447,10 @@ export default function CreateTripPage() {
   return (
     <div className="min-h-screen bg-[#efeee9] text-[#171717]">
       <header className="border-b border-[#ddd8cf] bg-[#f4f2ec]">
-        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-5 py-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-5">
           <Link
             to="/"
-            className="font-headline text-4xl font-extrabold text-[#132c22]"
+            className="font-headline text-3xl font-extrabold text-[#132c22] sm:text-4xl"
           >
             BagPacker
           </Link>
@@ -465,13 +465,13 @@ export default function CreateTripPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1280px] space-y-6 px-5 py-8">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 md:px-5">
         <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#a26216]">
               Organizer Workspace
             </p>
-            <h1 className="font-headline text-5xl font-extrabold text-[#0f3d2d]">
+            <h1 className="font-headline text-3xl font-extrabold text-[#0f3d2d] sm:text-4xl md:text-5xl">
               Create New Expedition
             </h1>
             <p className="mt-2 max-w-3xl text-[#6f736b]">
@@ -531,7 +531,7 @@ export default function CreateTripPage() {
                 <h2 className="font-headline text-3xl font-bold text-[#132c22]">
                   Core Trip Information
                 </h2>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
                   <input
                     className="rounded-xl bg-[#eeebe4] px-4 py-3"
                     placeholder="Trip title"
@@ -573,14 +573,14 @@ export default function CreateTripPage() {
                   />
                   <input
                     type="number"
-                    className="rounded-xl bg-[#eeebe4] px-4 py-3 md:col-span-2"
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3 lg:col-span-2"
                     placeholder="Total seats"
                     value={tripForm.totalSeats}
                     onChange={(event) => updateTripField("totalSeats", event.target.value)}
                   />
                   <textarea
                     rows={5}
-                    className="rounded-xl bg-[#eeebe4] px-4 py-3 md:col-span-2"
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3 lg:col-span-2"
                     placeholder="Trip description"
                     value={tripForm.description}
                     onChange={(event) => updateTripField("description", event.target.value)}
@@ -602,7 +602,7 @@ export default function CreateTripPage() {
                 </div>
                 <div className="space-y-4">
                   {itinerary.map((item, index) => (
-                    <div key={`itinerary-${index}`} className="grid gap-3 md:grid-cols-[120px_1fr_1fr]">
+                    <div key={`itinerary-${index}`} className="grid gap-3 lg:grid-cols-[120px_1fr_1fr]">
                       <input
                         type="number"
                         min="1"
@@ -647,7 +647,7 @@ export default function CreateTripPage() {
                 </div>
                 <div className="space-y-4">
                   {pickupPoints.map((item, index) => (
-                    <div key={`pickup-${index}`} className="grid gap-3 md:grid-cols-[1fr_180px_120px]">
+                    <div key={`pickup-${index}`} className="grid gap-3 lg:grid-cols-[1fr_180px_120px]">
                       <input
                         className="rounded-xl bg-[#eeebe4] px-4 py-3"
                         placeholder="Pickup location"

@@ -125,53 +125,53 @@ export default function TravelerDashboardPage() {
 
         {!isLoading ? (
           <>
-            <section className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container px-6 py-9 md:px-10">
-              <div className="grid gap-8 text-center md:grid-cols-3">
-                <div>
-                  <p className="font-headline text-6xl font-extrabold tracking-tight text-secondary-container">
+            <section className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container px-4 py-5 sm:px-6 sm:py-7 md:px-10 md:py-9">
+              <div className="flex items-stretch justify-between gap-2 text-center sm:gap-4 md:grid md:gap-8 md:grid-cols-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-headline text-4xl font-extrabold tracking-tight text-secondary-container sm:text-5xl md:text-6xl">
                     {bookings.length}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-on-primary-container">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
                     Total Bookings
                   </p>
                 </div>
-                <div className="border-y border-white/10 py-6 md:border-x md:border-y-0 md:py-0">
-                  <p className="font-headline text-6xl font-extrabold tracking-tight text-secondary-container">
+                <div className="min-w-0 flex-1 border-x border-white/15 px-2 md:border-x md:border-y-0 md:px-0">
+                  <p className="font-headline text-4xl font-extrabold tracking-tight text-secondary-container sm:text-5xl md:text-6xl">
                     {profile?.trustScore ?? 0}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-on-primary-container">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
                     Trust Score
                   </p>
                 </div>
-                <div>
-                  <p className="font-headline text-6xl font-extrabold tracking-tight text-secondary-container">
+                <div className="min-w-0 flex-1">
+                  <p className="font-headline text-4xl font-extrabold tracking-tight text-secondary-container sm:text-5xl md:text-6xl">
                     {recommendedTrips.length}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-on-primary-container">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
                     Fresh Recommendations
                   </p>
                 </div>
               </div>
             </section>
 
-            <section className="grid gap-6 md:grid-cols-3">
+            <section className="grid grid-cols-3 gap-2 md:gap-6">
               {stats.map(([label, value, icon]) => (
                 <article
                   key={label}
-                  className="rounded-2xl bg-surface-container-lowest p-7 shadow-[0_12px_32px_rgba(28,28,24,0.06)]"
+                  className="rounded-2xl bg-surface-container-lowest p-3 shadow-[0_12px_32px_rgba(28,28,24,0.06)] sm:p-4 md:p-7"
                 >
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="material-symbols-outlined rounded-xl bg-primary-fixed p-2 text-primary">
+                  <div className="mb-2 flex items-center justify-between md:mb-4">
+                    <span className="material-symbols-outlined rounded-lg bg-primary-fixed p-1.5 text-base text-primary md:rounded-xl md:p-2 md:text-xl">
                       {icon}
                     </span>
-                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-outline">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-outline md:text-xs md:tracking-[0.14em]">
                       Live
                     </span>
                   </div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-outline">
+                  <p className="text-[9px] uppercase tracking-[0.08em] text-outline md:text-xs md:tracking-[0.14em]">
                     {label}
                   </p>
-                  <p className="mt-2 font-headline text-5xl font-extrabold text-primary">
+                  <p className="mt-1 font-headline text-4xl font-extrabold text-primary md:mt-2 md:text-5xl">
                     {value}
                   </p>
                 </article>

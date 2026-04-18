@@ -175,13 +175,13 @@ export default function PaymentPage() {
 
   return (
     <MainLayout>
-      <div className="mx-auto max-w-7xl space-y-8 px-4 py-12">
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:py-12">
         <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">
               Booking Center
             </p>
-            <h1 className="font-headline text-4xl font-extrabold text-primary">
+            <h1 className="font-headline text-3xl font-extrabold text-primary sm:text-4xl">
               {user?.name ? `${user.name.split(" ")[0]}, finalize your trip` : "Finalize your trip"}
             </h1>
           </div>
@@ -211,21 +211,21 @@ export default function PaymentPage() {
 
         {!isLoading && trip ? (
           <div className="grid gap-8 lg:grid-cols-[1.25fr_0.85fr]">
-            <section className="rounded-3xl bg-surface-container-lowest p-8 shadow-xl">
+            <section className="rounded-3xl bg-surface-container-lowest p-5 shadow-xl sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
                 Selected Trip
               </p>
-              <h2 className="mt-2 font-headline text-4xl font-extrabold text-primary">
+              <h2 className="mt-2 break-words font-headline text-3xl font-extrabold text-primary sm:text-4xl">
                 {trip.title}
               </h2>
-              <div className="mt-4 grid gap-4 text-sm text-on-surface-variant md:grid-cols-2">
+              <div className="mt-4 grid gap-4 text-sm text-on-surface-variant lg:grid-cols-2">
                 <p>{trip.source} to {trip.destination}</p>
                 <p>{new Date(trip.startDate).toLocaleDateString("en-IN")} to {new Date(trip.endDate).toLocaleDateString("en-IN")}</p>
                 <p>{trip.availableSeats} seats currently available</p>
                 <p>{trip.organizerId?.businessName || "Organizer"}</p>
               </div>
 
-              <div className="mt-8 grid gap-5 md:grid-cols-2">
+              <div className="mt-8 grid gap-5 lg:grid-cols-2">
                 <label className="grid gap-2">
                   <span className="text-xs font-bold uppercase tracking-[0.14em] text-outline">
                     Seats
@@ -243,7 +243,7 @@ export default function PaymentPage() {
                         ),
                       )
                     }
-                    className="rounded-xl bg-surface-container-low px-4 py-3"
+                    className="rounded-xl bg-surface-container-low px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   />
                 </label>
 
@@ -254,7 +254,7 @@ export default function PaymentPage() {
                   <select
                     value={pickupPointId}
                     onChange={(event) => setPickupPointId(event.target.value)}
-                    className="rounded-xl bg-surface-container-low px-4 py-3"
+                    className="rounded-xl bg-surface-container-low px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {pickupOptions.map((point) => (
                       <option key={point._id} value={point._id}>
@@ -273,7 +273,7 @@ export default function PaymentPage() {
               ) : null}
             </section>
 
-            <aside className="rounded-3xl bg-primary p-8 text-white shadow-xl">
+            <aside className="rounded-3xl bg-primary p-5 text-white shadow-xl sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary-container">
                 Booking Summary
               </p>
@@ -307,8 +307,8 @@ export default function PaymentPage() {
           </div>
         ) : null}
 
-        <section className="rounded-3xl bg-surface-container-lowest p-8 shadow-lg">
-          <div className="mb-6 flex items-center justify-between">
+        <section className="rounded-3xl bg-surface-container-lowest p-5 shadow-lg sm:p-8">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
                 Live Data
@@ -332,7 +332,7 @@ export default function PaymentPage() {
                   key={booking._id}
                   className="rounded-2xl bg-surface-container-low p-5"
                 >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <h3 className="font-headline text-2xl font-bold text-primary">
                         {booking.tripId?.title || "Trip"}
@@ -344,7 +344,7 @@ export default function PaymentPage() {
                         Pickup: {booking.pickupPointId?.location || "N/A"} | Seats: {booking.seatsBooked}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-left lg:text-right">
                       <p className="font-headline text-2xl font-black text-primary">
                         {formatINR(booking.totalAmount)}
                       </p>

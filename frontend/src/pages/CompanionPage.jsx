@@ -282,7 +282,7 @@ export default function CompanionPage() {
 
   return (
     <MainLayout>
-      <div className="mx-auto max-w-[1320px] px-4 py-10 md:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-10">
         {!loggedIn ? (
           <div className="mb-6 rounded-2xl bg-error-container p-4 text-center font-semibold text-on-error-container">
             Please login to find and manage companion requests.
@@ -296,7 +296,7 @@ export default function CompanionPage() {
         ) : null}
 
         <div className="mb-6 rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 lg:grid-cols-4">
             <input
               value={source}
               onChange={(event) => setSource(event.target.value)}
@@ -362,7 +362,7 @@ export default function CompanionPage() {
                   <img
                     src={current.image}
                     alt={current.name}
-                    className="h-[530px] w-full object-cover object-top"
+                    className="h-[430px] w-full object-cover object-top sm:h-[530px]"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-[#103f2f] via-[#103f2f]/35 to-transparent" />
 
@@ -376,7 +376,7 @@ export default function CompanionPage() {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8">
-                    <h1 className="font-headline text-5xl font-extrabold leading-tight">
+                    <h1 className="break-words font-headline text-3xl font-extrabold leading-tight sm:text-5xl">
                       {current.name}
                     </h1>
                     <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-white/90">

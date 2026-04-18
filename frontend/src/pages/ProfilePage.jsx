@@ -143,7 +143,7 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <section className="mx-auto max-w-7xl space-y-8 px-4 py-10 md:px-8">
+      <section className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:px-8 md:py-10">
         {error ? (
           <div className="rounded-2xl bg-error-container p-4 font-semibold text-on-error-container">
             {error}
@@ -156,13 +156,13 @@ export default function ProfilePage() {
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container p-8 text-white shadow-xl">
+        <div className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container p-5 text-white shadow-xl sm:p-8">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary-container">
             Live Profile
           </p>
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="font-headline text-5xl font-extrabold">
+              <h1 className="break-words font-headline text-3xl font-extrabold sm:text-5xl">
                 {profile?.name || storedUser?.name || "BagPacker User"}
               </h1>
               <p className="mt-2 text-white/80">
@@ -175,13 +175,13 @@ export default function ProfilePage() {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 to={getDashboardPath(profile?.role || storedUser?.role)}
-                className="rounded-xl bg-white/10 px-5 py-3 text-sm font-bold backdrop-blur-sm"
+                className="rounded-xl bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur-sm"
               >
                 Go To Dashboard
               </Link>
               <button
                 onClick={logout}
-                className="rounded-xl bg-[#b94a57] px-5 py-3 text-sm font-bold text-white"
+                className="rounded-xl bg-[#b94a57] px-4 py-3 text-sm font-bold text-white"
               >
                 Logout
               </button>
@@ -206,7 +206,7 @@ export default function ProfilePage() {
                   </span>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <label className="grid gap-2">
                     <span className="text-xs font-bold uppercase tracking-[0.14em] text-outline">
                       Full Name
@@ -216,7 +216,7 @@ export default function ProfilePage() {
                       onChange={(event) =>
                         setForm((prev) => ({ ...prev, name: event.target.value }))
                       }
-                      className="rounded-xl bg-surface-container-low px-4 py-3"
+                      className="rounded-xl bg-surface-container-low px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     />
                   </label>
                   <label className="grid gap-2">
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                       onChange={(event) =>
                         setForm((prev) => ({ ...prev, phone: event.target.value }))
                       }
-                      className="rounded-xl bg-surface-container-low px-4 py-3"
+                      className="rounded-xl bg-surface-container-low px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     />
                   </label>
                 </div>
@@ -280,7 +280,7 @@ export default function ProfilePage() {
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-on-primary-container">
                   Trust Score
                 </p>
-                <p className="mt-2 font-headline text-6xl font-black">
+                 <p className="mt-2 font-headline text-5xl font-black sm:text-6xl">
                   {profile?.trustScore ?? storedUser?.trustScore ?? 0}
                 </p>
                 <p className="mt-3 text-sm text-on-primary-container">
