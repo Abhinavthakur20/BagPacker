@@ -1,24 +1,26 @@
-import { useEffect, useRef } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import LocomotiveScroll from "locomotive-scroll";
 import "locomotive-scroll/dist/locomotive-scroll.css";
-import LandingPage from "./pages/LandingPage";
-import SearchPage from "./pages/SearchPage";
-import TripDetailPage from "./pages/TripDetailPage";
-import AuthPage from "./pages/AuthPage";
-import TravelerDashboardPage from "./pages/TravelerDashboardPage";
-import OrganizerDashboardPage from "./pages/OrganizerDashboardPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import PaymentPage from "./pages/PaymentPage";
-import CompanionPage from "./pages/CompanionPage";
-import ChatPage from "./pages/ChatPage";
-import CreateTripPage from "./pages/CreateTripPage";
-import ProfilePage from "./pages/ProfilePage";
 import AlertHost from "./components/ui/AlertHost";
+import LoadingPanel from "./components/ui/LoadingPanel";
 import RoleRoute from "./components/RoleRoute";
 import { getDashboardPath, setAuthTokenGetter } from "./lib/auth";
+
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const TripDetailPage = lazy(() => import("./pages/TripDetailPage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const TravelerDashboardPage = lazy(() => import("./pages/TravelerDashboardPage"));
+const OrganizerDashboardPage = lazy(() => import("./pages/OrganizerDashboardPage"));
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
+const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const CompanionPage = lazy(() => import("./pages/CompanionPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const CreateTripPage = lazy(() => import("./pages/CreateTripPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 
 function DashboardRedirect() {
   const user = useSelector((state) => state.auth.user);
@@ -35,6 +37,24 @@ function App() {
     setAuthTokenGetter(() => token);
     return () => setAuthTokenGetter(null);
   }, [token]);
+
+  useEffect(() => {
+    const preloadNonCriticalRoutes = () => {
+      void import("./pages/SearchPage");
+      void import("./pages/TripDetailPage");
+      void import("./pages/CompanionPage");
+      void import("./pages/ChatPage");
+      void import("./pages/TravelerDashboardPage");
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(preloadNonCriticalRoutes, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(preloadNonCriticalRoutes, 800);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     if (!scrollContainerRef.current) return;
@@ -82,76 +102,84 @@ function App() {
 
   return (
     <div ref={scrollContainerRef} data-scroll-container>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/trips">
-          <Route index element={<Navigate to="search" replace />} />
-          <Route path="search" element={<SearchPage />} />
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+            <LoadingPanel label="Loading page..." />
+          </div>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/trips">
+            <Route index element={<Navigate to="search" replace />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route
+              path="new"
+              element={
+                <RoleRoute allowedRoles={["organizer"]}>
+                  <CreateTripPage />
+                </RoleRoute>
+              }
+            />
+            <Route path=":id" element={<TripDetailPage />} />
+          </Route>
+          <Route path="/dashboard">
+            <Route index element={<DashboardRedirect />} />
+            <Route
+              path="traveler"
+              element={
+                <RoleRoute allowedRoles={["traveler"]}>
+                  <TravelerDashboardPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="organizer"
+              element={
+                <RoleRoute allowedRoles={["organizer"]}>
+                  <OrganizerDashboardPage />
+                </RoleRoute>
+              }
+            />
+          </Route>
           <Route
-            path="new"
+            path="/admin"
             element={
-              <RoleRoute allowedRoles={["organizer"]}>
-                <CreateTripPage />
+              <RoleRoute allowedRoles={["admin"]}>
+                <AdminDashboardPage />
               </RoleRoute>
             }
           />
-          <Route path=":id" element={<TripDetailPage />} />
-        </Route>
-        <Route path="/dashboard">
-          <Route index element={<DashboardRedirect />} />
           <Route
-            path="traveler"
+            path="/payment"
             element={
               <RoleRoute allowedRoles={["traveler"]}>
-                <TravelerDashboardPage />
+                <PaymentPage />
               </RoleRoute>
             }
           />
           <Route
-            path="organizer"
+            path="/companion"
             element={
-              <RoleRoute allowedRoles={["organizer"]}>
-                <OrganizerDashboardPage />
+              <RoleRoute allowedRoles={["traveler"]}>
+                <CompanionPage />
               </RoleRoute>
             }
           />
-        </Route>
-        <Route
-          path="/admin"
-          element={
-            <RoleRoute allowedRoles={["admin"]}>
-              <AdminDashboardPage />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/payment"
-          element={
-            <RoleRoute allowedRoles={["traveler"]}>
-              <PaymentPage />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/companion"
-          element={
-            <RoleRoute allowedRoles={["traveler"]}>
-              <CompanionPage />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <RoleRoute allowedRoles={["traveler", "organizer", "admin"]}>
-              <ChatPage />
-            </RoleRoute>
-          }
-        />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route
+            path="/chat"
+            element={
+              <RoleRoute allowedRoles={["traveler", "organizer", "admin"]}>
+                <ChatPage />
+              </RoleRoute>
+            }
+          />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
       <AlertHost />
     </div>
   );

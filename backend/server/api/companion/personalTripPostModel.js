@@ -51,6 +51,9 @@ const personalTripPostSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+personalTripPostSchema.index({ ownerId: 1, status: 1, createdAt: -1 });
+personalTripPostSchema.index({ source: 1, destination: 1, travelDate: 1, status: 1, createdAt: -1 });
+
 module.exports =
   mongoose.models.PersonalTripPost ||
   mongoose.model("PersonalTripPost", personalTripPostSchema);

@@ -49,17 +49,19 @@ export default function CompanionPage() {
       setError("");
       const [foundMatches, requests, foundPosts, minePosts] = await Promise.all([
         api.get(
-          `/companions/find?source=${encodeURIComponent(activeSource)}&destination=${encodeURIComponent(activeDestination)}&date=${activeTravelDate}`,
+          `/companions/find?source=${encodeURIComponent(activeSource)}&destination=${encodeURIComponent(activeDestination)}&date=${activeTravelDate}&page=1&limit=50`,
+          { cacheTtlMs: 25000 },
         ),
-        api.get("/companions/my"),
+        api.get("/companions/my?page=1&limit=50", { cacheTtlMs: 15000 }),
         api.get(
-          `/companions/posts?source=${encodeURIComponent(activeSource)}&destination=${encodeURIComponent(activeDestination)}&date=${activeTravelDate}`,
+          `/companions/posts?source=${encodeURIComponent(activeSource)}&destination=${encodeURIComponent(activeDestination)}&date=${activeTravelDate}&page=1&limit=50`,
+          { cacheTtlMs: 25000 },
         ),
         api.get("/companions/posts/mine"),
       ]);
 
-      setMatches(Array.isArray(foundMatches) ? foundMatches : []);
-      setPersonalPosts(Array.isArray(foundPosts) ? foundPosts : []);
+      setMatches(Array.isArray(foundMatches?.items) ? foundMatches.items : []);
+      setPersonalPosts(Array.isArray(foundPosts?.items) ? foundPosts.items : []);
       setMyPersonalPosts(Array.isArray(minePosts) ? minePosts : []);
       setMyRequests(requests || { sent: [], received: [] });
       setIndex(0);

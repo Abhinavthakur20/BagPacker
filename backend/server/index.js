@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const path = require("path");
+const compression = require("compression");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { Server } = require("socket.io");
@@ -38,8 +39,32 @@ app.use(
     credentials: true,
   }),
 );
+app.use(compression());
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/uploads")) {
+    return next();
+  }
+
+  if (req.path.startsWith("/api")) {
+    res.setHeader("Cache-Control", "no-store");
+    return next();
+  }
+
+  return next();
+});
+
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "..", "uploads"), {
+    maxAge: "7d",
+    etag: true,
+    setHeaders: (res) => {
+      res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+    },
+  }),
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

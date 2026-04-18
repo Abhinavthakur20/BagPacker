@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
+import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api, resolveMediaUrl } from "../lib/api";
+import { setSearchTripsCache } from "../store/cacheSlice";
 
 const getTripDuration = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -45,6 +48,8 @@ const mapTrip = (trip, index) => ({
 });
 
 export default function SearchPage() {
+  const dispatch = useDispatch();
+  const searchTripsCache = useSelector((state) => state.cache.searchTrips);
   const [params] = useSearchParams();
   const sourceFromParams = params.get("from") || "";
   const destinationFromParams = params.get("to") || "";
@@ -63,6 +68,53 @@ export default function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const fetchTrips = async (options = {}) => {
+    const query = new URLSearchParams();
+    if (submittedSource) query.set("source", submittedSource);
+    if (submittedDestination) query.set("destination", submittedDestination);
+    if (submittedDate) query.set("date", submittedDate);
+    query.set("page", "1");
+    query.set("limit", "60");
+    const cacheKey = query.toString();
+    const cached = searchTripsCache[cacheKey];
+    const hasFreshCache =
+      cached &&
+      Date.now() - cached.cachedAt < 60000 &&
+      !options.forceRefresh;
+
+    if (hasFreshCache) {
+      setTrips(Array.isArray(cached.items) ? cached.items : []);
+      setError("");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+      const response = await api.get(`/trips?${query.toString()}`, {
+        cacheTtlMs: 45000,
+        forceRefresh: Boolean(options.forceRefresh),
+      });
+      const list = Array.isArray(response?.items)
+        ? response.items
+        : Array.isArray(response)
+          ? response
+          : [];
+      setTrips(list);
+      dispatch(
+        setSearchTripsCache({
+          key: cacheKey,
+          items: list,
+        }),
+      );
+    } catch (fetchError) {
+      setError(fetchError.message);
+      setTrips([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const sourceParam = params.get("from");
@@ -86,27 +138,9 @@ export default function SearchPage() {
   }, [params]);
 
   useEffect(() => {
-    const query = new URLSearchParams();
-    if (submittedSource) query.set("source", submittedSource);
-    if (submittedDestination) query.set("destination", submittedDestination);
-    if (submittedDate) query.set("date", submittedDate);
-
-    const fetchTrips = async () => {
-      try {
-        setIsLoading(true);
-        setError("");
-        const response = await api.get(`/trips?${query.toString()}`);
-        setTrips(Array.isArray(response) ? response : []);
-      } catch (fetchError) {
-        setError(fetchError.message);
-        setTrips([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchTrips();
-  }, [submittedDate, submittedDestination, submittedSource]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submittedDate, submittedDestination, submittedSource, searchTripsCache]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -283,11 +317,7 @@ export default function SearchPage() {
               </div>
             ) : null}
 
-            {isLoading ? (
-              <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
-                Loading trips...
-              </div>
-            ) : null}
+            {isLoading ? <LoadingPanel label="Loading trips..." className="rounded-2xl !p-8" /> : null}
 
             {!isLoading
               ? cards.map((trip, index) => (
@@ -427,6 +457,15 @@ export default function SearchPage() {
             {!isLoading && cards.length === 0 ? (
               <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
                 No trips match the current filters.
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => fetchTrips({ forceRefresh: true })}
+                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Refresh results
+                  </button>
+                </div>
               </div>
             ) : null}
           </section>

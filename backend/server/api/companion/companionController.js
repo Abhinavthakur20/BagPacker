@@ -28,6 +28,10 @@ const buildChatRoomId = (firstUserId, secondUserId) =>
 
 const findCompanions = async (req, res) => {
   try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const usePagination = req.query.page !== undefined || req.query.limit !== undefined;
     const source = normalizeText(req.query.source);
     const destination = normalizeText(req.query.destination);
     const date = String(req.query.date || "").trim();
@@ -55,7 +59,13 @@ const findCompanions = async (req, res) => {
     const trips = await Trip.find(tripFilters).select("_id source destination startDate").lean();
 
     if (!trips.length) {
-      return res.status(200).json([]);
+      if (!usePagination) {
+        return res.status(200).json([]);
+      }
+      return res.status(200).json({
+        items: [],
+        pagination: { page, limit, total: 0, totalPages: 1 },
+      });
     }
 
     const tripIds = trips.map((trip) => trip._id);
@@ -93,7 +103,13 @@ const findCompanions = async (req, res) => {
     const candidateUserIds = [...candidatesByUser.keys()];
 
     if (!candidateUserIds.length) {
-      return res.status(200).json([]);
+      if (!usePagination) {
+        return res.status(200).json([]);
+      }
+      return res.status(200).json({
+        items: [],
+        pagination: { page, limit, total: 0, totalPages: 1 },
+      });
     }
 
     const requestFilters = {
@@ -196,7 +212,19 @@ const findCompanions = async (req, res) => {
       return firstTime - secondTime;
     });
 
-    return res.status(200).json(results.slice(0, 100));
+    const total = results.length;
+    if (!usePagination) {
+      return res.status(200).json(results.slice(0, 100));
+    }
+    return res.status(200).json({
+      items: results.slice(skip, skip + limit),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -287,6 +315,10 @@ const createPersonalTripPost = async (req, res) => {
 
 const listPersonalTripPosts = async (req, res) => {
   try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const usePagination = req.query.page !== undefined || req.query.limit !== undefined;
     const source = normalizeText(req.query.source);
     const destination = normalizeText(req.query.destination);
     const date = String(req.query.date || "").trim();
@@ -318,7 +350,13 @@ const listPersonalTripPosts = async (req, res) => {
       .lean();
 
     if (!posts.length) {
-      return res.status(200).json([]);
+      if (!usePagination) {
+        return res.status(200).json([]);
+      }
+      return res.status(200).json({
+        items: [],
+        pagination: { page, limit, total: 0, totalPages: 1 },
+      });
     }
 
     const postIds = posts.map((post) => post._id);
@@ -379,7 +417,19 @@ const listPersonalTripPosts = async (req, res) => {
       })
       .filter(Boolean);
 
-    return res.status(200).json(results.slice(0, 100));
+    const total = results.length;
+    if (!usePagination) {
+      return res.status(200).json(results.slice(0, 100));
+    }
+    return res.status(200).json({
+      items: results.slice(skip, skip + limit),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -507,18 +557,40 @@ const respondToCompanionRequest = async (req, res) => {
 
 const getMyCompanionRequests = async (req, res) => {
   try {
-    const [sent, received] = await Promise.all([
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const [sent, received, sentTotal, receivedTotal] = await Promise.all([
       CompanionRequest.find({ requesterId: req.user._id })
         .sort({ createdAt: -1 })
         .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
-        .populate("personalTripPostId", "source destination travelDate maxCompanions note status"),
+        .populate("personalTripPostId", "source destination travelDate maxCompanions note status")
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       CompanionRequest.find({ receiverId: req.user._id })
         .sort({ createdAt: -1 })
         .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
-        .populate("personalTripPostId", "source destination travelDate maxCompanions note status"),
+        .populate("personalTripPostId", "source destination travelDate maxCompanions note status")
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      CompanionRequest.countDocuments({ requesterId: req.user._id }),
+      CompanionRequest.countDocuments({ receiverId: req.user._id }),
     ]);
 
-    return res.status(200).json({ sent, received });
+    return res.status(200).json({
+      sent,
+      received,
+      pagination: {
+        page,
+        limit,
+        sentTotal,
+        receivedTotal,
+        sentTotalPages: Math.max(1, Math.ceil(sentTotal / limit)),
+        receivedTotalPages: Math.max(1, Math.ceil(receivedTotal / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

@@ -116,7 +116,8 @@ const getMyTripGroups = async (req, res) => {
       .sort({ updatedAt: -1 })
       .populate("tripId", "title source destination startDate endDate")
       .populate("organizerUserId", "name")
-      .populate("members.userId", "name trustScore role");
+      .populate("members.userId", "name trustScore role")
+      .lean();
 
     const payload = groups.map((group) => {
       const myMembership = group.members.find(

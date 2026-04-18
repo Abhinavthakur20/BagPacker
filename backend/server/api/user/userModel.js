@@ -62,4 +62,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+userSchema.index({ role: 1, verificationStatus: 1, trustScore: -1 });
+
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);

@@ -1,5 +1,5 @@
 const express = require("express");
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 const {
   findCompanions,
   getMyCompanionRequests,
@@ -18,8 +18,16 @@ const router = express.Router();
 
 router.use(authMiddleware, roleMiddleware(["traveler"]));
 
-router.get("/find", findCompanions);
-router.get("/posts", listPersonalTripPosts);
+const pagingValidators = [
+  query("page").optional().isInt({ min: 1 }).withMessage("page must be a positive integer"),
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("limit must be between 1 and 100"),
+];
+
+router.get("/find", [...pagingValidators, validateRequest], findCompanions);
+router.get("/posts", [...pagingValidators, validateRequest], listPersonalTripPosts);
 router.get("/posts/mine", getMyPersonalTripPosts);
 router.post(
   "/posts",
@@ -63,6 +71,6 @@ router.put(
   ],
   respondToCompanionRequest,
 );
-router.get("/my", getMyCompanionRequests);
+router.get("/my", [...pagingValidators, validateRequest], getMyCompanionRequests);
 
 module.exports = router;

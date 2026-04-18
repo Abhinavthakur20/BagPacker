@@ -59,6 +59,10 @@ const companionRequestSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+companionRequestSchema.index({ requesterId: 1, receiverId: 1, status: 1, travelDate: 1, createdAt: -1 });
+companionRequestSchema.index({ receiverId: 1, status: 1, createdAt: -1 });
+companionRequestSchema.index({ personalTripPostId: 1, requestType: 1, status: 1, createdAt: -1 });
+
 module.exports =
   mongoose.models.CompanionRequest ||
   mongoose.model("CompanionRequest", companionRequestSchema);

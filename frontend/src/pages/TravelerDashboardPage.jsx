@@ -32,18 +32,18 @@ export default function TravelerDashboardPage() {
 
         const [userProfile, userBookings, companions, trips, userNotifications] = await Promise.all([
           api.get("/users/profile"),
-          api.get("/bookings/my"),
-          api.get("/companions/my"),
-          api.get("/trips"),
-          api.get("/notifications"),
+          api.get("/bookings/my?page=1&limit=12", { cacheTtlMs: 30000 }),
+          api.get("/companions/my?page=1&limit=30", { cacheTtlMs: 30000 }),
+          api.get("/trips?page=1&limit=8", { cacheTtlMs: 45000 }),
+          api.get("/notifications?page=1&limit=12", { cacheTtlMs: 15000 }),
         ]);
 
         setProfile(userProfile);
         dispatch(setUser(userProfile));
-        setBookings(Array.isArray(userBookings) ? userBookings : []);
+        setBookings(Array.isArray(userBookings?.items) ? userBookings.items : []);
         setCompanionRequests(companions || { sent: [], received: [] });
-        setRecommendedTrips(Array.isArray(trips) ? trips.slice(0, 3) : []);
-        setNotifications(Array.isArray(userNotifications) ? userNotifications : []);
+        setRecommendedTrips(Array.isArray(trips?.items) ? trips.items.slice(0, 3) : []);
+        setNotifications(Array.isArray(userNotifications?.items) ? userNotifications.items : []);
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {

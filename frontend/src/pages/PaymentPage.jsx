@@ -35,8 +35,8 @@ export default function PaymentPage() {
     }
 
     try {
-      const response = await api.get("/bookings/my");
-      setBookings(Array.isArray(response) ? response : []);
+      const response = await api.get("/bookings/my?page=1&limit=30", { cacheTtlMs: 20000 });
+      setBookings(Array.isArray(response?.items) ? response.items : []);
     } catch {
       setBookings([]);
     }

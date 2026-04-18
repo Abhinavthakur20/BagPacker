@@ -161,13 +161,16 @@ export default function ChatPage() {
         return;
       }
 
-      try {
-        setIsMessagesLoading(true);
-        const history = await api.get(`/chat/rooms/${encodeURIComponent(selectedRoomId)}/messages`);
-        const normalized = (Array.isArray(history) ? history : []).map((item) => ({
-          id: String(item._id),
-          sender: String(item.senderId) === String(user?._id) ? "me" : "other",
-          text: item.message,
+        try {
+          setIsMessagesLoading(true);
+        const history = await api.get(
+          `/chat/rooms/${encodeURIComponent(selectedRoomId)}/messages?page=1&limit=150`,
+          { cacheTtlMs: 15000 },
+        );
+        const normalized = (Array.isArray(history?.items) ? history.items : []).map((item) => ({
+            id: String(item._id),
+            sender: String(item.senderId) === String(user?._id) ? "me" : "other",
+            text: item.message,
           time: new Date(item.sentAt || Date.now()).toLocaleTimeString("en-IN", {
             hour: "numeric",
             minute: "2-digit",

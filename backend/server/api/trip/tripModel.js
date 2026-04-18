@@ -67,4 +67,8 @@ const tripSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+tripSchema.index({ status: 1, startDate: 1, createdAt: -1 });
+tripSchema.index({ organizerId: 1, status: 1, createdAt: -1 });
+tripSchema.index({ source: 1, destination: 1, startDate: 1, status: 1 });
+
 module.exports = mongoose.models.Trip || mongoose.model("Trip", tripSchema);

@@ -4,7 +4,10 @@ import { Provider } from "react-redux";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
+import { setupWebVitalsMonitoring } from "./lib/webVitals";
 import { store } from "./store/store";
+
+setupWebVitalsMonitoring();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

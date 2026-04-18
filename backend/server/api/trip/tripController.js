@@ -61,6 +61,9 @@ const parseJsonArray = (value) => {
 const getTrips = async (req, res) => {
   try {
     const filters = {};
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 0)));
+    const usePagination = Number.isFinite(limit) && limit > 0;
 
     if (req.query.includeAllStatuses !== "true") {
       filters.status = "active";
@@ -92,7 +95,10 @@ const getTrips = async (req, res) => {
       }
     }
 
-    const trips = await Trip.find(filters)
+    const listQuery = Trip.find(filters)
+      .select(
+        "title source destination startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
+      )
       .sort({ startDate: 1, createdAt: -1 })
       .populate({
         path: "organizerId",
@@ -101,15 +107,33 @@ const getTrips = async (req, res) => {
           path: "userId",
           select: "name trustScore verificationStatus",
         },
-      });
+      })
+      .lean();
 
-    return res.status(200).json(
-      trips.map((trip) => {
-        const tripObject = trip.toObject();
-        tripObject.organizerId = shapeOrganizer(tripObject.organizerId);
-        return tripObject;
-      }),
-    );
+    if (usePagination) {
+      listQuery.skip((page - 1) * limit).limit(limit);
+    }
+
+    const trips = await listQuery;
+    const mappedTrips = trips.map((trip) => ({
+      ...trip,
+      organizerId: shapeOrganizer(trip.organizerId),
+    }));
+
+    if (usePagination) {
+      const total = await Trip.countDocuments(filters);
+      return res.status(200).json({
+        items: mappedTrips,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+        },
+      });
+    }
+
+    return res.status(200).json(mappedTrips);
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
