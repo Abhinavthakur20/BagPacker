@@ -128,14 +128,21 @@ export default function AuthPage() {
 
   return (
     <MainLayout>
-      <section className="relative overflow-hidden px-4 pb-16 pt-10">
-        <div className="absolute inset-0 bg-linear-to-b from-primary/5 to-transparent" />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-8 lg:grid-cols-[1.1fr_1fr]">
-          <aside className="overflow-hidden rounded-3xl bg-primary shadow-[0_20px_50px_rgba(1,45,29,0.25)]">
+      <section className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden px-4 py-10">
+        <img
+          src={campfireImage}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.92),rgba(248,250,252,0.96))]" />
+        <div className="relative mx-auto w-full max-w-5xl rounded-3xl border border-outline-variant/20 bg-surface-container-lowest/95 p-3 shadow-[0_30px_70px_rgba(15,23,42,0.25)] backdrop-blur-sm md:p-5">
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+          <aside className="hidden overflow-hidden rounded-2xl bg-primary shadow-[0_20px_50px_rgba(1,45,29,0.25)] lg:block">
             <img
               src={campfireImage}
               alt="Campfire travelers"
-              className="h-72 w-full object-cover md:h-80"
+              className="h-64 w-full object-cover"
             />
             <div className="space-y-3 p-8 text-surface">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary-container">
@@ -151,7 +158,7 @@ export default function AuthPage() {
             </div>
           </aside>
 
-          <section className="rounded-3xl bg-surface-container-lowest p-8 shadow-[0_18px_45px_rgba(28,28,24,0.12)]">
+          <section className="rounded-2xl bg-surface p-6 shadow-[0_18px_45px_rgba(28,28,24,0.12)] md:p-8">
             <div className="mb-6 flex gap-2 rounded-xl bg-surface-container-low p-1">
               <button
                 type="button"
@@ -185,7 +192,7 @@ export default function AuthPage() {
                 </p>
                 <form className="mt-6 space-y-4">
                   <input
-                    className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                     placeholder="Email"
                     type="email"
                     value={loginForm.email}
@@ -197,7 +204,7 @@ export default function AuthPage() {
                     }
                   />
                   <input
-                    className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                     placeholder="Password"
                     type="password"
                     value={loginForm.password}
@@ -212,7 +219,7 @@ export default function AuthPage() {
                     type="button"
                     onClick={onLogin}
                     disabled={isSubmitting}
-                    className="w-full rounded-xl bg-primary py-3 font-bold text-white"
+                    className="w-full rounded-xl bg-primary py-3 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isSubmitting ? "Logging in..." : "Login"}
                   </button>
@@ -244,26 +251,26 @@ export default function AuthPage() {
 
                 <form className="mt-5 space-y-3">
                   <input
-                    className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                     placeholder="Full Name"
                     value={userForm.name}
                     onChange={(e) => updateUserField("name", e.target.value)}
                   />
                   <input
-                    className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                     placeholder="Phone Number"
                     value={userForm.phone}
                     onChange={(e) => updateUserField("phone", e.target.value)}
                   />
                   <input
-                    className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                     placeholder="Email Address"
                     type="email"
                     value={userForm.email}
                     onChange={(e) => updateUserField("email", e.target.value)}
                   />
                   <input
-                    className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                     placeholder="Create Password"
                     type="password"
                     value={userForm.password}
@@ -274,7 +281,7 @@ export default function AuthPage() {
 
                   <div className="grid gap-3 md:grid-cols-2">
                     <select
-                      className="w-full rounded-xl bg-surface-container-high px-4 py-3"
+                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
                       value={roleLabel}
                       onChange={(e) => {
                         setRole(e.target.value);
@@ -284,7 +291,7 @@ export default function AuthPage() {
                       <option value="traveler">Traveler</option>
                       <option value="organizer">Organizer</option>
                     </select>
-                    <label className="flex items-center gap-2 rounded-xl bg-surface-container-high px-4 py-3 text-sm">
+                    <label className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 text-sm">
                       <input
                         type="checkbox"
                         checked={userForm.isVerified}
@@ -299,7 +306,7 @@ export default function AuthPage() {
                   {role === "organizer" ? (
                     <div className="space-y-3 rounded-xl bg-surface-container-low p-3">
                       <input
-                        className="w-full rounded-xl bg-surface px-4 py-3"
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
                         placeholder="Business Name"
                         value={organizerForm.businessName}
                         onChange={(e) =>
@@ -310,7 +317,7 @@ export default function AuthPage() {
                         }
                       />
                       <textarea
-                        className="w-full rounded-xl bg-surface px-4 py-3"
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
                         rows={3}
                         placeholder="Business Description"
                         value={organizerForm.businessDesc}
@@ -324,7 +331,7 @@ export default function AuthPage() {
                     </div>
                   ) : (
                     <div className="space-y-3 rounded-xl bg-surface-container-low p-3">
-                      <label className="flex items-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm">
+                      <label className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 text-sm">
                         <input
                           type="checkbox"
                           checked={travelerForm.govIDVerified}
@@ -338,7 +345,7 @@ export default function AuthPage() {
                         Government ID Verified
                       </label>
                       <input
-                        className="w-full rounded-xl bg-surface px-4 py-3"
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
                         placeholder="Travel Preferences"
                         value={travelerForm.preferences}
                         onChange={(e) =>
@@ -355,7 +362,7 @@ export default function AuthPage() {
                     type="button"
                     onClick={onSignUp}
                     disabled={isSubmitting}
-                    className="w-full rounded-xl bg-primary py-3 font-extrabold text-white"
+                    className="w-full rounded-xl bg-primary py-3 font-extrabold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isSubmitting ? "Creating account..." : "Sign Up"}
                   </button>
@@ -363,35 +370,6 @@ export default function AuthPage() {
               </div>
             )}
           </section>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-14">
-        <h3 className="mb-5 text-center font-headline text-2xl font-bold text-primary">
-          Verification Requirements
-        </h3>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl bg-surface-container-low p-6">
-            <p className="font-headline text-xl font-bold text-primary">
-              Phone Verification
-            </p>
-            <div className="mt-4 grid grid-cols-6 gap-2">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <input
-                  key={index}
-                  maxLength={1}
-                  className="h-12 rounded-lg bg-surface text-center text-xl font-bold"
-                />
-              ))}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-surface-container-low p-6">
-            <p className="font-headline text-xl font-bold text-primary">
-              Government ID Upload
-            </p>
-            <div className="mt-4 rounded-xl border-2 border-dashed border-outline-variant p-10 text-center text-on-surface-variant">
-              Upload Aadhaar, Passport, or Voter ID
-            </div>
           </div>
         </div>
       </section>
