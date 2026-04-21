@@ -13,6 +13,30 @@ const buildSignature = (paramsToSign, apiSecret) => {
     .digest("hex");
 };
 
+const TRANSFORMATION_KEY_MAP = {
+  angle: "a",
+  background: "b",
+  crop: "c",
+  dpr: "dpr",
+  effect: "e",
+  fetch_format: "f",
+  gravity: "g",
+  height: "h",
+  opacity: "o",
+  quality: "q",
+  radius: "r",
+  width: "w",
+  x: "x",
+  y: "y",
+};
+
+const serializeTransformation = (transformations = {}) =>
+  Object.entries(transformations)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${TRANSFORMATION_KEY_MAP[key] || key}_${value}`)
+    .join(",");
+
 const uploadBufferToCloudinary = async ({
   buffer,
   originalname,
@@ -31,17 +55,13 @@ const uploadBufferToCloudinary = async ({
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
+  const transformation = serializeTransformation(transformations);
   const paramsToSign = {
     folder,
     timestamp,
+    transformation,
     unique_filename: "true",
     use_filename: "true",
-    ...Object.entries(transformations).reduce((accumulator, [key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        accumulator[key] = String(value);
-      }
-      return accumulator;
-    }, {}),
   };
   const signature = buildSignature(paramsToSign, apiSecret);
 
@@ -52,11 +72,9 @@ const uploadBufferToCloudinary = async ({
   formData.append("folder", folder);
   formData.append("use_filename", "true");
   formData.append("unique_filename", "true");
-  Object.entries(transformations).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      formData.append(key, String(value));
-    }
-  });
+  if (transformation) {
+    formData.append("transformation", transformation);
+  }
   formData.append("signature", signature);
 
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
