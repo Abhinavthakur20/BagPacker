@@ -91,6 +91,7 @@ export const api = {
     get: (path, options) => request(path, { ...options, method: "GET" }),
     post: (path, body, options) =>
         request(path, { ...options, method: "POST", body }),
+    patch: (path, body, options) => request(path, { ...options, method: "PATCH", body }),
     put: (path, body, options) => request(path, { ...options, method: "PUT", body }),
     del: (path, options) => request(path, { ...options, method: "DELETE" }),
 };
@@ -109,4 +110,13 @@ export const resolveMediaUrl = (mediaPath = "") => {
     }
 
     return mediaPath;
+};
+
+export const optimizeCloudinaryImage = (mediaPath = "", transformations = "f_auto,q_auto,w_1200") => {
+    const resolvedUrl = resolveMediaUrl(mediaPath);
+    if (!resolvedUrl.includes("res.cloudinary.com") || !resolvedUrl.includes("/upload/")) {
+        return resolvedUrl;
+    }
+
+    return resolvedUrl.replace("/upload/", `/upload/${transformations}/`);
 };

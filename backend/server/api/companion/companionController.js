@@ -3,28 +3,357 @@ const PersonalTripPost = require("./personalTripPostModel");
 const Notification = require("../notification/notificationModel");
 const Booking = require("../booking/bookingModel");
 const Trip = require("../trip/tripModel");
+const {
+  buildChatRoomId,
+  escapeRegex,
+  getClosenessLabel,
+  getDateDifferenceInDays,
+  getDateScore,
+  getDateWindow,
+  getDayRange,
+  normalizeGenderPreference,
+  normalizeText,
+  normalizeVehicleType,
+  parseSeatCount,
+} = require("./companionUtils");
 
-const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const normalizeText = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
+const DATE_WINDOW_DAYS = 2;
 
-const getDayRange = (value) => {
-  const date = new Date(value);
+const createPaginationPayload = (items, page, limit, total) => ({
+  data: items,
+  items,
+  page,
+  totalPages: Math.max(1, Math.ceil(total / limit)),
+  pagination: {
+    page,
+    limit,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+  },
+});
 
-  if (Number.isNaN(date.getTime())) {
-    return null;
+const resolveRequestDirection = (request, userId) =>
+  String(request?.receiverId) === String(userId) ? "incoming" : "outgoing";
+
+const resolvePostSeatsAvailable = (post) => {
+  if (typeof post?.seatsAvailable === "number") {
+    return Math.max(0, Number(post.seatsAvailable || 0));
   }
 
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
+  const maxCompanions = Number(post?.maxCompanions || 0);
+  const acceptedCount = Array.isArray(post?.acceptedCompanionIds) ? post.acceptedCompanionIds.length : 0;
+  return Math.max(0, maxCompanions - acceptedCount);
 };
 
-const buildChatRoomId = (firstUserId, secondUserId) =>
-  [String(firstUserId), String(secondUserId)].sort().join("_");
+const mapBookingMatch = ({ booking, request, selectedDate, userId }) => {
+  const traveler = booking?.travelerId;
+  const trip = booking?.tripId;
+  const dateDiffDays = selectedDate && trip?.startDate
+    ? getDateDifferenceInDays(trip.startDate, selectedDate)
+    : null;
+  const trustScore = Number(traveler?.trustScore || 0);
+  const score = Number((50 + getDateScore(dateDiffDays) + trustScore / 10).toFixed(1));
+
+  return {
+    userId: traveler?._id,
+    name: traveler?.name || "Traveler",
+    trustScore,
+    verificationStatus: traveler?.verificationStatus || "pending",
+    source: trip?.source || "",
+    destination: trip?.destination || "",
+    travelDate: trip?.startDate || null,
+    score,
+    dateDiffDays,
+    matchLabel: getClosenessLabel(dateDiffDays),
+    request: request
+      ? {
+          id: request._id,
+          status: request.status,
+          direction: resolveRequestDirection(request, userId),
+          chatRoomId: request.chatRoomId || null,
+          seatsRequested: Number(request.seatsRequested || 1),
+          genderPreference: request.genderPreference || "Any",
+          vehicleType: request.vehicleType || null,
+        }
+      : null,
+  };
+};
+
+const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false } = {}) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const usePagination = !legacyArrayResponse || req.query.page !== undefined || req.query.limit !== undefined;
+    const source = normalizeText(req.query.source);
+    const destination = normalizeText(req.query.destination);
+    const date = String(req.query.date || "").trim();
+    const seatsRequested = parseSeatCount(req.query.seatsRequested, 1);
+    const rawGenderPreference = req.query.genderPreference ?? req.query.gender;
+    const hasExplicitGenderPreference = Boolean(String(rawGenderPreference || "").trim());
+    const genderPreference = normalizeGenderPreference(rawGenderPreference);
+    const rawVehicleType = req.query.vehicleType ?? req.query.vehicle;
+    const vehicleType = normalizeVehicleType(rawVehicleType);
+    const hasExplicitVehicleType = Boolean(vehicleType);
+    const dateWindow = date ? getDateWindow(date, DATE_WINDOW_DAYS) : null;
+
+    if (date && !dateWindow) {
+      return res.status(400).json({ message: "Valid date query is required" });
+    }
+
+    const requestLookupUserId = req.user._id;
+    const basePipeline = [
+      {
+        $addFields: {
+          seatsAvailableResolved: {
+            $ifNull: [
+              "$seatsAvailable",
+              {
+                $subtract: [
+                  { $ifNull: ["$maxCompanions", 0] },
+                  { $size: { $ifNull: ["$acceptedCompanionIds", []] } },
+                ],
+              },
+            ],
+          },
+          genderPreferenceResolved: { $ifNull: ["$genderPreference", "Any"] },
+          vehicleTypeResolved: { $ifNull: ["$vehicleType", null] },
+        },
+      },
+      {
+        $match: {
+          ownerId: { $ne: req.user._id },
+          status: "active",
+          ...(source
+            ? { source: { $regex: `^${escapeRegex(source)}$`, $options: "i" } }
+            : {}),
+          ...(destination
+            ? { destination: { $regex: `^${escapeRegex(destination)}$`, $options: "i" } }
+            : {}),
+        },
+      },
+      {
+        $match: {
+          seatsAvailableResolved: { $gte: seatsRequested },
+        },
+      },
+      ...(dateWindow
+        ? [
+            {
+              $match: {
+                travelDate: { $gte: dateWindow.start, $lte: dateWindow.end },
+              },
+            },
+            {
+              $addFields: {
+                dateDiffDays: {
+                  $abs: {
+                    $dateDiff: {
+                      startDate: "$travelDate",
+                      endDate: dateWindow.selectedDate,
+                      unit: "day",
+                    },
+                  },
+                },
+              },
+            },
+          ]
+        : [
+            {
+              $addFields: {
+                dateDiffDays: null,
+              },
+            },
+          ]),
+      ...(hasExplicitGenderPreference
+        ? [
+            {
+              $match: {
+                $or: [
+                  { genderPreferenceResolved: "Any" },
+                  { genderPreferenceResolved: genderPreference },
+                ],
+              },
+            },
+          ]
+        : []),
+      {
+        $lookup: {
+          from: "users",
+          localField: "ownerId",
+          foreignField: "_id",
+          as: "owner",
+        },
+      },
+      {
+        $unwind: "$owner",
+      },
+      {
+        $match: {
+          "owner.role": "traveler",
+          "owner.verificationStatus": { $ne: "rejected" },
+        },
+      },
+      {
+        $lookup: {
+          from: "companionrequests",
+          let: { postId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$requestType", "personal_trip_post"] },
+                    { $eq: ["$personalTripPostId", "$$postId"] },
+                    {
+                      $or: [
+                        { $eq: ["$requesterId", requestLookupUserId] },
+                        { $eq: ["$receiverId", requestLookupUserId] },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+          ],
+          as: "request",
+        },
+      },
+      {
+        $addFields: {
+          request: { $arrayElemAt: ["$request", 0] },
+          routeScore: source && destination ? 50 : 0,
+          dateScore: dateWindow
+            ? {
+                $switch: {
+                  branches: [
+                    { case: { $eq: ["$dateDiffDays", 0] }, then: 30 },
+                    { case: { $eq: ["$dateDiffDays", 1] }, then: 20 },
+                    { case: { $eq: ["$dateDiffDays", 2] }, then: 10 },
+                  ],
+                  default: 0,
+                },
+              }
+            : 0,
+          genderScore: hasExplicitGenderPreference
+            ? {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$genderPreferenceResolved", "Any"] },
+                      { $eq: ["$genderPreferenceResolved", genderPreference] },
+                    ],
+                  },
+                  10,
+                  0,
+                ],
+              }
+            : 0,
+          vehicleScore: hasExplicitVehicleType
+            ? {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$vehicleTypeResolved", vehicleType] },
+                      { $eq: ["$vehicleTypeResolved", null] },
+                    ],
+                  },
+                  5,
+                  0,
+                ],
+              }
+            : 0,
+          trustBoost: {
+            $divide: [{ $ifNull: ["$owner.trustScore", 0] }, 10],
+          },
+        },
+      },
+      {
+        $addFields: {
+          score: {
+            $add: ["$routeScore", "$dateScore", "$genderScore", "$vehicleScore", "$trustBoost"],
+          },
+        },
+      },
+      {
+        $sort: {
+          score: -1,
+          "owner.trustScore": -1,
+          travelDate: 1,
+          createdAt: -1,
+        },
+      },
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 0,
+                postId: "$_id",
+                ownerId: "$owner._id",
+                ownerName: "$owner.name",
+                trustScore: { $ifNull: ["$owner.trustScore", 0] },
+                verificationStatus: { $ifNull: ["$owner.verificationStatus", "pending"] },
+                source: 1,
+                destination: 1,
+                travelDate: 1,
+                maxCompanions: { $ifNull: ["$maxCompanions", "$seatsAvailableResolved"] },
+                seatsAvailable: "$seatsAvailableResolved",
+                note: { $ifNull: ["$note", ""] },
+                genderPreference: "$genderPreferenceResolved",
+                vehicleType: "$vehicleTypeResolved",
+                score: { $round: ["$score", 1] },
+                dateDiffDays: 1,
+                request: {
+                  $cond: [
+                    { $ifNull: ["$request._id", false] },
+                    {
+                      id: "$request._id",
+                      status: "$request.status",
+                      direction: {
+                        $cond: [
+                          { $eq: ["$request.receiverId", requestLookupUserId] },
+                          "incoming",
+                          "outgoing",
+                        ],
+                      },
+                      chatRoomId: { $ifNull: ["$request.chatRoomId", null] },
+                      seatsRequested: { $ifNull: ["$request.seatsRequested", 1] },
+                      genderPreference: { $ifNull: ["$request.genderPreference", "Any"] },
+                      vehicleType: { $ifNull: ["$request.vehicleType", null] },
+                    },
+                    null,
+                  ],
+                },
+              },
+            },
+          ],
+          metadata: [{ $count: "total" }],
+        },
+      },
+    ];
+
+    const aggregateResult = await PersonalTripPost.aggregate(basePipeline);
+    const result = aggregateResult[0] || { data: [], metadata: [] };
+    const total = Number(result.metadata?.[0]?.total || 0);
+    const items = (result.data || []).map((item) => ({
+      ...item,
+      matchLabel: getClosenessLabel(item.dateDiffDays),
+    }));
+
+    if (!usePagination) {
+      return res.status(200).json(items);
+    }
+
+    return res.status(200).json(createPaginationPayload(items, page, limit, total));
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 const findCompanions = async (req, res) => {
   try {
@@ -36,6 +365,8 @@ const findCompanions = async (req, res) => {
     const destination = normalizeText(req.query.destination);
     const date = String(req.query.date || "").trim();
     const range = date ? getDayRange(date) : null;
+    const selectedDate = range?.start || null;
+
     if (date && !range) {
       return res.status(400).json({ message: "Valid date query is required" });
     }
@@ -62,10 +393,8 @@ const findCompanions = async (req, res) => {
       if (!usePagination) {
         return res.status(200).json([]);
       }
-      return res.status(200).json({
-        items: [],
-        pagination: { page, limit, total: 0, totalPages: 1 },
-      });
+
+      return res.status(200).json(createPaginationPayload([], page, limit, 0));
     }
 
     const tripIds = trips.map((trip) => trip._id);
@@ -90,26 +419,25 @@ const findCompanions = async (req, res) => {
       const travelerId = String(traveler._id);
       const tripStartDate = booking?.tripId?.startDate ? new Date(booking.tripId.startDate) : null;
       const dateDistanceScore =
-        range && tripStartDate ? Math.abs(tripStartDate.getTime() - range.start.getTime()) : 0;
+        selectedDate && tripStartDate
+          ? Math.abs(new Date(tripStartDate).getTime() - selectedDate.getTime())
+          : 0;
       const trustScore = Number(traveler.trustScore || 0);
-
       const candidateScore = dateDistanceScore - trustScore * 60 * 1000;
       const existing = candidatesByUser.get(travelerId);
+
       if (!existing || candidateScore < existing.score) {
         candidatesByUser.set(travelerId, { booking, score: candidateScore });
       }
     }
 
     const candidateUserIds = [...candidatesByUser.keys()];
-
     if (!candidateUserIds.length) {
       if (!usePagination) {
         return res.status(200).json([]);
       }
-      return res.status(200).json({
-        items: [],
-        pagination: { page, limit, total: 0, totalPages: 1 },
-      });
+
+      return res.status(200).json(createPaginationPayload([], page, limit, 0));
     }
 
     const requestFilters = {
@@ -132,9 +460,7 @@ const findCompanions = async (req, res) => {
     }
 
     const companionRequests = await CompanionRequest.find(requestFilters)
-      .sort({
-        createdAt: -1,
-      })
+      .sort({ createdAt: -1 })
       .lean();
     const latestRequestByUser = new Map();
 
@@ -150,31 +476,14 @@ const findCompanions = async (req, res) => {
     }
 
     const results = candidateUserIds
-      .map((candidateUserId) => {
-        const booking = candidatesByUser.get(candidateUserId)?.booking;
-        const traveler = booking?.travelerId;
-        const trip = booking?.tripId;
-        const request = latestRequestByUser.get(candidateUserId) || null;
-
-        return {
-          userId: traveler?._id,
-          name: traveler?.name || "Traveler",
-          trustScore: traveler?.trustScore || 0,
-          verificationStatus: traveler?.verificationStatus || "pending",
-          source: trip?.source || source,
-          destination: trip?.destination || destination,
-          travelDate: trip?.startDate || (range ? range.start : null),
-          request: request
-            ? {
-                id: request._id,
-                status: request.status,
-                direction:
-                  String(request.receiverId) === String(req.user._id) ? "incoming" : "outgoing",
-                chatRoomId: request.chatRoomId || null,
-              }
-            : null,
-        };
-      })
+      .map((candidateUserId) =>
+        mapBookingMatch({
+          booking: candidatesByUser.get(candidateUserId)?.booking,
+          request: latestRequestByUser.get(candidateUserId) || null,
+          selectedDate,
+          userId: req.user._id,
+        }),
+      )
       .filter((item) => item.userId);
 
     const requestPriority = (item) => {
@@ -200,9 +509,9 @@ const findCompanions = async (req, res) => {
         return firstPriority - secondPriority;
       }
 
-      const trustDelta = Number(second.trustScore || 0) - Number(first.trustScore || 0);
-      if (trustDelta !== 0) {
-        return trustDelta;
+      const scoreDelta = Number(second.score || 0) - Number(first.score || 0);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
       }
 
       const firstTime = first.travelDate ? new Date(first.travelDate).getTime() : Number.MAX_SAFE_INTEGER;
@@ -216,15 +525,8 @@ const findCompanions = async (req, res) => {
     if (!usePagination) {
       return res.status(200).json(results.slice(0, 100));
     }
-    return res.status(200).json({
-      items: results.slice(skip, skip + limit),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / limit)),
-      },
-    });
+
+    return res.status(200).json(createPaginationPayload(results.slice(skip, skip + limit), page, limit, total));
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -232,29 +534,39 @@ const findCompanions = async (req, res) => {
 
 const sendCompanionRequest = async (req, res) => {
   try {
-    const { receiverId, source, destination, travelDate, vehicleType } = req.body;
+    const { receiverId, source, destination, travelDate } = req.body;
     const normalizedSource = normalizeText(source);
     const normalizedDestination = normalizeText(destination);
+    const range = getDayRange(travelDate);
+    const seatsRequested = parseSeatCount(req.body.seatsRequested, 1);
+    const genderPreference = normalizeGenderPreference(req.body.genderPreference);
+    const vehicleType = normalizeVehicleType(req.body.vehicleType);
+
+    if (!receiverId) {
+      return res.status(400).json({ message: "receiverId is required" });
+    }
 
     if (String(receiverId) === String(req.user._id)) {
       return res.status(400).json({ message: "You cannot send a companion request to yourself" });
     }
 
-    const range = getDayRange(travelDate);
+    if (!normalizedSource || !normalizedDestination) {
+      return res.status(400).json({ message: "Source and destination are required" });
+    }
+
     if (!range) {
       return res.status(400).json({ message: "Valid travelDate is required" });
     }
-    const duplicateFilter = {
+
+    const existingRequest = await CompanionRequest.findOne({
       requesterId: req.user._id,
       receiverId,
+      requestType: "booking_match",
       source: { $regex: `^${escapeRegex(normalizedSource)}$`, $options: "i" },
       destination: { $regex: `^${escapeRegex(normalizedDestination)}$`, $options: "i" },
       status: "pending",
-    };
-
-    duplicateFilter.travelDate = { $gte: range.start, $lte: range.end };
-
-    const existingRequest = await CompanionRequest.findOne(duplicateFilter);
+      travelDate: { $gte: range.start, $lte: range.end },
+    });
 
     if (existingRequest) {
       return res.status(400).json({ message: "A pending companion request already exists" });
@@ -265,8 +577,10 @@ const sendCompanionRequest = async (req, res) => {
       receiverId,
       source: normalizedSource,
       destination: normalizedDestination,
-      travelDate,
-      vehicleType: vehicleType || null,
+      travelDate: range.start,
+      seatsRequested,
+      genderPreference,
+      vehicleType,
       requestType: "booking_match",
     });
 
@@ -287,15 +601,21 @@ const createPersonalTripPost = async (req, res) => {
     const source = normalizeText(req.body.source);
     const destination = normalizeText(req.body.destination);
     const range = getDayRange(req.body.travelDate);
-    const maxCompanions = Number(req.body.maxCompanions);
+    const maxCompanions = parseSeatCount(req.body.seatsAvailable ?? req.body.maxCompanions, 0);
     const note = String(req.body.note || "").trim();
+    const genderPreference = normalizeGenderPreference(req.body.genderPreference);
+    const vehicleType = normalizeVehicleType(req.body.vehicleType);
+
+    if (!source || !destination) {
+      return res.status(400).json({ message: "Source and destination are required" });
+    }
 
     if (!range) {
       return res.status(400).json({ message: "Valid travelDate is required" });
     }
 
-    if (![2, 3].includes(maxCompanions)) {
-      return res.status(400).json({ message: "maxCompanions must be 2 or 3" });
+    if (maxCompanions < 1) {
+      return res.status(400).json({ message: "seatsAvailable must be at least 1" });
     }
 
     const post = await PersonalTripPost.create({
@@ -304,7 +624,10 @@ const createPersonalTripPost = async (req, res) => {
       destination,
       travelDate: range.start,
       maxCompanions,
+      seatsAvailable: maxCompanions,
       note,
+      genderPreference,
+      vehicleType,
     });
 
     return res.status(201).json(post);
@@ -313,132 +636,23 @@ const createPersonalTripPost = async (req, res) => {
   }
 };
 
-const listPersonalTripPosts = async (req, res) => {
-  try {
-    const page = Math.max(1, Number(req.query.page || 1));
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
-    const skip = (page - 1) * limit;
-    const usePagination = req.query.page !== undefined || req.query.limit !== undefined;
-    const source = normalizeText(req.query.source);
-    const destination = normalizeText(req.query.destination);
-    const date = String(req.query.date || "").trim();
-    const range = date ? getDayRange(date) : null;
-    if (date && !range) {
-      return res.status(400).json({ message: "Valid date query is required" });
-    }
+const listPersonalTripPosts = async (req, res) => executePersonalTripSearch(req, res, { legacyArrayResponse: true });
 
-    const filters = {
-      ownerId: { $ne: req.user._id },
-      status: "active",
-    };
-
-    if (source) {
-      filters.source = { $regex: escapeRegex(source), $options: "i" };
-    }
-
-    if (destination) {
-      filters.destination = { $regex: escapeRegex(destination), $options: "i" };
-    }
-
-    if (range) {
-      filters.travelDate = { $gte: range.start, $lte: range.end };
-    }
-
-    const posts = await PersonalTripPost.find(filters)
-      .sort({ createdAt: -1 })
-      .populate("ownerId", "name trustScore verificationStatus role")
-      .lean();
-
-    if (!posts.length) {
-      if (!usePagination) {
-        return res.status(200).json([]);
-      }
-      return res.status(200).json({
-        items: [],
-        pagination: { page, limit, total: 0, totalPages: 1 },
-      });
-    }
-
-    const postIds = posts.map((post) => post._id);
-    const existingRequests = await CompanionRequest.find({
-      requestType: "personal_trip_post",
-      personalTripPostId: { $in: postIds },
-      $or: [
-        { requesterId: req.user._id },
-        { receiverId: req.user._id },
-      ],
-    })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const latestRequestByPostId = new Map();
-    for (const request of existingRequests) {
-      const key = String(request.personalTripPostId);
-      if (!latestRequestByPostId.has(key)) {
-        latestRequestByPostId.set(key, request);
-      }
-    }
-
-    const results = posts
-      .map((post) => {
-        const owner = post.ownerId;
-        if (!owner || owner.role !== "traveler" || owner.verificationStatus === "rejected") {
-          return null;
-        }
-
-        const acceptedCount = Array.isArray(post.acceptedCompanionIds)
-          ? post.acceptedCompanionIds.length
-          : 0;
-        const request = latestRequestByPostId.get(String(post._id)) || null;
-
-        return {
-          postId: post._id,
-          ownerId: owner._id,
-          ownerName: owner.name || "Traveler",
-          trustScore: owner.trustScore || 0,
-          verificationStatus: owner.verificationStatus || "pending",
-          source: post.source,
-          destination: post.destination,
-          travelDate: post.travelDate,
-          maxCompanions: post.maxCompanions,
-          acceptedCount,
-          seatsLeft: Math.max(0, Number(post.maxCompanions || 0) - acceptedCount),
-          note: post.note || "",
-          request: request
-            ? {
-                id: request._id,
-                status: request.status,
-                direction:
-                  String(request.receiverId) === String(req.user._id) ? "incoming" : "outgoing",
-                chatRoomId: request.chatRoomId || null,
-              }
-            : null,
-        };
-      })
-      .filter(Boolean);
-
-    const total = results.length;
-    if (!usePagination) {
-      return res.status(200).json(results.slice(0, 100));
-    }
-    return res.status(200).json({
-      items: results.slice(skip, skip + limit),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / limit)),
-      },
-    });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-};
+const searchPersonalTripPosts = async (req, res) => executePersonalTripSearch(req, res, { legacyArrayResponse: false });
 
 const requestPersonalTripPost = async (req, res) => {
   try {
-    const post = await PersonalTripPost.findById(req.body.postId).select(
-      "ownerId source destination travelDate maxCompanions acceptedCompanionIds status",
+    const postId = req.body.personalTripPostId || req.body.postId;
+    const seatsRequested = parseSeatCount(req.body.seatsRequested, 1);
+    const genderPreference = normalizeGenderPreference(req.body.genderPreference);
+    const requestedVehicleType = normalizeVehicleType(req.body.vehicleType);
+
+    if (!postId) {
+      return res.status(400).json({ message: "postId is required" });
+    }
+
+    const post = await PersonalTripPost.findById(postId).select(
+      "ownerId source destination travelDate maxCompanions seatsAvailable acceptedCompanionIds status genderPreference vehicleType",
     );
 
     if (!post || post.status !== "active") {
@@ -449,11 +663,9 @@ const requestPersonalTripPost = async (req, res) => {
       return res.status(400).json({ message: "You cannot request your own post" });
     }
 
-    const acceptedCount = Array.isArray(post.acceptedCompanionIds)
-      ? post.acceptedCompanionIds.length
-      : 0;
-    if (acceptedCount >= Number(post.maxCompanions || 0)) {
-      return res.status(400).json({ message: "This post is already full" });
+    const seatsAvailable = resolvePostSeatsAvailable(post);
+    if (seatsRequested > seatsAvailable) {
+      return res.status(400).json({ message: "Not enough seats are available on this post" });
     }
 
     const duplicateRequest = await CompanionRequest.findOne({
@@ -474,7 +686,9 @@ const requestPersonalTripPost = async (req, res) => {
       source: post.source,
       destination: post.destination,
       travelDate: post.travelDate,
-      vehicleType: null,
+      seatsRequested,
+      genderPreference,
+      vehicleType: requestedVehicleType || post.vehicleType || null,
       requestType: "personal_trip_post",
       personalTripPostId: post._id,
     });
@@ -491,8 +705,17 @@ const requestPersonalTripPost = async (req, res) => {
   }
 };
 
-const respondToCompanionRequest = async (req, res) => {
+const createCompanionRequest = async (req, res) => {
+  if (req.body.personalTripPostId || req.body.postId) {
+    return requestPersonalTripPost(req, res);
+  }
+
+  return sendCompanionRequest(req, res);
+};
+
+const respondToCompanionRequest = async (req, res, forcedStatus = null) => {
   try {
+    const status = forcedStatus || req.body.status;
     const request = await CompanionRequest.findOne({
       _id: req.params.id,
       receiverId: req.user._id,
@@ -506,38 +729,57 @@ const respondToCompanionRequest = async (req, res) => {
       return res.status(400).json({ message: "This companion request has already been handled" });
     }
 
-    request.status = req.body.status;
-    if (req.body.status === "accepted") {
-      if (
-        request.requestType === "personal_trip_post" &&
-        request.personalTripPostId
-      ) {
-        const post = await PersonalTripPost.findById(request.personalTripPostId).select(
-          "ownerId maxCompanions acceptedCompanionIds status",
-        );
-        if (!post || String(post.ownerId) !== String(req.user._id)) {
-          return res.status(404).json({ message: "Related personal trip post not found" });
-        }
-        if (post.status !== "active") {
-          return res.status(400).json({ message: "This personal trip post is not active" });
-        }
+    if (status === "accepted" && request.requestType === "personal_trip_post" && request.personalTripPostId) {
+      const currentPost = await PersonalTripPost.findById(request.personalTripPostId).select(
+        "ownerId status seatsAvailable maxCompanions acceptedCompanionIds",
+      );
 
-        const acceptedCompanionIds = Array.isArray(post.acceptedCompanionIds)
-          ? post.acceptedCompanionIds.map((item) => String(item))
-          : [];
-        if (acceptedCompanionIds.length >= Number(post.maxCompanions || 0)) {
-          return res.status(400).json({ message: "This personal trip post is already full" });
-        }
-
-        const requesterId = String(request.requesterId);
-        if (!acceptedCompanionIds.includes(requesterId)) {
-          post.acceptedCompanionIds.push(request.requesterId);
-        }
-        if (post.acceptedCompanionIds.length >= Number(post.maxCompanions || 0)) {
-          post.status = "closed";
-        }
-        await post.save();
+      if (!currentPost || String(currentPost.ownerId) !== String(req.user._id)) {
+        return res.status(404).json({ message: "Related personal trip post not found" });
       }
+
+      if (currentPost.status !== "active") {
+        return res.status(400).json({ message: "This personal trip post is not active" });
+      }
+
+      const seatsAvailable = resolvePostSeatsAvailable(currentPost);
+      if (typeof currentPost.seatsAvailable !== "number") {
+        await PersonalTripPost.updateOne(
+          { _id: currentPost._id, seatsAvailable: { $exists: false } },
+          { $set: { seatsAvailable } },
+        );
+      }
+
+      const seatsRequested = parseSeatCount(request.seatsRequested, 1);
+      const updatedPost = await PersonalTripPost.findOneAndUpdate(
+        {
+          _id: request.personalTripPostId,
+          ownerId: req.user._id,
+          status: "active",
+          seatsAvailable: { $gte: seatsRequested },
+          acceptedCompanionIds: { $ne: request.requesterId },
+        },
+        {
+          $inc: { seatsAvailable: -seatsRequested },
+          $addToSet: { acceptedCompanionIds: request.requesterId },
+        },
+        { new: true },
+      );
+
+      if (!updatedPost) {
+        return res.status(400).json({ message: "Not enough seats remain for this request" });
+      }
+
+      if (Number(updatedPost.seatsAvailable || 0) <= 0 && updatedPost.status !== "closed") {
+        await PersonalTripPost.updateOne(
+          { _id: updatedPost._id, status: "active" },
+          { $set: { status: "closed" } },
+        );
+      }
+    }
+
+    request.status = status;
+    if (status === "accepted") {
       request.chatRoomId = buildChatRoomId(request.requesterId, request.receiverId);
     }
 
@@ -546,7 +788,7 @@ const respondToCompanionRequest = async (req, res) => {
     await Notification.create({
       userId: request.requesterId,
       type: "companion_request",
-      message: `${req.user.name} ${req.body.status} your companion request.`,
+      message: `${req.user.name} ${status} your companion request.`,
     });
 
     return res.status(200).json(request);
@@ -554,6 +796,10 @@ const respondToCompanionRequest = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+const acceptCompanionRequest = async (req, res) => respondToCompanionRequest(req, res, "accepted");
+
+const declineCompanionRequest = async (req, res) => respondToCompanionRequest(req, res, "declined");
 
 const getMyCompanionRequests = async (req, res) => {
   try {
@@ -564,14 +810,20 @@ const getMyCompanionRequests = async (req, res) => {
       CompanionRequest.find({ requesterId: req.user._id })
         .sort({ createdAt: -1 })
         .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
-        .populate("personalTripPostId", "source destination travelDate maxCompanions note status")
+        .populate(
+          "personalTripPostId",
+          "source destination travelDate maxCompanions seatsAvailable note status genderPreference vehicleType",
+        )
         .skip(skip)
         .limit(limit)
         .lean(),
       CompanionRequest.find({ receiverId: req.user._id })
         .sort({ createdAt: -1 })
         .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
-        .populate("personalTripPostId", "source destination travelDate maxCompanions note status")
+        .populate(
+          "personalTripPostId",
+          "source destination travelDate maxCompanions seatsAvailable note status genderPreference vehicleType",
+        )
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -596,25 +848,43 @@ const getMyCompanionRequests = async (req, res) => {
   }
 };
 
+const getUserCompanionRequests = async (req, res) => {
+  if (String(req.params.userId) !== String(req.user._id)) {
+    return res.status(403).json({ message: "You can only view your own companion requests" });
+  }
+
+  return getMyCompanionRequests(req, res);
+};
+
 const getMyPersonalTripPosts = async (req, res) => {
   try {
     const posts = await PersonalTripPost.find({ ownerId: req.user._id })
       .sort({ createdAt: -1 })
       .lean();
 
-    return res.status(200).json(posts);
+    const payload = posts.map((post) => ({
+      ...post,
+      seatsAvailable: resolvePostSeatsAvailable(post),
+    }));
+
+    return res.status(200).json(payload);
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 };
 
 module.exports = {
-  findCompanions,
-  sendCompanionRequest,
+  acceptCompanionRequest,
+  createCompanionRequest,
   createPersonalTripPost,
+  declineCompanionRequest,
+  findCompanions,
+  getMyCompanionRequests,
+  getMyPersonalTripPosts,
+  getUserCompanionRequests,
   listPersonalTripPosts,
   requestPersonalTripPost,
   respondToCompanionRequest,
-  getMyCompanionRequests,
-  getMyPersonalTripPosts,
+  searchPersonalTripPosts,
+  sendCompanionRequest,
 };

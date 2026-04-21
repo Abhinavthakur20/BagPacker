@@ -29,6 +29,16 @@ const companionRequestSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    seatsRequested: {
+      type: Number,
+      min: 1,
+      default: 1,
+    },
+    genderPreference: {
+      type: String,
+      enum: ["M", "F", "Any"],
+      default: "Any",
+    },
     vehicleType: {
       type: String,
       enum: ["car", "bike", null],
@@ -59,6 +69,7 @@ const companionRequestSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+companionRequestSchema.index({ source: 1, destination: 1, travelDate: 1, status: 1 });
 companionRequestSchema.index({ requesterId: 1, receiverId: 1, status: 1, travelDate: 1, createdAt: -1 });
 companionRequestSchema.index({ receiverId: 1, status: 1, createdAt: -1 });
 companionRequestSchema.index({ personalTripPostId: 1, requestType: 1, status: 1, createdAt: -1 });

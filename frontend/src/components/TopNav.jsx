@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSelector } from "react-redux";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
 
 const getLinkClass = ({ isActive }) =>
@@ -12,7 +12,6 @@ const getLinkClass = ({ isActive }) =>
   ].join(" ");
 
 export default function TopNav() {
-  const location = useLocation();
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = Boolean(token);
@@ -51,10 +50,6 @@ export default function TopNav() {
       { label: "Chat", to: "/chat" },
     ];
   })();
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname, location.search]);
 
   return (
     <nav className="glass-nav fixed top-0 z-40 w-full border-b border-outline-variant/30 bg-gray-300/95 shadow-[0_12px_32px_rgba(28,28,24,0.06)]">
@@ -125,6 +120,7 @@ export default function TopNav() {
             <NavLink
               key={`mobile-${item.to}`}
               to={item.to}
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 `rounded-lg px-3 py-3 text-sm font-semibold transition ${
                   isActive
@@ -142,6 +138,7 @@ export default function TopNav() {
           {isLoggedIn ? (
             <NavLink
               to="/profile"
+              onClick={() => setIsMobileMenuOpen(false)}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white"
             >
               Profile
@@ -150,12 +147,14 @@ export default function TopNav() {
             <div className="grid grid-cols-2 gap-2">
               <NavLink
                 to="/auth?mode=login"
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-sm font-semibold text-primary"
               >
                 Login
               </NavLink>
               <NavLink
                 to="/auth?mode=signup"
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white"
               >
                 Sign Up

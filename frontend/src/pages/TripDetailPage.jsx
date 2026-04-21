@@ -5,7 +5,7 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
-import { api, resolveMediaUrl } from "../lib/api";
+import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 
 const getTripDuration = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -33,6 +33,7 @@ export default function TripDetailPage() {
   const [seats, setSeats] = useState(2);
   const [pickupPointId, setPickupPointId] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [openDay, setOpenDay] = useState(1);
 
   useEffect(() => {
     const loadTrip = async () => {
@@ -109,6 +110,10 @@ export default function TripDetailPage() {
   }, [id, tripImages.length]);
 
   useEffect(() => {
+    setOpenDay(itinerary[0]?.day || 1);
+  }, [id, itinerary]);
+
+  useEffect(() => {
     if (trip?.availableSeats && seats > trip.availableSeats) {
       setSeats(Math.max(1, trip.availableSeats));
     }
@@ -141,14 +146,23 @@ export default function TripDetailPage() {
   const total = subtotal + tax;
   const canBook = trip.availableSeats > 0 && pickupPointId;
   const bookingUrl = `/payment?tripId=${trip._id}&seats=${seats}&pickupPointId=${pickupPointId}`;
+  const joinedCount = Math.max(0, Number(trip.totalSeats || 0) - Number(trip.availableSeats || 0));
+  const occupancyPercent = trip.totalSeats
+    ? Math.min(100, Math.round((joinedCount / Math.max(1, trip.totalSeats)) * 100))
+    : 0;
+  const activeHeroImage = optimizeCloudinaryImage(
+    tripImages[activeImageIndex] || campfireImage,
+    "f_auto,q_auto,w_1600",
+  );
 
   return (
     <MainLayout withFooter={false}>
       <section className="relative h-[52vh] min-h-80 overflow-hidden sm:min-h-96">
         <img
-          src={tripImages[activeImageIndex] || campfireImage}
+          src={activeHeroImage}
           alt={trip.title}
           className="h-full w-full object-cover"
+          loading="eager"
         />
         <div className="absolute inset-0 bg-linear-to-t from-primary/80 via-primary/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl p-5 text-white sm:p-8 md:p-12">
@@ -175,6 +189,10 @@ export default function TripDetailPage() {
             <p className="flex items-center gap-2">
               <span className="material-symbols-outlined text-base">group</span>
               {trip.availableSeats} Slots Left
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">diversity_3</span>
+              {joinedCount} already joined
             </p>
           </div>
         </div>
@@ -210,7 +228,12 @@ export default function TripDetailPage() {
                    }`}
                   aria-label={`Open trip image ${index + 1}`}
                 >
-                  <img src={image} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={optimizeCloudinaryImage(image, "f_auto,q_auto,w_220")}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 </button>
               ))}
             </div>
@@ -240,34 +263,76 @@ export default function TripDetailPage() {
           </article>
 
           <article>
-            <h2 className="mb-8 font-headline text-4xl font-extrabold text-primary">
-              The Journey Map
-            </h2>
-            <div className="relative space-y-8 before:absolute before:bottom-5 before:left-5 before:top-5 before:w-[2px] before:bg-outline-variant/50">
-              {itinerary.map((item, index) => (
-                <div
-                  key={`${item.day}-${item.title}`}
-                  className="relative pl-12"
-                >
-                  <span
-                    className={`absolute left-0 top-2 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
-                      index === 0
-                        ? "bg-primary-container text-white"
-                        : "border-2 border-primary-container bg-surface-container-highest text-primary"
+            <div className="mb-8 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="font-headline text-4xl font-extrabold text-primary">
+                  The Journey Map
+                </h2>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  Tap each day to open the full plan like a package builder.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low px-4 py-3 text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
+                  Trip Flow
+                </p>
+                <p className="mt-1 font-headline text-2xl font-black text-primary">
+                  {itinerary.length} Days
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {itinerary.map((item) => {
+                const isOpen = openDay === item.day;
+
+                return (
+                  <article
+                    key={`${item.day}-${item.title}`}
+                    className={`overflow-hidden rounded-3xl border transition ${
+                      isOpen
+                        ? "border-primary/20 bg-surface-container-lowest shadow-[0_18px_36px_rgba(16,58,45,0.08)]"
+                        : "border-outline-variant/10 bg-surface-container-low"
                     }`}
                   >
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6">
-                    <h4 className="font-headline text-2xl font-bold text-primary">
-                      Day {item.day}: {item.title}
-                    </h4>
-                    <p className="mt-2 leading-relaxed text-on-surface-variant">
-                      {item.note}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      onClick={() => setOpenDay((currentDay) => (currentDay === item.day ? 0 : item.day))}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left md:px-6"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span
+                          className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black ${
+                            isOpen
+                              ? "bg-primary text-white"
+                              : "bg-surface-container-highest text-primary"
+                          }`}
+                        >
+                          {String(item.day).padStart(2, "0")}
+                        </span>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
+                            Day {item.day}
+                          </p>
+                          <h4 className="font-headline text-2xl font-bold text-primary">
+                            {item.title}
+                          </h4>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-primary">
+                        {isOpen ? "remove" : "add"}
+                      </span>
+                    </button>
+
+                    {isOpen ? (
+                      <div className="border-t border-outline-variant/10 px-5 py-5 md:px-6">
+                        <p className="leading-relaxed text-on-surface-variant">
+                          {item.note}
+                        </p>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           </article>
 
@@ -311,8 +376,36 @@ export default function TripDetailPage() {
         </div>
 
         <aside className="lg:col-span-4">
-          <div className="sticky top-28 space-y-5">
-            <div className="overflow-hidden rounded-4xl border border-outline-variant/20 bg-surface-container-lowest shadow-xl">
+            <div className="sticky top-28 space-y-5">
+              <div className="rounded-3xl border border-primary/10 bg-linear-to-br from-[#173f31] to-[#0f3327] p-6 text-white shadow-xl">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
+                  Group Energy
+                </p>
+                <div className="mt-3 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="font-headline text-5xl font-black leading-none">
+                      {joinedCount}
+                    </p>
+                    <p className="mt-2 text-sm text-white/80">
+                      people already joined this trip
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white/12 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-white">
+                    {occupancyPercent}% filled
+                  </span>
+                </div>
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-secondary"
+                    style={{ width: `${occupancyPercent}%` }}
+                  />
+                </div>
+                <p className="mt-4 text-sm text-white/80">
+                  Book your seat to join the group trip chat and travel with the same crew.
+                </p>
+              </div>
+
+              <div className="overflow-hidden rounded-4xl border border-outline-variant/20 bg-surface-container-lowest shadow-xl">
               <div className="space-y-6 p-8 pb-6">
                 <div className="flex items-start justify-between">
                   <div>
@@ -328,7 +421,7 @@ export default function TripDetailPage() {
 
                 <div>
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">
-                    Number of Seats
+                    Build Your Spot
                   </p>
                   <div className="flex items-center justify-between rounded-xl border border-outline-variant/20 bg-surface-container-low p-4">
                     <button
@@ -385,6 +478,25 @@ export default function TripDetailPage() {
                     <span>Total Amount</span>
                     <span>{formatINR(total)}</span>
                   </div>
+                </div>
+
+                <div className="rounded-2xl bg-surface-container-low p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
+                        Why Book Now
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-primary">
+                        Join a live group trip, not a static package.
+                      </p>
+                    </div>
+                    <span className="material-symbols-outlined text-primary">bolt</span>
+                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
+                    <li>{joinedCount} travelers already in</li>
+                    <li>{trip.availableSeats} seats still available</li>
+                    <li>Trip group chat unlocks after booking</li>
+                  </ul>
                 </div>
 
                 {isLoggedIn ? (

@@ -27,8 +27,25 @@ const personalTripPostSchema = new mongoose.Schema(
     },
     maxCompanions: {
       type: Number,
-      enum: [2, 3],
       required: true,
+      min: 1,
+    },
+    seatsAvailable: {
+      type: Number,
+      min: 0,
+      default: function defaultSeatsAvailable() {
+        return this.maxCompanions || 1;
+      },
+    },
+    genderPreference: {
+      type: String,
+      enum: ["M", "F", "Any"],
+      default: "Any",
+    },
+    vehicleType: {
+      type: String,
+      enum: ["car", "bike", null],
+      default: null,
     },
     note: {
       type: String,
@@ -53,6 +70,7 @@ const personalTripPostSchema = new mongoose.Schema(
 
 personalTripPostSchema.index({ ownerId: 1, status: 1, createdAt: -1 });
 personalTripPostSchema.index({ source: 1, destination: 1, travelDate: 1, status: 1, createdAt: -1 });
+personalTripPostSchema.index({ source: 1, destination: 1, travelDate: 1, status: 1 });
 
 module.exports =
   mongoose.models.PersonalTripPost ||
