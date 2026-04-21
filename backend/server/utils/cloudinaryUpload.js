@@ -1,6 +1,11 @@
 const crypto = require("crypto");
 
 const buildSignature = (paramsToSign, apiSecret) => {
+  const signatureAlgorithm = ["sha1", "sha256"].includes(
+    String(process.env.CLOUDINARY_SIGNATURE_ALGORITHM || "sha256").toLowerCase(),
+  )
+    ? String(process.env.CLOUDINARY_SIGNATURE_ALGORITHM || "sha256").toLowerCase()
+    : "sha256";
   const serialized = Object.entries(paramsToSign)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .sort(([a], [b]) => a.localeCompare(b))
@@ -8,7 +13,7 @@ const buildSignature = (paramsToSign, apiSecret) => {
     .join("&");
 
   return crypto
-    .createHash("sha1")
+    .createHash(signatureAlgorithm)
     .update(`${serialized}${apiSecret}`)
     .digest("hex");
 };
