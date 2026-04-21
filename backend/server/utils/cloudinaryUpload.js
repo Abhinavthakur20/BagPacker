@@ -13,7 +13,13 @@ const buildSignature = (paramsToSign, apiSecret) => {
     .digest("hex");
 };
 
-const uploadBufferToCloudinary = async ({ buffer, originalname, folder, resourceType = "auto" }) => {
+const uploadBufferToCloudinary = async ({
+  buffer,
+  originalname,
+  folder,
+  resourceType = "auto",
+  transformations = {},
+}) => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -30,6 +36,12 @@ const uploadBufferToCloudinary = async ({ buffer, originalname, folder, resource
     timestamp,
     unique_filename: "true",
     use_filename: "true",
+    ...Object.entries(transformations).reduce((accumulator, [key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        accumulator[key] = String(value);
+      }
+      return accumulator;
+    }, {}),
   };
   const signature = buildSignature(paramsToSign, apiSecret);
 
@@ -40,6 +52,11 @@ const uploadBufferToCloudinary = async ({ buffer, originalname, folder, resource
   formData.append("folder", folder);
   formData.append("use_filename", "true");
   formData.append("unique_filename", "true");
+  Object.entries(transformations).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      formData.append(key, String(value));
+    }
+  });
   formData.append("signature", signature);
 
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {

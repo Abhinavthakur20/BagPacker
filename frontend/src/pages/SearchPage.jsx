@@ -5,7 +5,7 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
-import { api, resolveMediaUrl } from "../lib/api";
+import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 import { setSearchTripsCache } from "../store/cacheSlice";
 
 const getTripDuration = (startDate, endDate) => {
@@ -27,7 +27,11 @@ const getTripDuration = (startDate, endDate) => {
 const mapTrip = (trip, index) => ({
   images:
     Array.isArray(trip.images) && trip.images.length
-      ? trip.images.map((imagePath) => resolveMediaUrl(imagePath)).filter(Boolean)
+      ? trip.images
+          .map((imagePath) =>
+            optimizeCloudinaryImage(resolveMediaUrl(imagePath), "f_auto,q_auto,w_900,dpr_auto"),
+          )
+          .filter(Boolean)
       : [campfireImage],
   id: trip._id,
   title: trip.title,

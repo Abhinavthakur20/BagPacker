@@ -41,6 +41,14 @@ const shapeOrganizer = (organizer) => {
 const getApprovedOrganizer = (userId) =>
   Organizer.findOne({ userId, approvalStatus: "approved" });
 
+const TRIP_IMAGE_TRANSFORMATIONS = {
+  width: 1600,
+  crop: "limit",
+  quality: "auto",
+  fetch_format: "auto",
+  dpr: "auto",
+};
+
 const parseJsonArray = (value) => {
   if (Array.isArray(value)) {
     return value;
@@ -226,6 +234,7 @@ const createTrip = async (req, res) => {
               originalname: file.originalname,
               folder: "bagpacker/trip-images",
               resourceType: "image",
+              transformations: TRIP_IMAGE_TRANSFORMATIONS,
             });
             return uploadedImage.secure_url;
           }),

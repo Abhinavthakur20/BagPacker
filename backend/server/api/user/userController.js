@@ -16,6 +16,14 @@ const sanitizeUser = (user) => ({
   updatedAt: user.updatedAt,
 });
 
+const DOCUMENT_IMAGE_TRANSFORMATIONS = {
+  width: 2000,
+  crop: "limit",
+  quality: "auto:good",
+  fetch_format: "auto",
+  dpr: "auto",
+};
+
 const getProfile = async (req, res) => {
   try {
     return res.status(200).json(sanitizeUser(req.user));
@@ -61,6 +69,7 @@ const uploadGovernmentId = async (req, res) => {
       originalname: req.file.originalname,
       folder: "bagpacker/government-ids",
       resourceType: "auto",
+      transformations: DOCUMENT_IMAGE_TRANSFORMATIONS,
     });
 
     const user = await User.findByIdAndUpdate(

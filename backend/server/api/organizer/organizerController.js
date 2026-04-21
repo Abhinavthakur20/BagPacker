@@ -1,6 +1,14 @@
 const Organizer = require("./organizerModel");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
+const DOCUMENT_IMAGE_TRANSFORMATIONS = {
+  width: 2000,
+  crop: "limit",
+  quality: "auto:good",
+  fetch_format: "auto",
+  dpr: "auto",
+};
+
 const registerOrganizerProfile = async (req, res) => {
   try {
     const { businessName, gstNumber, bankAccountDetails } = req.body;
@@ -18,6 +26,7 @@ const registerOrganizerProfile = async (req, res) => {
         originalname: req.file.originalname,
         folder: "bagpacker/organizer-licenses",
         resourceType: "auto",
+        transformations: DOCUMENT_IMAGE_TRANSFORMATIONS,
       });
       licenseUrl = uploadedLicense.secure_url;
     }
