@@ -28,6 +28,41 @@ const bookingSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    currency: {
+      type: String,
+      default: "INR",
+      uppercase: true,
+      trim: true,
+    },
+    paymentProvider: {
+      type: String,
+      enum: ["razorpay"],
+      default: "razorpay",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["created", "paid", "failed", "refund_required", "refunded"],
+      default: "created",
+      index: true,
+    },
+    razorpayOrderId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    razorpaySignature: {
+      type: String,
+      trim: true,
+    },
+    paymentCapturedAt: {
+      type: Date,
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled", "completed"],

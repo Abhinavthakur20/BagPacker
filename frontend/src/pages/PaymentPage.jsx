@@ -27,8 +27,28 @@ export default function PaymentPage() {
   const [completingBookingId, setCompletingBookingId] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isRazorpayReady, setIsRazorpayReady] = useState(Boolean(window.Razorpay));
 
   const tripId = searchParams.get("tripId");
+  useEffect(() => {
+    if (window.Razorpay) {
+      setIsRazorpayReady(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => setIsRazorpayReady(true);
+    script.onerror = () => setError("Could not load payment gateway. Please refresh and try again.");
+    document.body.appendChild(script);
+
+    return () => {
+      script.onload = null;
+      script.onerror = null;
+    };
+  }, []);
+
   const loadBookings = async () => {
     if (!isLoggedIn) {
       return;
@@ -97,11 +117,17 @@ export default function PaymentPage() {
       await showErrorAlert("Booking incomplete", "Please select a trip and pickup point.");
       return;
     }
+    if (!isRazorpayReady || !window.Razorpay) {
+      const message = "Payment gateway is still loading. Please wait a moment and try again.";
+      setError(message);
+      await showErrorAlert("Payment unavailable", message);
+      return;
+    }
 
     const result = await showConfirmAlert({
-      title: "Confirm this booking?",
-      text: `You are about to book ${seats} seat(s) for ${trip.title}.`,
-      confirmButtonText: "Confirm Booking",
+      title: "Proceed to payment?",
+      text: `You are about to pay ${formatINR(total)} for ${seats} seat(s) in ${trip.title}.`,
+      confirmButtonText: "Pay Now",
       icon: "warning",
     });
 
@@ -113,15 +139,77 @@ export default function PaymentPage() {
       setIsSubmitting(true);
       setError("");
       setSuccessMessage("");
+      let postPaymentNotice = "";
 
-      await api.post("/bookings", {
+      const paymentOrder = await api.post("/bookings/initiate-payment", {
         tripId: trip._id,
         pickupPointId,
         seatsBooked: seats,
       });
 
-      setSuccessMessage("Booking confirmed successfully.");
-      await showSuccessAlert("Booking confirmed", "Your trip has been reserved.");
+      if (!paymentOrder?.orderId || !paymentOrder?.keyId || !paymentOrder?.bookingId) {
+        throw new Error("Payment order response is incomplete");
+      }
+
+      await new Promise((resolve, reject) => {
+        const razorpay = new window.Razorpay({
+          key: paymentOrder.keyId,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency || "INR",
+          name: "BagPacker",
+          description: `${trip.title} (${seats} seat${seats > 1 ? "s" : ""})`,
+          order_id: paymentOrder.orderId,
+          prefill: {
+            name: user?.name || "",
+            email: user?.email || "",
+            contact: user?.phone || "",
+          },
+          notes: {
+            bookingId: paymentOrder.bookingId,
+            tripId: trip._id,
+          },
+          theme: {
+            color: "#154c37",
+          },
+          handler: async (response) => {
+            try {
+              const verificationResponse = await api.post("/bookings/verify-payment", {
+                bookingId: paymentOrder.bookingId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              const emailDelivery = verificationResponse?.emailDelivery;
+              postPaymentNotice =
+                emailDelivery?.delivered
+                  ? "Booking confirmed and e-ticket sent to your email."
+                  : "Booking confirmed. Email delivery is not configured yet.";
+              setSuccessMessage(postPaymentNotice);
+              resolve();
+            } catch (verifyError) {
+              reject(verifyError);
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error("Payment was cancelled.")),
+          },
+        });
+
+        razorpay.on("payment.failed", (failedResponse) => {
+          const reason =
+            failedResponse?.error?.description ||
+            failedResponse?.error?.reason ||
+            "Payment failed";
+          reject(new Error(reason));
+        });
+
+        razorpay.open();
+      });
+
+      if (!postPaymentNotice) {
+        setSuccessMessage("Payment successful and booking confirmed.");
+      }
+      await showSuccessAlert("Payment successful", "Your trip booking is confirmed.");
       await loadBookings();
     } catch (submitError) {
       setError(submitError.message);
@@ -295,14 +383,20 @@ export default function PaymentPage() {
 
               <button
                 onClick={submitBooking}
-                disabled={isSubmitting || !pickupPointId || trip.availableSeats < 1}
+                disabled={
+                  isSubmitting || !pickupPointId || trip.availableSeats < 1 || !isRazorpayReady
+                }
                 className="mt-6 w-full rounded-2xl bg-secondary px-5 py-4 font-headline text-lg font-extrabold text-[#2d2000] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Confirming..." : "Confirm Booking"}
+                {isSubmitting
+                  ? "Processing..."
+                  : !isRazorpayReady
+                    ? "Loading Payment..."
+                    : "Pay & Confirm Booking"}
               </button>
 
               <p className="mt-4 text-xs text-white/75">
-                No payment gateway is integrated here. This confirms the booking directly through the backend.
+                Secure payment via Razorpay. Booking is confirmed only after successful payment.
               </p>
             </aside>
           </div>

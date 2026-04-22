@@ -62,6 +62,7 @@ export default function CreateTripPage() {
   const [isCroppingImage, setIsCroppingImage] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const cropImageRef = useRef(null);
@@ -449,6 +450,73 @@ export default function CreateTripPage() {
     setTripImages((previous) => previous.filter((_, index) => index !== indexToRemove));
   };
 
+  const autofillTripWithAI = async () => {
+    const source = String(tripForm.source || "").trim();
+    const destination = String(tripForm.destination || "").trim();
+
+    if (!source || !destination) {
+      const message = "Enter source and destination first to generate trip details.";
+      setError(message);
+      await showErrorAlert("AI autofill unavailable", message);
+      return;
+    }
+
+    try {
+      setIsAutoFilling(true);
+      setError("");
+      const response = await api.post("/ai/trip-autofill", {
+        source,
+        destination,
+        context: {
+          currentForm: {
+            startDate: tripForm.startDate,
+            endDate: tripForm.endDate,
+            totalSeats: Number(tripForm.totalSeats || 0),
+            pricePerPerson: Number(tripForm.pricePerPerson || 0),
+          },
+        },
+      });
+
+      const suggestion = response?.suggestion || {};
+      const nextItinerary =
+        Array.isArray(suggestion.itinerary) && suggestion.itinerary.length
+          ? suggestion.itinerary.map((item, index) => ({
+              dayNumber: Number(item.dayNumber || index + 1),
+              activities: String(item.activities || ""),
+              accommodation: String(item.accommodation || ""),
+            }))
+          : [blankItinerary];
+      const nextPickupPoints =
+        Array.isArray(suggestion.pickupPoints) && suggestion.pickupPoints.length
+          ? suggestion.pickupPoints.map((item, index) => ({
+              location: String(item.location || ""),
+              time: String(item.time || ""),
+              sequence: Number(item.sequence || index + 1),
+            }))
+          : [blankPickup];
+
+      setTripForm((prev) => ({
+        ...prev,
+        title: String(suggestion.title || prev.title || `${source} to ${destination} Group Trip`),
+        source,
+        destination,
+        startDate: String(suggestion.startDate || prev.startDate || ""),
+        endDate: String(suggestion.endDate || prev.endDate || ""),
+        totalSeats: Math.max(1, Number(suggestion.totalSeats || prev.totalSeats || 1)),
+        pricePerPerson: Math.max(0, Number(suggestion.pricePerPerson || prev.pricePerPerson || 0)),
+        description: String(suggestion.description || prev.description || ""),
+      }));
+      setItinerary(nextItinerary);
+      setPickupPoints(nextPickupPoints);
+      setSuccessMessage("AI generated trip details have been applied.");
+    } catch (autofillError) {
+      setError(autofillError.message);
+      await showErrorAlert("AI autofill failed", autofillError.message);
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
   const submitTrip = async () => {
     const result = await showConfirmAlert({
       title: isEditMode ? "Save trip changes?" : "Create this trip?",
@@ -654,6 +722,18 @@ export default function CreateTripPage() {
                     value={tripForm.destination}
                     onChange={(event) => updateTripField("destination", event.target.value)}
                   />
+                  {!isEditMode ? (
+                    <button
+                      type="button"
+                      onClick={autofillTripWithAI}
+                      disabled={isAutoFilling}
+                      className="rounded-xl bg-[#124f38] px-4 py-3 text-sm font-bold text-white disabled:opacity-60 lg:col-span-2"
+                    >
+                      {isAutoFilling
+                        ? "Generating Trip with AI..."
+                        : "Auto Fill with AI (Source + Destination)"}
+                    </button>
+                  ) : null}
                   <input
                     type="number"
                     className="rounded-xl bg-[#eeebe4] px-4 py-3"

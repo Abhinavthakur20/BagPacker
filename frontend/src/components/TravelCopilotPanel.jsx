@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { api } from "../lib/api";
 
 const QUICK_PROMPTS = [
@@ -131,8 +132,8 @@ export default function TravelCopilotPanel({ context = {}, className = "" }) {
       ) : null}
 
       {answer ? (
-        <div className="mt-3 max-h-72 overflow-y-auto rounded-xl bg-white px-3 py-3 text-sm leading-relaxed text-[#2a322d] whitespace-pre-wrap">
-          {answer}
+        <div className="mt-3 max-h-72 overflow-y-auto rounded-xl bg-white px-3 py-3 text-sm leading-relaxed text-[#2a322d]">
+          <ReactMarkdown>{answer}</ReactMarkdown>
         </div>
       ) : null}
     </article>

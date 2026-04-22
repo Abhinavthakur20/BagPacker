@@ -1,4 +1,4 @@
-const { buildCopilotPrompt, callGroqCopilot } = require("./aiService");
+const { buildCopilotPrompt, buildTripAutofillPrompt, callGroqCopilot } = require("./aiService");
 
 const normalizeIntent = (value) => {
   const normalized = String(value || "qa").trim().toLowerCase();
@@ -9,6 +9,10 @@ const normalizeIntent = (value) => {
 };
 
 const safeText = (value, maxLength = 300) => String(value || "").trim().slice(0, maxLength);
+const safeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 const sanitizeMessageItems = (value) => {
   if (!Array.isArray(value)) {
@@ -94,6 +98,135 @@ const askCopilot = async (req, res) => {
   }
 };
 
+const parseJsonObject = (rawValue) => {
+  const value = String(rawValue || "").trim();
+  const firstBrace = value.indexOf("{");
+  const lastBrace = value.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+    return null;
+  }
+
+  const candidate = value.slice(firstBrace, lastBrace + 1);
+  try {
+    const parsed = JSON.parse(candidate);
+    return typeof parsed === "object" && parsed !== null ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const toIsoDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toISOString().slice(0, 10);
+};
+
+const sanitizeTripAutofill = (payload = {}) => {
+  const startDate =
+    toIsoDate(payload.startDate) || toIsoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const endDate = toIsoDate(payload.endDate) || startDate;
+
+  const itinerary = Array.isArray(payload.itinerary)
+    ? payload.itinerary
+        .map((item, index) => ({
+          dayNumber: Math.max(1, Math.round(safeNumber(item?.dayNumber, index + 1))),
+          activities: safeText(item?.activities, 400),
+          accommodation: safeText(item?.accommodation, 180),
+        }))
+        .filter((item) => item.activities)
+    : [];
+
+  const pickupPoints = Array.isArray(payload.pickupPoints)
+    ? payload.pickupPoints
+        .map((item, index) => ({
+          location: safeText(item?.location, 180),
+          time: safeText(item?.time, 60),
+          sequence: Math.max(1, Math.round(safeNumber(item?.sequence, index + 1))),
+        }))
+        .filter((item) => item.location && item.time)
+    : [];
+
+  return {
+    title: safeText(payload.title, 120),
+    description: safeText(payload.description, 1000),
+    startDate,
+    endDate,
+    pricePerPerson: Math.max(0, Math.round(safeNumber(payload.pricePerPerson, 0))),
+    totalSeats: Math.max(1, Math.round(safeNumber(payload.totalSeats, 1))),
+    itinerary: itinerary.length ? itinerary : [{ dayNumber: 1, activities: "Arrival and local orientation", accommodation: "" }],
+    pickupPoints: pickupPoints.length ? pickupPoints : [{ location: "Main city pickup point", time: "07:00 AM", sequence: 1 }],
+  };
+};
+
+const buildAutofillFallback = ({ source, destination }) => ({
+  title: `${source} to ${destination} Group Trip`,
+  description: `A well-paced group trip from ${source} to ${destination} with coordinated pickup points and daily activities.`,
+  startDate: toIsoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+  endDate: toIsoDate(new Date(Date.now() + 9 * 24 * 60 * 60 * 1000)),
+  pricePerPerson: 3500,
+  totalSeats: 12,
+  itinerary: [
+    { dayNumber: 1, activities: `Departure from ${source}, transit, and check-in near ${destination}.`, accommodation: `${destination} (budget hotel/guest house)` },
+    { dayNumber: 2, activities: `Local sightseeing and curated activities around ${destination}.`, accommodation: `${destination}` },
+    { dayNumber: 3, activities: `Return journey from ${destination} to ${source}.`, accommodation: "" },
+  ],
+  pickupPoints: [
+    { location: `${source} central pickup`, time: "06:30 AM", sequence: 1 },
+    { location: `${source} bus stand`, time: "07:00 AM", sequence: 2 },
+  ],
+});
+
+const generateTripAutofill = async (req, res) => {
+  try {
+    const source = safeText(req.body.source, 120);
+    const destination = safeText(req.body.destination, 120);
+    const context = typeof req.body.context === "object" && req.body.context !== null ? req.body.context : {};
+
+    if (!source || !destination) {
+      return res.status(400).json({ message: "source and destination are required" });
+    }
+
+    const prompt = buildTripAutofillPrompt({
+      source,
+      destination,
+      context,
+      userName: req.user?.name || "Organizer",
+    });
+
+    let suggestion = buildAutofillFallback({ source, destination });
+    try {
+      const answer = await callGroqCopilot(prompt, { temperature: 0.2, maxTokens: 1200 });
+      const parsed = parseJsonObject(answer);
+      if (parsed) {
+        suggestion = sanitizeTripAutofill({
+          ...buildAutofillFallback({ source, destination }),
+          ...parsed,
+        });
+      }
+    } catch (_error) {
+      suggestion = sanitizeTripAutofill(suggestion);
+    }
+
+    if (!suggestion.title) {
+      suggestion.title = `${source} to ${destination} Group Trip`;
+    }
+    if (!suggestion.description) {
+      suggestion.description = `A curated group trip from ${source} to ${destination}.`;
+    }
+
+    return res.status(200).json({
+      source,
+      destination,
+      suggestion: sanitizeTripAutofill(suggestion),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Trip autofill failed" });
+  }
+};
+
 module.exports = {
   askCopilot,
+  generateTripAutofill,
 };

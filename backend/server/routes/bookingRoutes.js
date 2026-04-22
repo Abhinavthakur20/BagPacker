@@ -3,8 +3,9 @@ const { body, param, query } = require("express-validator");
 const {
   cancelBooking,
   completeBooking,
-  createBooking,
+  initiateBookingPayment,
   getMyBookings,
+  verifyBookingPayment,
 } = require("../api/booking/bookingController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
@@ -15,14 +16,25 @@ const router = express.Router();
 router.use(authMiddleware, roleMiddleware(["traveler"]));
 
 router.post(
-  "/",
+  "/initiate-payment",
   [
     body("tripId").isMongoId().withMessage("Valid tripId is required"),
     body("pickupPointId").isMongoId().withMessage("Valid pickupPointId is required"),
     body("seatsBooked").isInt({ min: 1 }).withMessage("seatsBooked must be at least 1"),
     validateRequest,
   ],
-  createBooking,
+  initiateBookingPayment,
+);
+router.post(
+  "/verify-payment",
+  [
+    body("bookingId").isMongoId().withMessage("Valid bookingId is required"),
+    body("razorpay_order_id").trim().notEmpty().withMessage("razorpay_order_id is required"),
+    body("razorpay_payment_id").trim().notEmpty().withMessage("razorpay_payment_id is required"),
+    body("razorpay_signature").trim().notEmpty().withMessage("razorpay_signature is required"),
+    validateRequest,
+  ],
+  verifyBookingPayment,
 );
 router.get(
   "/my",

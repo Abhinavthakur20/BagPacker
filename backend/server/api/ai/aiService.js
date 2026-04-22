@@ -1,40 +1,164 @@
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 
+// ─────────────────────────────────────────────
+// FORMATTING RULES (injected into every prompt)
+// ─────────────────────────────────────────────
+const formatInstruction = `
+Formatting rules (strictly follow):
+- Use **bold** for key terms, place names, prices, and warnings
+- Use bullet points (•) for lists — never use dashes
+- Use numbered lists for steps or sequences only
+- Add a relevant emoji before every section header
+- Write section headers in **bold** (e.g. 🎒 **What to Pack**)
+- Separate each section with a blank line
+- Keep sentences short and scannable — one idea per line
+- Never write long unbroken paragraphs
+- End every response with one helpful follow-up question to continue the conversation
+- Use ₹ for Indian Rupee amounts
+- Use ⚠️ to highlight cautions or warnings
+`.trim();
+
+// ─────────────────────────────────────────────
+// INTENT-SPECIFIC INSTRUCTIONS WITH FORMAT HINTS
+// ─────────────────────────────────────────────
 const intentInstructions = {
-  packing:
-    "Give practical packing tips tailored to route/date/weather assumptions. Group by essentials, clothing, documents, health/safety, and optional items.",
-  route:
-    "Provide route suggestions with 2-3 options, transport mode trade-offs, rough timing, budget range guidance, and cautions.",
-  safety:
-    "Provide a meetup safety checklist for travelers meeting companions. Include identity checks, public place guidance, emergency prep, money/payment caution, and escalation steps.",
-  qa: "Answer as a travel assistant with concise actionable guidance and short bullet points.",
+  packing: `
+Give practical packing tips tailored to the route, date, and weather.
+Use this exact format:
+
+🧳 **Essentials**
+• item
+• item
+
+📄 **Documents**
+• item
+
+👕 **Clothing**
+• item
+
+💊 **Health & Safety**
+• item
+
+✨ **Optional / Nice to Have**
+• item
+`.trim(),
+
+  route: `
+Provide 2–3 route options with trade-offs.
+Use this exact format for each option:
+
+🚌 **Option [N] – [Transport Mode]**
+• Duration: X hours
+• Cost: ₹X – ₹X
+• Best for: [type of traveler]
+• ⚠️ Caution: [if any]
+
+Then add a brief ✅ **Our Recommendation** section at the end.
+`.trim(),
+
+  safety: `
+Provide a safety checklist for travelers meeting companions.
+Use this exact format:
+
+✅ **Before You Go**
+• tip
+
+🤝 **When You Meet**
+• tip
+
+💳 **Money & Payment Caution**
+• tip
+
+🚨 **Emergency Prep**
+• tip
+
+📞 **Escalation Steps**
+1. step
+2. step
+`.trim(),
+
+  qa: `
+Answer as a knowledgeable travel assistant for Indian travelers.
+Use headers with emoji, bullet points, and bold for key info.
+Keep it concise, practical, and safety-first.
+`.trim(),
+
+  trip_autofill: `
+Generate realistic organizer trip draft details from source and destination.
+Return ONLY valid minified JSON with no markdown or code fences.
+`.trim(),
 };
 
+// ─────────────────────────────────────────────
+// PROMPT BUILDERS
+// ─────────────────────────────────────────────
 const buildCopilotPrompt = ({ intent, message, context, userName, userProfile }) => {
   const instruction = intentInstructions[intent] || intentInstructions.qa;
+
   return [
-    "You are BagPacker Travel Copilot for Indian travelers.",
-    instruction,
-    "Keep response concise, practical, and safety-first.",
-    "If context data is missing, state assumptions briefly.",
-    "Avoid medical/legal guarantees. Suggest official/local verification when needed.",
-    "Use provided chat history and connected chat summaries to make contextual answers.",
-    "If user asks follow-ups, carry forward continuity from recent conversation.",
+    "You are BagPacker Travel Copilot — a smart, friendly travel assistant for Indian travelers.",
     "",
-    `User: ${userName}`,
-    `UserProfile: ${JSON.stringify(userProfile || {})}`,
+    "=== YOUR ROLE ===",
+    instruction,
+    "",
+    "=== FORMATTING RULES ===",
+    formatInstruction,
+    "",
+    "=== GUIDELINES ===",
+    "- Safety-first in all advice.",
+    "- If context data is missing, state your assumptions briefly before answering.",
+    "- Avoid medical or legal guarantees. Suggest official or local verification when needed.",
+    "- Use the provided chat history and context to give continuity-aware answers.",
+    "- For follow-up questions, carry forward context from the recent conversation.",
+    "",
+    "=== REQUEST ===",
+    `User: ${userName || "Traveler"}`,
+    `Profile: ${JSON.stringify(userProfile || {})}`,
     `Intent: ${intent}`,
     `Context: ${JSON.stringify(context || {})}`,
     `Question: ${message}`,
   ].join("\n");
 };
 
-const callGroqCopilot = async (prompt) => {
+const buildTripAutofillPrompt = ({ source, destination, context, userName }) =>
+  [
+    "You are BagPacker AI planner for Indian group trips.",
+    "Return ONLY valid minified JSON. Do not return markdown or code fences.",
+    "Generate a realistic draft for organizer trip creation.",
+    "Use practical defaults if data is missing.",
+    "",
+    "Output schema:",
+    '{"title":"string","description":"string","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","pricePerPerson":number,"totalSeats":number,"itinerary":[{"dayNumber":1,"activities":"string","accommodation":"string"}],"pickupPoints":[{"location":"string","time":"string","sequence":1}]}',
+    "",
+    "Rules:",
+    "- startDate must be a future date; endDate >= startDate",
+    "- itinerary must have at least 1 item",
+    "- pickupPoints must have at least 1 item",
+    "- Keep response focused on route and traveler utility",
+    "",
+    `Organizer: ${String(userName || "Organizer").trim() || "Organizer"}`,
+    `Source: ${String(source || "").trim()}`,
+    `Destination: ${String(destination || "").trim()}`,
+    `Context: ${JSON.stringify(context || {})}`,
+  ].join("\n");
+
+// ─────────────────────────────────────────────
+// GROQ API CALLER
+// ─────────────────────────────────────────────
+const callGroqCopilot = async (prompt, options = {}) => {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error("GROQ_API_KEY is missing in backend environment");
   }
+
+  const temperature =
+    typeof options.temperature === "number"
+      ? Math.max(0, Math.min(1, options.temperature))
+      : 0.4;
+
+  // Raised from 800 → 1200 to avoid cutting off formatted responses
+  const maxTokens = Number(options.maxTokens || 1200) || 1200;
 
   const response = await fetch(GROQ_ENDPOINT, {
     method: "POST",
@@ -44,13 +168,13 @@ const callGroqCopilot = async (prompt) => {
     },
     body: JSON.stringify({
       model: DEFAULT_MODEL,
-      temperature: 0.4,
-      max_tokens: 800,
+      temperature,
+      max_tokens: maxTokens,
       messages: [
         {
           role: "system",
           content:
-            "You are BagPacker Travel Copilot. Be concise, practical, and safety-first for traveler assistance.",
+            "You are BagPacker Travel Copilot — a concise, practical, safety-first travel assistant for Indian travelers. Always format responses with emoji headers, bullet points, and bold key terms. Never write long unbroken paragraphs.",
         },
         {
           role: "user",
@@ -61,8 +185,11 @@ const callGroqCopilot = async (prompt) => {
   });
 
   const data = await response.json();
+
   if (!response.ok) {
-    const message = data?.error?.message || "Groq API request failed. Check key, model, or quota settings.";
+    const message =
+      data?.error?.message ||
+      "Groq API request failed. Check key, model, or quota settings.";
     throw new Error(message);
   }
 
@@ -75,7 +202,11 @@ const callGroqCopilot = async (prompt) => {
   return text;
 };
 
+// ─────────────────────────────────────────────
+// EXPORTS
+// ─────────────────────────────────────────────
 module.exports = {
   buildCopilotPrompt,
+  buildTripAutofillPrompt,
   callGroqCopilot,
 };

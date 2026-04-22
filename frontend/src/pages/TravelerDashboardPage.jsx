@@ -7,6 +7,35 @@ import { formatINR } from "../data/mockData";
 import { api } from "../lib/api";
 import { setUser } from "../store/authSlice";
 
+const formatDateLabel = (value) => {
+  if (!value) {
+    return "TBD";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "TBD"
+    : date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const formatDateTimeLabel = (value) => {
+  if (!value) {
+    return "TBD";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "TBD"
+    : date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+};
+
+const getTicketCode = (booking) => {
+  const bookingKey = String(booking?._id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const routeKey = `${String(booking?.tripId?.source || "").slice(0, 2)}${String(
+    booking?.tripId?.destination || "",
+  ).slice(0, 2)}`.replace(/[^a-zA-Z0-9]/g, "");
+  const datePart = formatDateLabel(booking?.tripId?.startDate).replace(/\s/g, "").toUpperCase();
+  return `BP-${routeKey || "TRIP"}-${datePart || "DATE"}-${bookingKey.slice(-6) || "000000"}`;
+};
+
 export default function TravelerDashboardPage() {
   const dispatch = useDispatch();
   const storedUser = useSelector((state) => state.auth.user);
@@ -69,6 +98,17 @@ export default function TravelerDashboardPage() {
       ["Trust Score", profile?.trustScore ?? 0, "verified_user"],
     ],
     [bookings, companionRequests, profile],
+  );
+  const confirmedTickets = useMemo(
+    () =>
+      bookings
+        .filter((item) => item.status === "confirmed")
+        .sort((first, second) => {
+          const firstDate = new Date(first?.tripId?.startDate || 0).getTime();
+          const secondDate = new Date(second?.tripId?.startDate || 0).getTime();
+          return firstDate - secondDate;
+        }),
+    [bookings],
   );
 
   const markNotificationRead = async (notificationId) => {
@@ -277,6 +317,112 @@ export default function TravelerDashboardPage() {
                   ))}
                 </div>
               </article>
+            </section>
+
+            <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="font-headline text-3xl font-extrabold text-primary">
+                    E-Tickets
+                  </h2>
+                  <p className="text-sm text-on-surface-variant">
+                    Professional digital passes for your confirmed trips.
+                  </p>
+                </div>
+                <Link to="/payment" className="text-sm font-bold text-secondary">
+                  Open Booking Center
+                </Link>
+              </div>
+
+              {confirmedTickets.length ? (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {confirmedTickets.map((booking) => {
+                    const ticketCode = getTicketCode(booking);
+                    const paymentId = String(booking?.razorpayPaymentId || "");
+
+                    return (
+                      <article
+                        key={`eticket-${booking._id}`}
+                        className="relative overflow-hidden rounded-3xl border border-[#d3d9d4] bg-white p-5 shadow-[0_16px_40px_rgba(18,31,24,0.08)]"
+                      >
+                        <div className="absolute right-4 top-4 rounded-full bg-[#d8f5e5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#0f5f3f]">
+                          Confirmed
+                        </div>
+
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b9490]">
+                          BagPacker E-Ticket
+                        </p>
+                        <h3 className="mt-2 font-headline text-2xl font-extrabold text-[#143526]">
+                          {booking.tripId?.title || "Trip Ticket"}
+                        </h3>
+                        <p className="mt-1 text-sm font-semibold text-[#2b3e33]">
+                          {booking.tripId?.source || "Source"} to{" "}
+                          {booking.tripId?.destination || "Destination"}
+                        </p>
+
+                        <div className="mt-4 grid gap-3 rounded-2xl bg-[#f4f6f3] p-4 text-sm text-[#3f4b45] sm:grid-cols-2">
+                          <p>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                              Traveler
+                            </span>
+                            {profile?.name || "Traveler"}
+                          </p>
+                          <p>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                              Ticket ID
+                            </span>
+                            <span className="font-bold text-[#1d3328]">{ticketCode}</span>
+                          </p>
+                          <p>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                              Journey
+                            </span>
+                            {formatDateLabel(booking.tripId?.startDate)} -{" "}
+                            {formatDateLabel(booking.tripId?.endDate)}
+                          </p>
+                          <p>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                              Pickup
+                            </span>
+                            {booking.pickupPointId?.location || "TBD"} ({booking.pickupPointId?.time || "TBD"})
+                          </p>
+                          <p>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                              Seats
+                            </span>
+                            {booking.seatsBooked || 1}
+                          </p>
+                          <p>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                              Paid Amount
+                            </span>
+                            <span className="font-bold text-[#1d3328]">
+                              {formatINR(booking.totalAmount || 0)}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-xs text-[#6f7772]">
+                            Issued: {formatDateTimeLabel(booking.createdAt)}
+                            {paymentId ? ` | Payment: ${paymentId}` : ""}
+                          </p>
+                          <Link
+                            to={`/trips/${booking.tripId?._id || ""}`}
+                            className="rounded-xl bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white"
+                          >
+                            View Trip
+                          </Link>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-surface-container-low p-8 text-center text-on-surface-variant">
+                  No confirmed bookings yet. Your e-ticket will appear here after payment confirmation.
+                </div>
+              )}
             </section>
 
             <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
