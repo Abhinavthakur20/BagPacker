@@ -2,6 +2,7 @@ const express = require("express");
 const { body } = require("express-validator");
 const {
   getMyOrganizerProfile,
+  getMyOrganizerTrips,
   registerOrganizerProfile,
 } = require("../api/organizer/organizerController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -23,5 +24,6 @@ router.post(
   registerOrganizerProfile,
 );
 router.get("/me", getMyOrganizerProfile);
+router.get("/me/trips", getMyOrganizerTrips);
 
 module.exports = router;

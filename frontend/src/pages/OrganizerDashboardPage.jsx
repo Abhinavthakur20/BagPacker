@@ -28,9 +28,7 @@ export default function OrganizerDashboardPage() {
         const organizerProfile = await api.get("/organizers/me");
         setOrganizer(organizerProfile);
 
-        const organizerTrips = await api.get(
-          `/trips?organizerId=${organizerProfile._id}&includeAllStatuses=true`,
-        );
+        const organizerTrips = await api.get("/organizers/me/trips");
         setTrips(Array.isArray(organizerTrips) ? organizerTrips : []);
       } catch (fetchError) {
         setError(fetchError.message);
@@ -216,6 +214,20 @@ export default function OrganizerDashboardPage() {
                                 {trip.status}
                               </p>
                             </div>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <Link
+                              to={`/trips/${trip._id}`}
+                              className="rounded-xl border border-primary/15 px-4 py-2 text-sm font-bold text-primary"
+                            >
+                              View Trip
+                            </Link>
+                            <Link
+                              to={`/trips/${trip._id}/edit`}
+                              className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
+                            >
+                              Edit Trip
+                            </Link>
                           </div>
                         </article>
                       );

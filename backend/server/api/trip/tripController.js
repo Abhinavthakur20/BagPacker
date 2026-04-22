@@ -66,6 +66,44 @@ const parseJsonArray = (value) => {
   return null;
 };
 
+const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
+  if (parsedItinerary !== undefined) {
+    if (!Array.isArray(parsedItinerary)) {
+      return "Itinerary must be an array";
+    }
+
+    if (!parsedItinerary.length) {
+      return "Itinerary cannot be empty";
+    }
+
+    const invalidItineraryItem = parsedItinerary.find(
+      (item) => !item || !String(item.activities || "").trim(),
+    );
+    if (invalidItineraryItem) {
+      return "Each itinerary day must include activities";
+    }
+  }
+
+  if (parsedPickupPoints !== undefined) {
+    if (!Array.isArray(parsedPickupPoints)) {
+      return "pickupPoints must be an array";
+    }
+
+    if (!parsedPickupPoints.length) {
+      return "pickupPoints cannot be empty";
+    }
+
+    const invalidPickupItem = parsedPickupPoints.find(
+      (item) => !item || !String(item.location || "").trim() || !String(item.time || "").trim(),
+    );
+    if (invalidPickupItem) {
+      return "Each pickup point must include location and time";
+    }
+  }
+
+  return "";
+};
+
 const getTrips = async (req, res) => {
   try {
     const filters = {};
@@ -204,26 +242,9 @@ const createTrip = async (req, res) => {
     const parsedItinerary = parseJsonArray(itinerary);
     const parsedPickupPoints = parseJsonArray(pickupPoints);
 
-    if (!Array.isArray(parsedItinerary) || !Array.isArray(parsedPickupPoints)) {
-      return res.status(400).json({ message: "Itinerary and pickupPoints must be arrays" });
-    }
-
-    if (!parsedItinerary.length || !parsedPickupPoints.length) {
-      return res.status(400).json({ message: "Itinerary and pickupPoints cannot be empty" });
-    }
-
-    const invalidItineraryItem = parsedItinerary.find(
-      (item) => !item || !String(item.activities || "").trim(),
-    );
-    if (invalidItineraryItem) {
-      return res.status(400).json({ message: "Each itinerary day must include activities" });
-    }
-
-    const invalidPickupItem = parsedPickupPoints.find(
-      (item) => !item || !String(item.location || "").trim() || !String(item.time || "").trim(),
-    );
-    if (invalidPickupItem) {
-      return res.status(400).json({ message: "Each pickup point must include location and time" });
+    const arrayValidationMessage = validateTripArrays(parsedItinerary, parsedPickupPoints);
+    if (arrayValidationMessage) {
+      return res.status(400).json({ message: arrayValidationMessage });
     }
 
     const tripImages = Array.isArray(req.files)
@@ -299,14 +320,31 @@ const updateTrip = async (req, res) => {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    ["title", "description", "source", "destination", "startDate", "endDate", "pricePerPerson", "status"].forEach(
-      (field) => {
-        if (req.body[field] !== undefined) {
-          trip[field] =
-            typeof req.body[field] === "string" ? req.body[field].trim() : req.body[field];
-        }
-      },
-    );
+    const parsedItinerary =
+      req.body.itinerary !== undefined ? parseJsonArray(req.body.itinerary) : undefined;
+    const parsedPickupPoints =
+      req.body.pickupPoints !== undefined ? parseJsonArray(req.body.pickupPoints) : undefined;
+    const arrayValidationMessage = validateTripArrays(parsedItinerary, parsedPickupPoints);
+
+    if (arrayValidationMessage) {
+      return res.status(400).json({ message: arrayValidationMessage });
+    }
+
+    [
+      "title",
+      "description",
+      "source",
+      "destination",
+      "startDate",
+      "endDate",
+      "pricePerPerson",
+      "status",
+    ].forEach((field) => {
+      if (req.body[field] !== undefined) {
+        trip[field] =
+          typeof req.body[field] === "string" ? req.body[field].trim() : req.body[field];
+      }
+    });
 
     if (req.body.totalSeats !== undefined) {
       const bookedSeats = trip.totalSeats - trip.availableSeats;
@@ -323,7 +361,42 @@ const updateTrip = async (req, res) => {
 
     await trip.save();
 
-    return res.status(200).json(trip);
+    let createdItinerary = null;
+    if (parsedItinerary !== undefined) {
+      await Itinerary.deleteMany({ tripId: trip._id });
+      createdItinerary = await Itinerary.insertMany(
+        parsedItinerary.map((item, index) => ({
+          tripId: trip._id,
+          dayNumber: Number(item.dayNumber || index + 1),
+          activities: String(item.activities || "").trim(),
+          accommodation: item.accommodation ? String(item.accommodation).trim() : null,
+        })),
+      );
+    }
+
+    let createdPickupPoints = null;
+    if (parsedPickupPoints !== undefined) {
+      await PickupPoint.deleteMany({ tripId: trip._id });
+      createdPickupPoints = await PickupPoint.insertMany(
+        parsedPickupPoints.map((item, index) => ({
+          tripId: trip._id,
+          location: String(item.location || "").trim(),
+          time: String(item.time || "").trim(),
+          sequence: Number(item.sequence || index + 1),
+        })),
+      );
+    }
+
+    const [finalItinerary, finalPickupPoints] = await Promise.all([
+      createdItinerary ?? Itinerary.find({ tripId: trip._id }).sort({ dayNumber: 1 }),
+      createdPickupPoints ?? PickupPoint.find({ tripId: trip._id }).sort({ sequence: 1 }),
+    ]);
+
+    return res.status(200).json({
+      ...trip.toObject(),
+      itinerary: finalItinerary,
+      pickupPoints: finalPickupPoints,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

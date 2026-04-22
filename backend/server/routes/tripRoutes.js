@@ -73,7 +73,29 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware(["organizer"]),
-  [param("id").isMongoId().withMessage("Valid trip id is required"), validateRequest],
+  [
+    param("id").isMongoId().withMessage("Valid trip id is required"),
+    body("title").optional().trim().notEmpty().withMessage("Title is required"),
+    body("source").optional().trim().notEmpty().withMessage("Source is required"),
+    body("destination").optional().trim().notEmpty().withMessage("Destination is required"),
+    body("startDate").optional().isISO8601().withMessage("Valid startDate is required"),
+    body("endDate").optional().isISO8601().withMessage("Valid endDate is required"),
+    body("pricePerPerson").optional().isFloat({ min: 0 }).withMessage("Valid pricePerPerson is required"),
+    body("totalSeats").optional().isInt({ min: 1 }).withMessage("Valid totalSeats is required"),
+    body("status")
+      .optional()
+      .isIn(["active", "completed", "cancelled"])
+      .withMessage("Valid status is required"),
+    body("itinerary")
+      .optional()
+      .custom((value) => isNonEmptyArrayPayload(value))
+      .withMessage("Itinerary must be a non-empty array"),
+    body("pickupPoints")
+      .optional()
+      .custom((value) => isNonEmptyArrayPayload(value))
+      .withMessage("pickupPoints must be a non-empty array"),
+    validateRequest,
+  ],
   updateTrip,
 );
 router.delete(

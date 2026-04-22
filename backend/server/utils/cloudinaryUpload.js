@@ -7,10 +7,14 @@ const buildSignature = (paramsToSign, apiSecret) => {
     .map(([key, value]) => `${key}=${value}`)
     .join("&");
 
-  return crypto
+  const signature = crypto
     .createHash("sha256")
     .update(`${serialized}${apiSecret}`)
     .digest("hex");
+
+  console.log("[cloudinary] algorithm=sha256 sigLength=%s stringToSign=%s", signature.length, serialized);
+
+  return signature;
 };
 
 const TRANSFORMATION_KEY_MAP = {

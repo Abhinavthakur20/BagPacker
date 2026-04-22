@@ -25,6 +25,7 @@ const getTripDuration = (startDate, endDate) => {
 
 export default function TripDetailPage() {
   const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
   const isLoggedIn = Boolean(token);
   const { id } = useParams();
   const [tripDetails, setTripDetails] = useState(null);
@@ -150,6 +151,9 @@ export default function TripDetailPage() {
   const occupancyPercent = trip.totalSeats
     ? Math.min(100, Math.round((joinedCount / Math.max(1, trip.totalSeats)) * 100))
     : 0;
+  const canEditTrip =
+    user?.role === "organizer" &&
+    String(trip.organizerId?.userId?._id || "") === String(user?._id || "");
   const activeHeroImage = optimizeCloudinaryImage(
     tripImages[activeImageIndex] || campfireImage,
     "f_auto,q_auto,w_1600",
@@ -257,9 +261,19 @@ export default function TripDetailPage() {
                 <p className="text-sm text-outline">Trip Organizer</p>
               </div>
             </div>
-            <button className="rounded-xl border border-primary/20 px-6 py-2 font-semibold text-primary hover:bg-primary hover:text-white">
-              View Profile
-            </button>
+            <div className="flex flex-wrap gap-3">
+              {canEditTrip ? (
+                <Link
+                  to={`/trips/${trip._id}/edit`}
+                  className="rounded-xl bg-primary px-6 py-2 font-semibold text-white"
+                >
+                  Edit Trip
+                </Link>
+              ) : null}
+              <button className="rounded-xl border border-primary/20 px-6 py-2 font-semibold text-primary hover:bg-primary hover:text-white">
+                View Profile
+              </button>
+            </div>
           </article>
 
           <article>

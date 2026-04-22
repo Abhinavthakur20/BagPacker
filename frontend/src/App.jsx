@@ -123,6 +123,14 @@ function App() {
                 </RoleRoute>
               }
             />
+            <Route
+              path=":id/edit"
+              element={
+                <RoleRoute allowedRoles={["organizer"]}>
+                  <CreateTripPage />
+                </RoleRoute>
+              }
+            />
             <Route path=":id" element={<TripDetailPage />} />
           </Route>
           <Route path="/dashboard">

@@ -1,4 +1,5 @@
 const Organizer = require("./organizerModel");
+const Trip = require("../trip/tripModel");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
 const DOCUMENT_IMAGE_TRANSFORMATIONS = {
@@ -8,6 +9,14 @@ const DOCUMENT_IMAGE_TRANSFORMATIONS = {
   fetch_format: "auto",
   dpr: "auto",
 };
+
+const getPrimaryOrganizerProfile = (userId) =>
+  Organizer.findOne({ userId })
+    .sort({ approvalStatus: 1, approvedAt: -1, createdAt: -1 })
+    .populate({
+      path: "userId",
+      select: "-passwordHash",
+    });
 
 const registerOrganizerProfile = async (req, res) => {
   try {
@@ -47,10 +56,7 @@ const registerOrganizerProfile = async (req, res) => {
 
 const getMyOrganizerProfile = async (req, res) => {
   try {
-    const organizer = await Organizer.findOne({ userId: req.user._id }).populate({
-      path: "userId",
-      select: "-passwordHash",
-    });
+    const organizer = await getPrimaryOrganizerProfile(req.user._id);
 
     if (!organizer) {
       return res.status(404).json({ message: "Organizer profile not found" });
@@ -62,7 +68,29 @@ const getMyOrganizerProfile = async (req, res) => {
   }
 };
 
+const getMyOrganizerTrips = async (req, res) => {
+  try {
+    const organizer = await getPrimaryOrganizerProfile(req.user._id);
+
+    if (!organizer) {
+      return res.status(404).json({ message: "Organizer profile not found" });
+    }
+
+    const trips = await Trip.find({ organizerId: organizer._id })
+      .select(
+        "title source destination startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
+      )
+      .sort({ startDate: 1, createdAt: -1 })
+      .lean();
+
+    return res.status(200).json(trips);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
+  getMyOrganizerTrips,
   registerOrganizerProfile,
   getMyOrganizerProfile,
 };

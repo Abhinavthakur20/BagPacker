@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
-import { api } from "../lib/api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import {
   showConfirmAlert,
@@ -11,27 +11,44 @@ import {
 
 const blankItinerary = { dayNumber: 1, activities: "", accommodation: "" };
 const blankPickup = { location: "", time: "", sequence: 1 };
+const initialTripForm = {
+  title: "",
+  source: "",
+  destination: "",
+  startDate: "",
+  endDate: "",
+  totalSeats: 1,
+  pricePerPerson: 0,
+  description: "",
+  status: "active",
+};
 const clampValue = (value, min, max) => Math.min(Math.max(value, min), max);
 const fileSignature = (file) => `${file.name}-${file.size}-${file.lastModified}`;
+const formatDateInput = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().slice(0, 10);
+};
 
 export default function CreateTripPage() {
   const token = useSelector((state) => state.auth.token);
   const isLoggedIn = Boolean(token);
   const navigate = useNavigate();
+  const { id: tripId } = useParams();
+  const isEditMode = Boolean(tripId);
   const [organizer, setOrganizer] = useState(null);
-  const [tripForm, setTripForm] = useState({
-    title: "",
-    source: "",
-    destination: "",
-    startDate: "",
-    endDate: "",
-    totalSeats: 1,
-    pricePerPerson: 0,
-    description: "",
-  });
+  const [tripForm, setTripForm] = useState(initialTripForm);
   const [itinerary, setItinerary] = useState([blankItinerary]);
   const [pickupPoints, setPickupPoints] = useState([blankPickup]);
   const [tripImages, setTripImages] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [pendingCropFiles, setPendingCropFiles] = useState([]);
   const [activeCropFile, setActiveCropFile] = useState(null);
@@ -83,15 +100,63 @@ export default function CreateTripPage() {
   }, [activeCropFile, pendingCropFiles]);
 
   useEffect(() => {
-    const loadOrganizer = async () => {
+    const loadPageData = async () => {
       if (!isLoggedIn) {
         return;
       }
 
       try {
         setIsLoading(true);
+        setError("");
         const organizerProfile = await api.get("/organizers/me");
         setOrganizer(organizerProfile);
+        setTripImages([]);
+        setPendingCropFiles([]);
+        setActiveCropFile(null);
+        setPreviewIndex(0);
+
+        if (isEditMode) {
+          const tripDetails = await api.get(`/trips/${tripId}`);
+          setTripForm({
+            title: tripDetails?.title || "",
+            source: tripDetails?.source || "",
+            destination: tripDetails?.destination || "",
+            startDate: formatDateInput(tripDetails?.startDate),
+            endDate: formatDateInput(tripDetails?.endDate),
+            totalSeats: Number(tripDetails?.totalSeats || 1),
+            pricePerPerson: Number(tripDetails?.pricePerPerson || 0),
+            description: tripDetails?.description || "",
+            status: tripDetails?.status || "active",
+          });
+          setItinerary(
+            Array.isArray(tripDetails?.itinerary) && tripDetails.itinerary.length
+              ? tripDetails.itinerary.map((item, index) => ({
+                  dayNumber: Number(item.dayNumber || index + 1),
+                  activities: item.activities || "",
+                  accommodation: item.accommodation || "",
+                }))
+              : [blankItinerary],
+          );
+          setPickupPoints(
+            Array.isArray(tripDetails?.pickupPoints) && tripDetails.pickupPoints.length
+              ? tripDetails.pickupPoints.map((item, index) => ({
+                  location: item.location || "",
+                  time: item.time || "",
+                  sequence: Number(item.sequence || index + 1),
+                }))
+              : [blankPickup],
+          );
+          setExistingImages(
+            Array.isArray(tripDetails?.images)
+              ? tripDetails.images.map((path) => resolveMediaUrl(path)).filter(Boolean)
+              : [],
+          );
+        } else {
+          setTripForm(initialTripForm);
+          setItinerary([blankItinerary]);
+          setPickupPoints([blankPickup]);
+          setExistingImages([]);
+        }
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {
@@ -99,8 +164,8 @@ export default function CreateTripPage() {
       }
     };
 
-    loadOrganizer();
-  }, [isLoggedIn]);
+    loadPageData();
+  }, [isEditMode, isLoggedIn, tripId]);
 
   const updateTripField = (field, value) => {
     setTripForm((prev) => ({ ...prev, [field]: value }));
@@ -382,9 +447,11 @@ export default function CreateTripPage() {
 
   const submitTrip = async () => {
     const result = await showConfirmAlert({
-      title: "Create this trip?",
-      text: "This will publish the trip with its itinerary and pickup points.",
-      confirmButtonText: "Create Trip",
+      title: isEditMode ? "Save trip changes?" : "Create this trip?",
+      text: isEditMode
+        ? "This will update the published trip details, itinerary, and pickup points."
+        : "This will publish the trip with its itinerary and pickup points.",
+      confirmButtonText: isEditMode ? "Save Changes" : "Create Trip",
     });
 
     if (!result.isConfirmed) {
@@ -407,28 +474,55 @@ export default function CreateTripPage() {
         sequence: Number(item.sequence || index + 1),
       }));
 
-      const payload = new FormData();
-      payload.append("title", tripForm.title);
-      payload.append("source", tripForm.source);
-      payload.append("destination", tripForm.destination);
-      payload.append("startDate", tripForm.startDate);
-      payload.append("endDate", tripForm.endDate);
-      payload.append("totalSeats", String(Number(tripForm.totalSeats)));
-      payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
-      payload.append("description", tripForm.description);
-      payload.append("itinerary", JSON.stringify(normalizedItinerary));
-      payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
-      tripImages.forEach((image) => {
-        payload.append("tripImages", image);
-      });
+      if (isEditMode) {
+        await api.put(`/trips/${tripId}`, {
+          title: tripForm.title,
+          source: tripForm.source,
+          destination: tripForm.destination,
+          startDate: tripForm.startDate,
+          endDate: tripForm.endDate,
+          totalSeats: Number(tripForm.totalSeats),
+          pricePerPerson: Number(tripForm.pricePerPerson),
+          description: tripForm.description,
+          status: tripForm.status,
+          itinerary: normalizedItinerary,
+          pickupPoints: normalizedPickupPoints,
+        });
+      } else {
+        const payload = new FormData();
+        payload.append("title", tripForm.title);
+        payload.append("source", tripForm.source);
+        payload.append("destination", tripForm.destination);
+        payload.append("startDate", tripForm.startDate);
+        payload.append("endDate", tripForm.endDate);
+        payload.append("totalSeats", String(Number(tripForm.totalSeats)));
+        payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
+        payload.append("description", tripForm.description);
+        payload.append("itinerary", JSON.stringify(normalizedItinerary));
+        payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
+        tripImages.forEach((image) => {
+          payload.append("tripImages", image);
+        });
 
-      await api.post("/trips", payload);
-      setSuccessMessage("Trip created successfully.");
-      await showSuccessAlert("Trip created", "Your expedition has been published successfully.");
+        await api.post("/trips", payload);
+      }
+
+      setSuccessMessage(
+        isEditMode ? "Trip updated successfully." : "Trip created successfully.",
+      );
+      await showSuccessAlert(
+        isEditMode ? "Trip updated" : "Trip created",
+        isEditMode
+          ? "Your trip changes have been saved successfully."
+          : "Your expedition has been published successfully.",
+      );
       navigate("/dashboard/organizer");
     } catch (submitError) {
       setError(submitError.message);
-      await showErrorAlert("Trip creation failed", submitError.message);
+      await showErrorAlert(
+        isEditMode ? "Trip update failed" : "Trip creation failed",
+        submitError.message,
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -439,7 +533,7 @@ export default function CreateTripPage() {
       <div className="min-h-screen bg-[#efeee9] px-4 py-20 text-center">
         <div className="mx-auto max-w-3xl rounded-3xl bg-[#f7f5ef] p-10 shadow-lg">
           <p className="font-semibold text-[#8a1f1f]">
-            Please login as an organizer to create trips.
+            Please login as an organizer to manage trips.
           </p>
         </div>
       </div>
@@ -474,10 +568,12 @@ export default function CreateTripPage() {
               Organizer Workspace
             </p>
             <h1 className="font-headline text-3xl font-extrabold text-[#0f3d2d] sm:text-4xl md:text-5xl">
-              Create New Expedition
+              {isEditMode ? "Edit Trip Details" : "Create New Expedition"}
             </h1>
             <p className="mt-2 max-w-3xl text-[#6f736b]">
-              Build a complete trip with schedule and pickup points in one submission.
+              {isEditMode
+                ? "Update your published trip details, itinerary, pickup points, and status."
+                : "Build a complete trip with schedule and pickup points in one submission."}
             </p>
           </div>
           <span
@@ -506,7 +602,9 @@ export default function CreateTripPage() {
         ) : null}
 
         {isLoading ? (
-          <LoadingPanel label="Loading organizer profile..." />
+          <LoadingPanel
+            label={isEditMode ? "Loading trip editor..." : "Loading organizer profile..."}
+          />
         ) : null}
 
         {!isLoading && organizer?.approvalStatus !== "approved" ? (
@@ -580,6 +678,17 @@ export default function CreateTripPage() {
                     value={tripForm.totalSeats}
                     onChange={(event) => updateTripField("totalSeats", event.target.value)}
                   />
+                  {isEditMode ? (
+                    <select
+                      className="rounded-xl bg-[#eeebe4] px-4 py-3 lg:col-span-2"
+                      value={tripForm.status}
+                      onChange={(event) => updateTripField("status", event.target.value)}
+                    >
+                      <option value="active">Active</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  ) : null}
                   <textarea
                     rows={5}
                     className="rounded-xl bg-[#eeebe4] px-4 py-3 lg:col-span-2"
@@ -683,83 +792,109 @@ export default function CreateTripPage() {
               <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="font-headline text-3xl font-bold text-[#132c22]">
-                    Trip Image Carousel
+                    {isEditMode ? "Current Trip Images" : "Trip Image Carousel"}
                   </h2>
                   <p className="rounded-full bg-[#e6efe8] px-3 py-1 text-xs font-bold uppercase text-[#124f38]">
-                    {tripImages.length}/10 selected
+                    {isEditMode ? `${existingImages.length} saved` : `${tripImages.length}/10 selected`}
                   </p>
                 </div>
 
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  multiple
-                  onChange={onSelectTripImages}
-                  className="w-full rounded-xl bg-[#eeebe4] px-4 py-3 text-sm"
-                />
-                <p className="mt-2 text-xs text-[#6f736b]">
-                  You can choose multiple files at once. Each image opens a square crop step.
-                </p>
+                {!isEditMode ? (
+                  <>
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp"
+                      multiple
+                      onChange={onSelectTripImages}
+                      className="w-full rounded-xl bg-[#eeebe4] px-4 py-3 text-sm"
+                    />
+                    <p className="mt-2 text-xs text-[#6f736b]">
+                      You can choose multiple files at once. Each image opens a square crop step.
+                    </p>
 
-                {previewUrls.length ? (
-                  <div className="mt-5 space-y-3">
-                    <div className="relative overflow-hidden rounded-2xl bg-[#dad5ca]">
-                      <img
-                        src={previewUrls[previewIndex]}
-                        alt={`Trip preview ${previewIndex + 1}`}
-                        className="h-64 w-full object-cover"
-                      />
-                      {previewUrls.length > 1 ? (
-                        <>
-                          <button
-                            onClick={() =>
-                              setPreviewIndex((current) =>
-                                current === 0 ? previewUrls.length - 1 : current - 1,
-                              )
-                            }
-                            className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white"
-                            aria-label="Previous trip image"
-                          >
-                            <span className="material-symbols-outlined">chevron_left</span>
-                          </button>
-                          <button
-                            onClick={() =>
-                              setPreviewIndex((current) => (current + 1) % previewUrls.length)
-                            }
-                            className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white"
-                            aria-label="Next trip image"
-                          >
-                            <span className="material-symbols-outlined">chevron_right</span>
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto">
-                      {previewUrls.map((previewUrl, index) => (
-                        <div key={`${previewUrl}-${index}`} className="space-y-1">
-                          <button
-                            onClick={() => setPreviewIndex(index)}
-                            className={`h-16 min-w-20 overflow-hidden rounded-lg border-2 ${
-                              index === previewIndex ? "border-[#124f38]" : "border-transparent"
-                            }`}
-                            aria-label={`Preview trip image ${index + 1}`}
-                          >
-                            <img src={previewUrl} alt="" className="h-full w-full object-cover" />
-                          </button>
-                          <button
-                            onClick={() => removeTripImage(index)}
-                            className="w-full rounded-md bg-[#fce0e0] px-1 py-1 text-[10px] font-bold uppercase text-[#8a1f1f]"
-                            aria-label={`Remove trip image ${index + 1}`}
-                          >
-                            Remove
-                          </button>
+                    {previewUrls.length ? (
+                      <div className="mt-5 space-y-3">
+                        <div className="relative overflow-hidden rounded-2xl bg-[#dad5ca]">
+                          <img
+                            src={previewUrls[previewIndex]}
+                            alt={`Trip preview ${previewIndex + 1}`}
+                            className="h-64 w-full object-cover"
+                          />
+                          {previewUrls.length > 1 ? (
+                            <>
+                              <button
+                                onClick={() =>
+                                  setPreviewIndex((current) =>
+                                    current === 0 ? previewUrls.length - 1 : current - 1,
+                                  )
+                                }
+                                className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white"
+                                aria-label="Previous trip image"
+                              >
+                                <span className="material-symbols-outlined">chevron_left</span>
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setPreviewIndex((current) => (current + 1) % previewUrls.length)
+                                }
+                                className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white"
+                                aria-label="Next trip image"
+                              >
+                                <span className="material-symbols-outlined">chevron_right</span>
+                              </button>
+                            </>
+                          ) : null}
                         </div>
+                        <div className="flex gap-2 overflow-x-auto">
+                          {previewUrls.map((previewUrl, index) => (
+                            <div key={`${previewUrl}-${index}`} className="space-y-1">
+                              <button
+                                onClick={() => setPreviewIndex(index)}
+                                className={`h-16 min-w-20 overflow-hidden rounded-lg border-2 ${
+                                  index === previewIndex ? "border-[#124f38]" : "border-transparent"
+                                }`}
+                                aria-label={`Preview trip image ${index + 1}`}
+                              >
+                                <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+                              </button>
+                              <button
+                                onClick={() => removeTripImage(index)}
+                                className="w-full rounded-md bg-[#fce0e0] px-1 py-1 text-[10px] font-bold uppercase text-[#8a1f1f]"
+                                aria-label={`Remove trip image ${index + 1}`}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-[#6f736b]">
+                        Select multiple images to preview your trip carousel.
+                      </p>
+                    )}
+                  </>
+                ) : existingImages.length ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-[#6f736b]">
+                      Existing images stay attached to this trip. Image replacement is not enabled in
+                      the edit flow yet.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {existingImages.map((image, index) => (
+                        <img
+                          key={`${image}-${index}`}
+                          src={optimizeCloudinaryImage(image, "f_auto,q_auto,w_800")}
+                          alt={`Trip image ${index + 1}`}
+                          className="h-36 w-full rounded-2xl object-cover"
+                        />
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-4 text-sm text-[#6f736b]">
-                    Select multiple images to preview your trip carousel.
+                  <p className="text-sm text-[#6f736b]">
+                    This trip currently has no saved images. The edit flow keeps image uploads
+                    unchanged for now.
                   </p>
                 )}
               </article>
@@ -779,25 +914,34 @@ export default function CreateTripPage() {
                 <div className="mt-6 space-y-2 text-sm text-[#d3efe0]">
                   <p>Price: {Number(tripForm.pricePerPerson) > 0 ? `INR ${tripForm.pricePerPerson}` : "INR --"}</p>
                   <p>Seats: {tripForm.totalSeats || 0}</p>
+                  <p>Status: {tripForm.status || "active"}</p>
                   <p>Itinerary days: {itinerary.length}</p>
                   <p>Pickup points: {pickupPoints.length}</p>
-                  <p>Carousel images: {tripImages.length}</p>
+                  <p>Carousel images: {isEditMode ? existingImages.length : tripImages.length}</p>
                 </div>
               </article>
 
               <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
                 <h3 className="font-headline text-2xl font-bold text-[#132c22]">
-                  Ready to publish?
+                  {isEditMode ? "Ready to save?" : "Ready to publish?"}
                 </h3>
                 <p className="mt-3 text-sm text-[#6f736b]">
-                  Submission will create the trip with itinerary and pickup points in one request.
+                  {isEditMode
+                    ? "Saving will update the trip details, itinerary, pickup points, and status in one request."
+                    : "Submission will create the trip with itinerary and pickup points in one request."}
                 </p>
                 <button
                   onClick={submitTrip}
                   disabled={isSubmitting}
                   className="mt-6 w-full rounded-xl bg-[#0f3d2d] px-6 py-4 font-bold text-white disabled:opacity-60"
                 >
-                  {isSubmitting ? "Creating Trip..." : "Create Trip"}
+                  {isSubmitting
+                    ? isEditMode
+                      ? "Saving Changes..."
+                      : "Creating Trip..."
+                    : isEditMode
+                      ? "Save Changes"
+                      : "Create Trip"}
                 </button>
               </article>
             </aside>
