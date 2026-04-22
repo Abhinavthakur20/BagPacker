@@ -76,18 +76,6 @@ export default function SearchPage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, []);
-
   const fetchTrips = async (options = {}) => {
     const query = new URLSearchParams();
     if (submittedSource) query.set("source", submittedSource);
@@ -214,9 +202,23 @@ export default function SearchPage() {
     setShowMobileFilters(false);
   };
 
+  const clearFilters = () => {
+    setFromCity("");
+    setToCity("");
+    setTravelDate("");
+    setMaxBudget(30000);
+    setSeatsNeeded(1);
+    setSortBy("recommended");
+    setSubmittedSource("");
+    setSubmittedDestination("");
+    setSubmittedDate("");
+    setCurrentPage(1);
+    setShowMobileFilters(false);
+  };
+
   return (
-    <MainLayout withFooter={false}>
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 md:flex md:h-[calc(100vh-5.5rem)] md:flex-col md:overflow-hidden md:px-8">
+    <MainLayout>
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 md:px-8">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="font-headline text-3xl font-extrabold tracking-tight text-primary sm:text-4xl md:text-5xl">
@@ -252,9 +254,9 @@ export default function SearchPage() {
           </div>
         </div>
 
-        <div className="grid gap-8 md:min-h-0 md:flex-1 md:grid-cols-12">
+        <div className="grid gap-8 md:grid-cols-12">
           <aside className="hidden md:col-span-3 md:block">
-            <div className="sticky top-28 rounded-2xl bg-surface-container-low p-6">
+            <div className="rounded-2xl bg-surface-container-low p-6">
               <h2 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary">
                 <span className="material-symbols-outlined">tune</span>
                 Filters
@@ -332,18 +334,27 @@ export default function SearchPage() {
                     className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
                   />
                 </div>
-
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-outline-variant/30 pt-4">
                 <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 font-bold text-primary hover:bg-surface-container-highest"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
                   onClick={applySearch}
                   className="w-full rounded-xl bg-primary-container py-3 font-bold text-white hover:bg-primary"
                 >
-                  Apply Search
+                  Search
                 </button>
               </div>
             </div>
           </aside>
 
-          <section className="space-y-6 md:col-span-9 md:min-h-0 md:overflow-y-auto md:pr-2">
+          <section className="space-y-6 md:col-span-9">
             {error ? (
               <div className="rounded-2xl bg-error-container p-4 text-sm font-semibold text-on-error-container">
                 {error}
@@ -570,12 +581,22 @@ export default function SearchPage() {
                   className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
                 />
               </div>
-              <button
-                onClick={applySearch}
-                className="w-full rounded-xl bg-primary py-3 font-bold text-white"
-              >
-                Apply Search
-              </button>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="w-full rounded-xl border border-outline-variant bg-surface py-3 font-bold text-primary"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={applySearch}
+                  className="w-full rounded-xl bg-primary py-3 font-bold text-white"
+                >
+                  Search
+                </button>
+              </div>
             </div>
           </div>
         </div>
