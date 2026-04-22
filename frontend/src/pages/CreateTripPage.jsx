@@ -37,6 +37,10 @@ const formatDateInput = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
+const preventWheelNumberChange = (event) => {
+  event.currentTarget.blur();
+};
+
 export default function CreateTripPage() {
   const token = useSelector((state) => state.auth.token);
   const isLoggedIn = Boolean(token);
@@ -655,6 +659,7 @@ export default function CreateTripPage() {
                     className="rounded-xl bg-[#eeebe4] px-4 py-3"
                     placeholder="Price per person"
                     value={tripForm.pricePerPerson}
+                    onWheel={preventWheelNumberChange}
                     onChange={(event) =>
                       updateTripField("pricePerPerson", event.target.value)
                     }
@@ -676,6 +681,7 @@ export default function CreateTripPage() {
                     className="rounded-xl bg-[#eeebe4] px-4 py-3 lg:col-span-2"
                     placeholder="Total seats"
                     value={tripForm.totalSeats}
+                    onWheel={preventWheelNumberChange}
                     onChange={(event) => updateTripField("totalSeats", event.target.value)}
                   />
                   {isEditMode ? (
@@ -719,6 +725,7 @@ export default function CreateTripPage() {
                         min="1"
                         className="rounded-xl bg-[#eeebe4] px-4 py-3"
                         value={item.dayNumber}
+                        onWheel={preventWheelNumberChange}
                         onChange={(event) =>
                           updateItinerary(index, "dayNumber", event.target.value)
                         }
@@ -780,6 +787,7 @@ export default function CreateTripPage() {
                         min="1"
                         className="rounded-xl bg-[#eeebe4] px-4 py-3"
                         value={item.sequence}
+                        onWheel={preventWheelNumberChange}
                         onChange={(event) =>
                           updatePickupPoint(index, "sequence", event.target.value)
                         }

@@ -8,6 +8,8 @@ import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 import { setSearchTripsCache } from "../store/cacheSlice";
 
+const TRIPS_PER_PAGE = 5;
+
 const getTripDuration = (startDate, endDate) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -72,6 +74,7 @@ export default function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchTrips = async (options = {}) => {
     const query = new URLSearchParams();
@@ -176,12 +179,26 @@ export default function SearchPage() {
     return filtered;
   }, [maxBudget, seatsNeeded, sortBy, trips]);
 
-  const cards = visibleTrips;
+  const totalPages = Math.max(1, Math.ceil(visibleTrips.length / TRIPS_PER_PAGE));
+  const page = Math.min(currentPage, totalPages);
+  const pageStartIndex = (page - 1) * TRIPS_PER_PAGE;
+  const cards = visibleTrips.slice(pageStartIndex, pageStartIndex + TRIPS_PER_PAGE);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [submittedDate, submittedDestination, submittedSource, maxBudget, seatsNeeded, sortBy]);
 
   const applySearch = () => {
     setSubmittedSource(fromCity);
     setSubmittedDestination(toCity);
     setSubmittedDate(travelDate);
+    setCurrentPage(1);
     setShowMobileFilters(false);
   };
 
@@ -194,7 +211,7 @@ export default function SearchPage() {
               Expeditions Found
             </h1>
             <p className="mt-1 text-on-surface-variant">
-              {cards.length} adventurous trips waiting for you
+              {visibleTrips.length} adventurous trips waiting for you
             </p>
           </div>
 
@@ -354,7 +371,7 @@ export default function SearchPage() {
                             ))}
                           </div>
                         ) : null}
-                        {index === 0 ? (
+                        {pageStartIndex + index === 0 ? (
                           <span className="absolute left-4 top-4 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
                             Trending
                           </span>
@@ -458,7 +475,7 @@ export default function SearchPage() {
                 ))
               : null}
 
-            {!isLoading && cards.length === 0 ? (
+            {!isLoading && visibleTrips.length === 0 ? (
               <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
                 No trips match the current filters.
                 <div className="mt-4">
@@ -468,6 +485,46 @@ export default function SearchPage() {
                     className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
                   >
                     Refresh results
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {!isLoading && visibleTrips.length > 0 && totalPages > 1 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-container-low p-4">
+                <p className="text-sm text-on-surface-variant">
+                  Page {page} of {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
+                    disabled={page === 1}
+                    className="rounded-lg bg-surface-container-highest px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                        pageNumber === page
+                          ? "bg-primary text-white"
+                          : "bg-surface-container-highest text-primary"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((value) => Math.min(totalPages, value + 1))}
+                    disabled={page === totalPages}
+                    className="rounded-lg bg-surface-container-highest px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
                   </button>
                 </div>
               </div>
