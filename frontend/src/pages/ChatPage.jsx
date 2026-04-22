@@ -5,6 +5,15 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
 
+const AI_ROOM_ID = "__travel_copilot__";
+const AI_CONTACT = {
+  id: AI_ROOM_ID,
+  name: "Travel Copilot",
+  preview: "Packing, routes, safety checklist, instant Q&A",
+  route: "AI Assistant",
+  type: "ai_copilot",
+};
+
 const getSocketUrl = () => {
   if (import.meta.env.VITE_SOCKET_URL) {
     return import.meta.env.VITE_SOCKET_URL;
@@ -29,6 +38,7 @@ export default function ChatPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [isAiReplying, setIsAiReplying] = useState(false);
   const [isMobileRoomsOpen, setIsMobileRoomsOpen] = useState(false);
   const socketRef = useRef(null);
   const loadedRoomsRef = useRef(new Set());
@@ -124,7 +134,7 @@ export default function ChatPage() {
           members: Array.isArray(group.members) ? group.members : [],
         }));
 
-        const combinedContacts = [...tripRoomContacts, ...acceptedCompanionRooms];
+        const combinedContacts = [AI_CONTACT, ...tripRoomContacts, ...acceptedCompanionRooms];
         setContacts(combinedContacts);
         setGroupMetaByRoom(
           tripRoomContacts.reduce((acc, item) => {
@@ -150,14 +160,18 @@ export default function ChatPage() {
   }, [isLoggedIn, user?._id]);
 
   useEffect(() => {
-    if (socketRef.current && selectedRoomId) {
+    if (socketRef.current && selectedRoomId && selectedRoomId !== AI_ROOM_ID) {
       socketRef.current.emit("join_room", { roomId: selectedRoomId, userId: user?._id });
     }
   }, [selectedRoomId, user?._id]);
 
   useEffect(() => {
     const loadRoomMessages = async () => {
-      if (!selectedRoomId || loadedRoomsRef.current.has(selectedRoomId)) {
+      if (
+        !selectedRoomId ||
+        selectedRoomId === AI_ROOM_ID ||
+        loadedRoomsRef.current.has(selectedRoomId)
+      ) {
         return;
       }
 
@@ -206,13 +220,100 @@ export default function ChatPage() {
     [contacts, selectedRoomId],
   );
 
+  const fallbackTripContact = useMemo(
+    () => contacts.find((contact) => contact.id !== AI_ROOM_ID) || null,
+    [contacts],
+  );
   const roomMessages = messagesByRoom[selectedRoomId] || [];
-  const selectedGroupMeta = groupMetaByRoom[selectedRoomId] || null;
+  const recentRoomMessages = useMemo(
+    () =>
+      (roomMessages || []).slice(-10).map((item) => ({
+        sender: item.sender,
+        text: item.text,
+        time: item.time,
+      })),
+    [roomMessages],
+  );
+  const aiConversationMessages = useMemo(
+    () =>
+      (messagesByRoom[AI_ROOM_ID] || []).slice(-10).map((item) => ({
+        sender: item.sender,
+        text: item.text,
+        time: item.time,
+      })),
+    [messagesByRoom],
+  );
+  const connectedChats = useMemo(
+    () =>
+      contacts
+        .filter((contact) => contact.id !== AI_ROOM_ID)
+        .slice(0, 12)
+        .map((contact) => ({
+          name: contact.name,
+          route: contact.route || contact.preview || "",
+          type: contact.type || "companion_chat",
+        })),
+    [contacts],
+  );
+  const selectedGroupMeta =
+    selectedRoomId === AI_ROOM_ID ? null : groupMetaByRoom[selectedRoomId] || null;
+  const copilotContext = useMemo(
+    () => ({
+      source:
+        (selectedContact?.id !== AI_ROOM_ID ? selectedContact : fallbackTripContact)?.route
+          ?.split("->")?.[0]
+          ?.trim() || "",
+      destination:
+        (selectedContact?.id !== AI_ROOM_ID ? selectedContact : fallbackTripContact)?.route
+          ?.split("->")?.[1]
+          ?.trim() || "",
+      roomLabel:
+        (selectedContact?.id !== AI_ROOM_ID ? selectedContact : fallbackTripContact)?.name || "",
+      companionName:
+        (selectedContact?.id !== AI_ROOM_ID ? selectedContact : fallbackTripContact)?.name || "",
+      activeRoomType: selectedContact?.type || "direct_chat",
+      activeRoute: selectedContact?.route || "",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+      localeTime: new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
+      recentConversation: aiConversationMessages,
+      recentRoomMessages,
+      connectedChats,
+    }),
+    [aiConversationMessages, connectedChats, fallbackTripContact, recentRoomMessages, selectedContact],
+  );
 
   useEffect(() => {
     if (selectedRoomId) {
       setIsMobileRoomsOpen(false);
     }
+  }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (selectedRoomId !== AI_ROOM_ID) {
+      return;
+    }
+
+    setMessagesByRoom((prev) => {
+      const existing = prev[AI_ROOM_ID] || [];
+      if (existing.length) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [AI_ROOM_ID]: [
+          {
+            id: "ai-welcome",
+            sender: "other",
+            text: "Hi! I am your Travel Copilot. Ask me about packing, routes, meetup safety, or any trip question.",
+            time: new Date().toLocaleTimeString("en-IN", {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          },
+        ],
+      };
+    });
   }, [selectedRoomId]);
 
   const removeMember = async (memberUserId) => {
@@ -246,14 +347,72 @@ export default function ChatPage() {
     }
   };
 
-  const send = () => {
-    if (!draft.trim() || !selectedRoomId || !socketRef.current) {
+  const send = async () => {
+    if (!draft.trim() || !selectedRoomId) {
+      return;
+    }
+
+    const trimmedMessage = draft.trim();
+    const messageTime = new Date().toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    if (selectedRoomId === AI_ROOM_ID) {
+      const userMessageId = `ai-user-${Date.now()}-${Math.random()}`;
+      setMessagesByRoom((current) => ({
+        ...current,
+        [AI_ROOM_ID]: [
+          ...(current[AI_ROOM_ID] || []),
+          {
+            id: userMessageId,
+            sender: "me",
+            text: trimmedMessage,
+            time: messageTime,
+          },
+        ],
+      }));
+      setDraft("");
+
+      try {
+        setIsAiReplying(true);
+        setError("");
+        const response = await api.post("/ai/copilot", {
+          intent: "qa",
+          message: trimmedMessage,
+          context: copilotContext,
+        });
+        const aiMessageId = `ai-reply-${Date.now()}-${Math.random()}`;
+        setMessagesByRoom((current) => ({
+          ...current,
+          [AI_ROOM_ID]: [
+            ...(current[AI_ROOM_ID] || []),
+            {
+              id: aiMessageId,
+              sender: "other",
+              text: response?.answer || "I could not generate a reply right now.",
+              time: new Date().toLocaleTimeString("en-IN", {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+            },
+          ],
+        }));
+      } catch (requestError) {
+        setError(requestError.message);
+      } finally {
+        setIsAiReplying(false);
+      }
+      return;
+    }
+
+    if (!socketRef.current) {
       return;
     }
 
     socketRef.current.emit("send_message", {
       roomId: selectedRoomId,
-      message: draft.trim(),
+      message: trimmedMessage,
       userId: user?._id,
     });
 
@@ -296,7 +455,11 @@ export default function ChatPage() {
                 }`}
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#124f38] font-bold text-white">
-                  {contact.name.slice(0, 1)}
+                  {contact.id === AI_ROOM_ID ? (
+                    <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+                  ) : (
+                    contact.name.slice(0, 1)
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-headline text-xl font-bold text-[#1b2822]">
@@ -329,7 +492,9 @@ export default function ChatPage() {
                 {selectedContact?.name || "Select a chat"}
               </h2>
               <p className="text-xs text-[#6e736a]">
-                {selectedContact?.route || "Companion and trip group rooms will appear here."}
+                {selectedContact?.id === AI_ROOM_ID
+                  ? "Telegram-style AI chat for all travel questions."
+                  : selectedContact?.route || "Companion and trip group rooms will appear here."}
               </p>
             </div>
             <button
@@ -421,6 +586,13 @@ export default function ChatPage() {
                   : "Choose an accepted companion chat to begin."}
               </div>
             )}
+            {selectedRoomId === AI_ROOM_ID && isAiReplying ? (
+              <div className="flex justify-start">
+                <div className="rounded-2xl bg-[#e1dfd8] px-4 py-3 text-sm text-[#4f5550]">
+                  Travel Copilot is typing...
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <footer className="border-t border-[#dbd7cd] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-7 md:py-4">
@@ -429,7 +601,9 @@ export default function ChatPage() {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && send()}
-                placeholder="Type a message..."
+                placeholder={
+                  selectedRoomId === AI_ROOM_ID ? "Ask Travel Copilot..." : "Type a message..."
+                }
                 className="flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[#848880]"
                 disabled={!selectedRoomId}
               />
@@ -478,7 +652,11 @@ export default function ChatPage() {
                   }`}
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#124f38] font-bold text-white">
-                    {contact.name.slice(0, 1)}
+                    {contact.id === AI_ROOM_ID ? (
+                      <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+                    ) : (
+                      contact.name.slice(0, 1)
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-headline text-lg font-bold text-[#1b2822]">

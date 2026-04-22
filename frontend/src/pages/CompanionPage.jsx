@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
+import TravelCopilotPanel from "../components/TravelCopilotPanel";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 
@@ -326,6 +327,27 @@ export default function CompanionPage() {
   ).length;
   const unreadNotificationCount = notifications.filter((item) => !item.isRead).length;
   const inboxCount = pendingIncomingCount + unreadNotificationCount;
+  const copilotContext = useMemo(
+    () => ({
+      source: current?.source || source,
+      destination: current?.destination || destination,
+      travelDate: current?.travelDate || travelDate,
+      seatsRequested: requestedSeats,
+      genderPreference: searchGenderPreference,
+      vehicleType: searchVehicleType || current?.vehicleType || "",
+      companionName: current?.name || "",
+      note: current?.note || "",
+    }),
+    [
+      current,
+      destination,
+      requestedSeats,
+      searchGenderPreference,
+      searchVehicleType,
+      source,
+      travelDate,
+    ],
+  );
 
   const markNotificationRead = async (notificationId) => {
     try {
@@ -672,6 +694,8 @@ export default function CompanionPage() {
                 </button>
               </div>
             </article>
+
+            <TravelCopilotPanel context={copilotContext} />
           </aside>
 
           <section>
