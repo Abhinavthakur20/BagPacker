@@ -1,4 +1,5 @@
-const { buildCopilotPrompt, buildTripAutofillPrompt, callGroqCopilot } = require("./aiService");
+const { buildCopilotPrompt, buildTripAutofillPrompt, callGroqCopilot, extractTripSearchFilters } = require("./aiService");
+const Trip = require("../trip/tripModel");
 
 const normalizeIntent = (value) => {
   const normalized = String(value || "qa").trim().toLowerCase();
@@ -76,6 +77,41 @@ const askCopilot = async (req, res) => {
       return res.status(400).json({ message: "Prompt message is required" });
     }
 
+    let suggestedTrips = [];
+    try {
+      const searchFilters = await extractTripSearchFilters(message);
+      console.log("Extracted search filters:", searchFilters);
+      if (searchFilters?.isSearch) {
+        const query = { status: "active", availableSeats: { $gt: 0 } };
+        if (searchFilters.destination) {
+          query.destination = new RegExp(searchFilters.destination, "i");
+        }
+        if (searchFilters.maxBudget && typeof searchFilters.maxBudget === "number") {
+          query.pricePerPerson = { $lte: searchFilters.maxBudget };
+        }
+        
+        console.log("Executing trip query:", query);
+        const trips = await Trip.find(query).sort({ startDate: 1 }).limit(3).lean();
+        console.log("Found trips:", trips.length);
+        
+        suggestedTrips = trips.map(t => ({
+          _id: String(t._id),
+          title: String(t.title),
+          destination: String(t.destination),
+          pricePerPerson: Number(t.pricePerPerson),
+          startDate: t.startDate,
+          duration: Math.max(1, Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24))) + " Days",
+          image: Array.isArray(t.images) && t.images.length > 0 ? t.images[0] : null
+        }));
+        
+        if (suggestedTrips.length > 0) {
+          context.foundTrips = suggestedTrips.map(t => ({ title: t.title, price: t.pricePerPerson }));
+        }
+      }
+    } catch (err) {
+      console.error("Trip search filter failed:", err);
+    }
+
     const prompt = buildCopilotPrompt({
       intent,
       message,
@@ -92,6 +128,7 @@ const askCopilot = async (req, res) => {
     return res.status(200).json({
       intent,
       answer,
+      suggestedTrips
     });
   } catch (error) {
     return res.status(500).json({ message: error.message || "Copilot response failed" });

@@ -96,7 +96,7 @@ export default function AlertHost() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-secondary-container">
                   BagPacker Notice
                 </p>
-                <h2 className="mt-1 font-headline text-2xl font-extrabold">
+                <h2 className="mt-1 font-headline text-lg font-extrabold">
                   {activeAlert.title}
                 </h2>
               </div>

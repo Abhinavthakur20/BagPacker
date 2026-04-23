@@ -174,7 +174,7 @@ export default function TripDetailPage() {
             <span className="material-symbols-outlined text-sm">star</span>
             Trending Expedition
           </p>
-          <h1 className="mt-4 break-words font-headline text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-6xl lg:text-7xl">
+          <h1 className="mt-4 break-words font-headline text-xl font-extrabold leading-tight tracking-tight sm:text-2xl md:text-4xl lg:text-5xl">
             {trip.title}
           </h1>
           <div className="mt-5 flex flex-wrap items-center gap-6 text-sm text-surface-variant">
@@ -255,7 +255,7 @@ export default function TripDetailPage() {
                 className="h-18 w-18 rounded-full border-4 border-surface-container-highest object-cover"
               />
               <div>
-                <h3 className="font-headline text-2xl font-bold text-primary">
+                <h3 className="font-headline text-lg font-bold text-primary">
                   {trip.organizerId?.businessName || "Verified Organizer"}
                 </h3>
                 <p className="text-sm text-outline">Trip Organizer</p>
@@ -279,7 +279,7 @@ export default function TripDetailPage() {
           <article>
             <div className="mb-8 flex items-end justify-between gap-4">
               <div>
-                <h2 className="font-headline text-4xl font-extrabold text-primary">
+                <h2 className="font-headline text-2xl font-extrabold text-primary">
                   The Journey Map
                 </h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
@@ -290,7 +290,7 @@ export default function TripDetailPage() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
                   Trip Flow
                 </p>
-                <p className="mt-1 font-headline text-2xl font-black text-primary">
+                <p className="mt-1 font-headline text-lg font-black text-primary">
                   {itinerary.length} Days
                 </p>
               </div>
@@ -327,7 +327,7 @@ export default function TripDetailPage() {
                           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
                             Day {item.day}
                           </p>
-                          <h4 className="font-headline text-2xl font-bold text-primary">
+                          <h4 className="font-headline text-lg font-bold text-primary">
                             {item.title}
                           </h4>
                         </div>
@@ -352,7 +352,7 @@ export default function TripDetailPage() {
 
           <article className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary to-primary-container p-8 text-surface-bright md:p-10">
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-secondary-container/10 blur-3xl" />
-            <h3 className="flex items-center gap-2 font-headline text-3xl font-bold">
+            <h3 className="flex items-center gap-2 font-headline text-xl font-bold">
               <span className="material-symbols-outlined text-secondary-container">
                 departure_board
               </span>
@@ -397,7 +397,7 @@ export default function TripDetailPage() {
                 </p>
                 <div className="mt-3 flex items-end justify-between gap-4">
                   <div>
-                    <p className="font-headline text-5xl font-black leading-none">
+                    <p className="font-headline text-3xl font-black leading-none">
                       {joinedCount}
                     </p>
                     <p className="mt-2 text-sm text-white/80">
@@ -424,7 +424,7 @@ export default function TripDetailPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-outline">Price per seat</p>
-                    <p className="font-headline text-4xl font-black text-primary">
+                    <p className="font-headline text-2xl font-black text-primary">
                       {formatINR(trip.pricePerPerson)}
                     </p>
                   </div>
@@ -444,7 +444,7 @@ export default function TripDetailPage() {
                     >
                       -
                     </button>
-                    <span className="font-headline text-3xl font-bold text-primary">
+                    <span className="font-headline text-xl font-bold text-primary">
                       {String(seats).padStart(2, "0")}
                     </span>
                     <button

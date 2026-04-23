@@ -221,7 +221,7 @@ export default function SearchPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-10 md:px-8">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="font-headline text-3xl font-extrabold tracking-tight text-primary sm:text-4xl md:text-5xl">
+            <h1 className="font-headline text-xl font-extrabold tracking-tight text-primary sm:text-2xl md:text-3xl">
               Expeditions Found
             </h1>
             <p className="mt-1 text-on-surface-variant">
@@ -502,7 +502,7 @@ export default function SearchPage() {
         <div className="fixed inset-0 z-50 bg-black/45 p-4 md:hidden">
           <div className="mx-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-headline text-2xl font-bold text-primary">
+              <h2 className="font-headline text-lg font-bold text-primary">
                 Filters
               </h2>
               <button

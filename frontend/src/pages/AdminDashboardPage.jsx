@@ -171,7 +171,7 @@ export default function AdminDashboardPage() {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">
             Admin Portal
           </p>
-          <h1 className="font-headline text-4xl font-extrabold text-primary">
+          <h1 className="font-headline text-2xl font-extrabold text-primary">
             Platform Moderation Dashboard
           </h1>
           <p className="mt-2 text-on-surface-variant">
@@ -208,7 +208,7 @@ export default function AdminDashboardPage() {
                   <p className={`text-sm ${index === 2 ? "text-white/80" : "text-outline"}`}>
                     {label}
                   </p>
-                  <p className="mt-2 font-headline text-5xl font-extrabold">
+                  <p className="mt-2 font-headline text-3xl font-extrabold">
                     {value}
                   </p>
                 </article>
@@ -217,7 +217,7 @@ export default function AdminDashboardPage() {
 
             <section className="grid gap-6 xl:grid-cols-2">
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h2 className="font-headline text-3xl font-extrabold text-primary">
+                <h2 className="font-headline text-xl font-extrabold text-primary">
                   Pending Organizer Approvals
                 </h2>
                 <div className="mt-5 space-y-4">
@@ -259,7 +259,7 @@ export default function AdminDashboardPage() {
               </article>
 
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h2 className="font-headline text-3xl font-extrabold text-primary">
+                <h2 className="font-headline text-xl font-extrabold text-primary">
                   Pending User Verifications
                 </h2>
                 <div className="mt-5 space-y-4">
@@ -307,7 +307,7 @@ export default function AdminDashboardPage() {
             </section>
 
             <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-              <h2 className="font-headline text-3xl font-extrabold text-primary">
+              <h2 className="font-headline text-xl font-extrabold text-primary">
                 User Reports
               </h2>
               <div className="mt-5 space-y-4">

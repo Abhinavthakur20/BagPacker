@@ -36,11 +36,11 @@ export default function WhatWeOfferSection() {
             className="rounded-3xl bg-surface-container-low p-8 shadow-[0_12px_32px_rgba(28,28,24,0.04)] transition hover:bg-surface-container-lowest"
           >
             <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-fixed">
-              <span className="material-symbols-outlined text-3xl text-primary">
+              <span className="material-symbols-outlined text-xl text-primary">
                 {icon}
               </span>
             </div>
-            <h3 className="font-headline text-2xl font-bold text-primary">
+            <h3 className="font-headline text-lg font-bold text-primary">
               {title}
             </h3>
             <p className="mt-4 text-on-surface-variant">{desc}</p>

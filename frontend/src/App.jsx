@@ -15,6 +15,7 @@ const TripDetailPage = lazy(() => import("./pages/TripDetailPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const TravelerDashboardPage = lazy(() => import("./pages/TravelerDashboardPage"));
 const OrganizerDashboardPage = lazy(() => import("./pages/OrganizerDashboardPage"));
+const OrganizerTripBuyersPage = lazy(() => import("./pages/OrganizerTripBuyersPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const PaymentPage = lazy(() => import("./pages/PaymentPage"));
 const CompanionPage = lazy(() => import("./pages/CompanionPage"));
@@ -148,6 +149,14 @@ function App() {
               element={
                 <RoleRoute allowedRoles={["organizer"]}>
                   <OrganizerDashboardPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="organizer/trips/:tripId"
+              element={
+                <RoleRoute allowedRoles={["organizer"]}>
+                  <OrganizerTripBuyersPage />
                 </RoleRoute>
               }
             />

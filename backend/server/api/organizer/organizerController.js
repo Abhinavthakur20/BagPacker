@@ -1,5 +1,6 @@
 const Organizer = require("./organizerModel");
 const Trip = require("../trip/tripModel");
+const Booking = require("../booking/bookingModel");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
 const DOCUMENT_IMAGE_TRANSFORMATIONS = {
@@ -89,8 +90,68 @@ const getMyOrganizerTrips = async (req, res) => {
   }
 };
 
+const getMyTripBookings = async (req, res) => {
+  try {
+    const organizer = await getPrimaryOrganizerProfile(req.user._id);
+    if (!organizer) {
+      return res.status(404).json({ message: "Organizer profile not found" });
+    }
+
+    const tripId = String(req.params.tripId || "").trim();
+    const status = String(req.query.status || "").trim();
+
+    const trip = await Trip.findOne({ _id: tripId, organizerId: organizer._id })
+      .select("title source destination startDate endDate pricePerPerson totalSeats availableSeats status organizerId")
+      .lean();
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    const bookingQuery = { tripId: trip._id };
+    if (status) {
+      bookingQuery.status = status;
+    }
+
+    const bookings = await Booking.find(bookingQuery)
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "travelerId",
+        select: "name email phone avatarUrl verificationStatus trustScore",
+      })
+      .populate({
+        path: "pickupPointId",
+        select: "location time",
+      })
+      .select(
+        "travelerId seatsBooked totalAmount currency paymentProvider paymentStatus razorpayPaymentId paymentCapturedAt status createdAt pickupPointId",
+      )
+      .lean();
+
+    const seatsBookedTotal = bookings.reduce((sum, booking) => sum + Math.max(0, Number(booking?.seatsBooked || 0)), 0);
+    const revenueTotal = bookings
+      .filter((booking) => booking?.paymentStatus === "paid" && booking?.status === "confirmed")
+      .reduce((sum, booking) => sum + Math.max(0, Number(booking?.totalAmount || 0)), 0);
+
+    return res.status(200).json({
+      trip,
+      summary: {
+        seatsBookedTotal,
+        seatsFilled: Math.max(0, Number(trip.totalSeats || 0) - Number(trip.availableSeats || 0)),
+        totalSeats: Number(trip.totalSeats || 0),
+        revenueTotal,
+        bookingsCount: bookings.length,
+      },
+      bookings,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getMyOrganizerTrips,
   registerOrganizerProfile,
   getMyOrganizerProfile,
+  getMyTripBookings,
 };

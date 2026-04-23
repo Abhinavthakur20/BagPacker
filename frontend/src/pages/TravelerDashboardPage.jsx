@@ -153,7 +153,7 @@ export default function TravelerDashboardPage() {
 
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="font-headline text-4xl font-extrabold tracking-tight text-primary">
+            <h1 className="font-headline text-2xl font-extrabold tracking-tight text-primary">
               {profile?.name ? `Namaste, ${profile.name.split(" ")[0]}!` : "Traveler Dashboard"}
             </h1>
             <p className="text-on-surface-variant">
@@ -177,7 +177,7 @@ export default function TravelerDashboardPage() {
             <section className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container px-4 py-5 sm:px-6 sm:py-7 md:px-10 md:py-9">
               <div className="flex items-stretch justify-between gap-2 text-center sm:gap-4 md:grid md:gap-8 md:grid-cols-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-headline text-4xl font-extrabold tracking-tight text-secondary-container sm:text-5xl md:text-6xl">
+                  <p className="font-headline text-2xl font-extrabold tracking-tight text-secondary-container sm:text-3xl md:text-4xl">
                     {bookings.length}
                   </p>
                   <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
@@ -185,7 +185,7 @@ export default function TravelerDashboardPage() {
                   </p>
                 </div>
                 <div className="min-w-0 flex-1 border-x border-white/15 px-2 md:border-x md:border-y-0 md:px-0">
-                  <p className="font-headline text-4xl font-extrabold tracking-tight text-secondary-container sm:text-5xl md:text-6xl">
+                  <p className="font-headline text-2xl font-extrabold tracking-tight text-secondary-container sm:text-3xl md:text-4xl">
                     {profile?.trustScore ?? 0}
                   </p>
                   <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
@@ -193,7 +193,7 @@ export default function TravelerDashboardPage() {
                   </p>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-headline text-4xl font-extrabold tracking-tight text-secondary-container sm:text-5xl md:text-6xl">
+                  <p className="font-headline text-2xl font-extrabold tracking-tight text-secondary-container sm:text-3xl md:text-4xl">
                     {recommendedTrips.length}
                   </p>
                   <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
@@ -220,7 +220,7 @@ export default function TravelerDashboardPage() {
                   <p className="text-[9px] uppercase tracking-[0.08em] text-outline md:text-xs md:tracking-[0.14em]">
                     {label}
                   </p>
-                  <p className="mt-1 font-headline text-4xl font-extrabold text-primary md:mt-2 md:text-5xl">
+                  <p className="mt-1 font-headline text-2xl font-extrabold text-primary md:mt-2 md:text-3xl">
                     {value}
                   </p>
                 </article>
@@ -230,7 +230,7 @@ export default function TravelerDashboardPage() {
             <section className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="font-headline text-3xl font-extrabold text-primary">
+                  <h2 className="font-headline text-xl font-extrabold text-primary">
                     Recent Bookings
                   </h2>
                   <Link to="/payment" className="text-sm font-bold text-secondary">
@@ -275,7 +275,7 @@ export default function TravelerDashboardPage() {
 
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="font-headline text-3xl font-extrabold text-primary">
+                  <h2 className="font-headline text-xl font-extrabold text-primary">
                     Recommended for You
                   </h2>
                   <Link to="/trips/search" className="text-sm font-bold text-secondary">
@@ -291,7 +291,7 @@ export default function TravelerDashboardPage() {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <h3 className="font-headline text-2xl font-bold text-primary">
+                          <h3 className="font-headline text-lg font-bold text-primary">
                             {trip.title}
                           </h3>
                           <p className="text-sm text-on-surface-variant">
@@ -302,7 +302,7 @@ export default function TravelerDashboardPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-headline text-2xl font-black text-primary">
+                          <p className="font-headline text-lg font-black text-primary">
                             {formatINR(trip.pricePerPerson)}
                           </p>
                           <Link
@@ -322,7 +322,7 @@ export default function TravelerDashboardPage() {
             <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h2 className="font-headline text-3xl font-extrabold text-primary">
+                  <h2 className="font-headline text-xl font-extrabold text-primary">
                     E-Tickets
                   </h2>
                   <p className="text-sm text-on-surface-variant">
@@ -352,7 +352,7 @@ export default function TravelerDashboardPage() {
                         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b9490]">
                           BagPacker E-Ticket
                         </p>
-                        <h3 className="mt-2 font-headline text-2xl font-extrabold text-[#143526]">
+                        <h3 className="mt-2 font-headline text-lg font-extrabold text-[#143526]">
                           {booking.tripId?.title || "Trip Ticket"}
                         </h3>
                         <p className="mt-1 text-sm font-semibold text-[#2b3e33]">
@@ -427,7 +427,7 @@ export default function TravelerDashboardPage() {
 
             <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="font-headline text-3xl font-extrabold text-primary">
+                <h2 className="font-headline text-xl font-extrabold text-primary">
                   Notifications
                 </h2>
                 <p className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">

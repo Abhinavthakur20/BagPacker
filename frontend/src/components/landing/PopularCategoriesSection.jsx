@@ -27,7 +27,7 @@ export default function PopularCategoriesSection({ tripTypes, onExplore }) {
               <span className="inline-flex rounded-full bg-secondary-fixed/95 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-on-secondary-container">
                 {tripType.badge}
               </span>
-              <h3 className="mt-3 font-headline text-2xl font-bold text-white">
+              <h3 className="mt-3 font-headline text-lg font-bold text-white">
                 {tripType.title}
               </h3>
               <p className="mt-1 min-h-10 text-sm text-white/90">

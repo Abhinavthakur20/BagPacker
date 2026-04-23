@@ -160,28 +160,33 @@ const callGroqCopilot = async (prompt, options = {}) => {
   // Raised from 800 → 1200 to avoid cutting off formatted responses
   const maxTokens = Number(options.maxTokens || 1200) || 1200;
 
+  const bodyPayload = {
+    model: DEFAULT_MODEL,
+    temperature,
+    max_tokens: maxTokens,
+    messages: [
+      {
+        role: "system",
+        content: options.systemPrompt || "You are BagPacker Travel Copilot — a concise, practical, safety-first travel assistant for Indian travelers. Always format responses with emoji headers, bullet points, and bold key terms. Never write long unbroken paragraphs.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  };
+
+  if (options.jsonMode) {
+    bodyPayload.response_format = { type: "json_object" };
+  }
+
   const response = await fetch(GROQ_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      temperature,
-      max_tokens: maxTokens,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are BagPacker Travel Copilot — a concise, practical, safety-first travel assistant for Indian travelers. Always format responses with emoji headers, bullet points, and bold key terms. Never write long unbroken paragraphs.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    }),
+    body: JSON.stringify(bodyPayload),
   });
 
   const data = await response.json();
@@ -202,6 +207,26 @@ const callGroqCopilot = async (prompt, options = {}) => {
   return text;
 };
 
+const extractTripSearchFilters = async (message) => {
+  const prompt = `Analyze this message and extract search filters for group trips.
+If the user is asking to find, suggest, or book trips/packages/tours, return JSON: {"isSearch":true,"destination":"CityName","maxBudget":Number}.
+If they are NOT looking to book trips (e.g. asking for packing tips, route info, general QA), return JSON: {"isSearch":false}.
+Only return valid JSON. Do not include markdown or explanations.
+Message: "${message}"`;
+
+  try {
+    const response = await callGroqCopilot(prompt, {
+      systemPrompt: "You are a JSON parser. Output only valid JSON.",
+      jsonMode: true,
+      temperature: 0.1,
+      maxTokens: 200,
+    });
+    return JSON.parse(response);
+  } catch (err) {
+    return null;
+  }
+};
+
 // ─────────────────────────────────────────────
 // EXPORTS
 // ─────────────────────────────────────────────
@@ -209,4 +234,5 @@ module.exports = {
   buildCopilotPrompt,
   buildTripAutofillPrompt,
   callGroqCopilot,
+  extractTripSearchFilters,
 };

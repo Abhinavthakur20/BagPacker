@@ -160,7 +160,7 @@ export default function ProfilePage() {
           </p>
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="break-words font-headline text-3xl font-extrabold sm:text-5xl">
+              <h1 className="break-words font-headline text-xl font-extrabold sm:text-3xl">
                 {profile?.name || storedUser?.name || "BagPacker User"}
               </h1>
               <p className="mt-2 text-white/80">
@@ -196,7 +196,7 @@ export default function ProfilePage() {
             <section className="space-y-6">
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
                 <div className="flex items-center justify-between gap-4">
-                  <h2 className="font-headline text-3xl font-bold text-primary">
+                  <h2 className="font-headline text-xl font-bold text-primary">
                     Account Details
                   </h2>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${verificationTone}`}>
@@ -241,7 +241,7 @@ export default function ProfilePage() {
               </article>
 
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h3 className="font-headline text-3xl font-bold text-primary">
+                <h3 className="font-headline text-xl font-bold text-primary">
                   Reviews Received
                 </h3>
                 <div className="mt-5 space-y-4">
@@ -278,7 +278,7 @@ export default function ProfilePage() {
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-on-primary-container">
                   Trust Score
                 </p>
-                 <p className="mt-2 font-headline text-5xl font-black sm:text-6xl">
+                 <p className="mt-2 font-headline text-3xl font-black sm:text-4xl">
                   {profile?.trustScore ?? storedUser?.trustScore ?? 0}
                 </p>
                 <p className="mt-3 text-sm text-on-primary-container">
@@ -287,7 +287,7 @@ export default function ProfilePage() {
               </article>
 
               <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h3 className="font-headline text-3xl font-bold text-primary">
+                <h3 className="font-headline text-xl font-bold text-primary">
                   Government ID
                 </h3>
                 <p className="mt-2 text-sm text-on-surface-variant">

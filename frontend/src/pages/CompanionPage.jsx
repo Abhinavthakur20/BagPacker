@@ -507,7 +507,7 @@ export default function CompanionPage() {
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a5b18]">
               Companion Finder
             </p>
-            <h1 className="mt-1 font-headline text-3xl font-extrabold text-[#132c22] sm:text-4xl">
+            <h1 className="mt-1 font-headline text-xl font-extrabold text-[#132c22] sm:text-2xl">
               Find your travel companion
             </h1>
             <p className="mt-1 text-sm text-[#6b7069]">
@@ -631,14 +631,14 @@ export default function CompanionPage() {
           <aside className="space-y-5">
             <article className="rounded-2xl bg-linear-to-br from-[#154f39] to-[#0f3f2e] p-4 text-white shadow-lg">
               <div className="flex items-end justify-between gap-2">
-                <p className="font-headline text-5xl font-extrabold leading-none">
+                <p className="font-headline text-3xl font-extrabold leading-none">
                   {discoverItems.length}
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/80">
                   Live
                 </p>
               </div>
-              <p className="mt-2 text-2xl font-semibold leading-tight">
+              <p className="mt-2 text-lg font-semibold leading-tight">
                 Compatible companions
               </p>
               <p className="mt-1 text-sm text-white/75">
@@ -722,7 +722,7 @@ export default function CompanionPage() {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8">
-                    <h1 className="break-words font-headline text-3xl font-extrabold leading-tight sm:text-5xl">
+                    <h1 className="break-words font-headline text-xl font-extrabold leading-tight sm:text-3xl">
                       {current.name}
                     </h1>
                     <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold uppercase tracking-[0.12em] text-white/90">
@@ -802,7 +802,7 @@ export default function CompanionPage() {
               <LoadingPanel label="Searching companions..." className="rounded-2xl" />
             ) : (
               <div className="rounded-2xl bg-surface-container-low p-8 text-center">
-                <span className="material-symbols-outlined text-4xl text-[#6f736b]">
+                <span className="material-symbols-outlined text-2xl text-[#6f736b]">
                   travel_explore
                 </span>
                 <p className="mt-3 font-semibold text-[#2a322d]">
@@ -824,7 +824,7 @@ export default function CompanionPage() {
 
           <aside className="space-y-5">
             <article className="rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
-              <h2 className="font-headline text-2xl font-bold text-[#202925]">
+              <h2 className="font-headline text-lg font-bold text-[#202925]">
                 Create Personal Trip Post
               </h2>
               <div className="mt-3 space-y-2">
@@ -892,7 +892,7 @@ export default function CompanionPage() {
             </article>
 
             <article className="rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 font-headline text-2xl font-bold text-[#202925]">
+              <h2 className="flex items-center gap-2 font-headline text-lg font-bold text-[#202925]">
                 My Personal Posts
                 <span className="rounded-full bg-[#275f49] px-2 py-0.5 text-[11px] font-bold text-white">
                   {myPersonalPosts.length}
@@ -971,7 +971,7 @@ export default function CompanionPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a5b18]">
                       Requests & Updates
                     </p>
-                    <h2 className="mt-1 font-headline text-3xl font-extrabold text-[#173228]">
+                    <h2 className="mt-1 font-headline text-xl font-extrabold text-[#173228]">
                       Companion Inbox
                     </h2>
                     <p className="mt-1 text-sm text-[#667068]">
@@ -1029,7 +1029,7 @@ export default function CompanionPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-headline text-2xl font-bold text-[#20322b]">
+                              <p className="font-headline text-lg font-bold text-[#20322b]">
                                 {item.name}
                               </p>
                               <p className="mt-1 text-sm text-[#798078]">{item.route}</p>
@@ -1104,7 +1104,7 @@ export default function CompanionPage() {
                       ))
                     ) : (
                       <div className="rounded-[24px] bg-white p-8 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-4xl text-[#71766e]">
+                        <span className="material-symbols-outlined text-2xl text-[#71766e]">
                           notifications_none
                         </span>
                         <p className="mt-3 font-semibold text-[#2a322d]">
@@ -1156,7 +1156,7 @@ export default function CompanionPage() {
                       ))
                     ) : (
                       <div className="rounded-[24px] bg-white p-8 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-4xl text-[#71766e]">
+                        <span className="material-symbols-outlined text-2xl text-[#71766e]">
                           inbox
                         </span>
                         <p className="mt-3 font-semibold text-[#2a322d]">

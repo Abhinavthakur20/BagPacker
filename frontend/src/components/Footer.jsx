@@ -36,7 +36,7 @@ export default function Footer() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 md:py-12">
         <div className="grid gap-8 md:gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="font-headline text-4xl font-extrabold text-secondary-container">
+            <p className="font-headline text-2xl font-extrabold text-secondary-container">
               BagPacker
             </p>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-surface/85">

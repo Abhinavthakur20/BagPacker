@@ -13,7 +13,7 @@ export default function StorySection({ campfireImage }) {
         </div>
         <div className="absolute -bottom-6 -left-2 max-w-[180px] rounded-3xl bg-secondary-container p-4 shadow-xl md:-left-6">
           <p className="text-xs font-medium text-on-secondary-container">
-            <span className="material-symbols-outlined mb-1 block text-2xl">
+            <span className="material-symbols-outlined mb-1 block text-lg">
               verified_user
             </span>
             TrustScore verified for all group trips
@@ -22,7 +22,7 @@ export default function StorySection({ campfireImage }) {
       </div>
 
       <div className="w-full flex-1">
-        <h2 className="font-headline text-5xl font-extrabold leading-tight text-primary">
+        <h2 className="font-headline text-3xl font-extrabold leading-tight text-primary">
           The smarter way to see the world.
         </h2>
         <p className="mt-6 max-w-xl leading-relaxed text-on-surface-variant">

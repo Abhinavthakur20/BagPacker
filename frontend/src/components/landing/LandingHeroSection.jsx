@@ -81,7 +81,7 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
           {heroSlides[activeImageIndex].label}
         </div>
 
-        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-white md:text-7xl">
+        <h1 className="font-headline text-3xl font-extrabold tracking-tight text-white md:text-5xl">
           Find Your Tribe.
           <br />
           <span className="text-secondary-container">Split the Cost.</span>{" "}

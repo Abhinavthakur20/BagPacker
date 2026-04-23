@@ -211,7 +211,7 @@ export default function AuthPage() {
 
   return (
     <MainLayout>
-      <section className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden px-4 py-10">
+      <section className="relative isolate flex min-h-[calc(100dvh-4rem)] items-start justify-center overflow-x-hidden px-4 py-6 md:items-center md:py-10">
         <img
           src={campfireImage}
           alt=""
@@ -219,7 +219,7 @@ export default function AuthPage() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.92),rgba(248,250,252,0.96))]" />
-        <div className="relative mx-auto w-full max-w-5xl rounded-3xl border border-outline-variant/20 bg-surface-container-lowest/95 p-3 shadow-[0_30px_70px_rgba(15,23,42,0.25)] backdrop-blur-sm md:p-5">
+        <div className="relative mx-auto w-full max-w-5xl rounded-3xl border border-outline-variant/20 bg-surface-container-lowest/95 p-3 shadow-[0_30px_70px_rgba(15,23,42,0.25)] backdrop-blur-sm md:p-5 md:overflow-visible md:max-h-none max-h-[calc(100dvh-4rem-3rem)] overflow-y-auto">
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <aside className="hidden overflow-hidden rounded-2xl bg-primary shadow-[0_20px_50px_rgba(1,45,29,0.25)] lg:block">
               <img
@@ -231,7 +231,7 @@ export default function AuthPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary-container">
                   Verified Community
                 </p>
-                <h2 className="font-headline text-4xl font-extrabold leading-tight">
+                <h2 className="font-headline text-2xl font-extrabold leading-tight">
                   Meet trusted travelers before you book.
                 </h2>
                 <p className="text-surface/85">
@@ -267,7 +267,7 @@ export default function AuthPage() {
 
               {mode === "login" ? (
                 <div>
-                  <h1 className="font-headline text-3xl font-extrabold text-primary">
+                  <h1 className="font-headline text-xl font-extrabold text-primary">
                     Welcome Back
                   </h1>
                   <p className="mt-1 text-sm text-on-surface-variant">
@@ -310,7 +310,7 @@ export default function AuthPage() {
                 </div>
               ) : (
                 <div>
-                  <h2 className="font-headline text-3xl font-extrabold text-primary">
+                  <h2 className="font-headline text-xl font-extrabold text-primary">
                     Join the Expedition
                   </h2>
                   <div className="mt-5 flex rounded-xl bg-surface-container-low p-1">

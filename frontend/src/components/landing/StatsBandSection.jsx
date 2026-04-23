@@ -13,7 +13,7 @@ export default function StatsBandSection() {
             key={label}
             className={`space-y-1 ${index === 1 ? "border-y border-white/10 py-5 md:border-x md:border-y-0" : ""}`}
           >
-            <p className="font-headline text-5xl font-extrabold text-secondary-container">
+            <p className="font-headline text-3xl font-extrabold text-secondary-container">
               {count}
             </p>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-primary-container">

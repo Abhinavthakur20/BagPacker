@@ -1,8 +1,9 @@
 const express = require("express");
-const { body } = require("express-validator");
+const { body, param, query } = require("express-validator");
 const {
   getMyOrganizerProfile,
   getMyOrganizerTrips,
+  getMyTripBookings,
   registerOrganizerProfile,
 } = require("../api/organizer/organizerController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -25,5 +26,17 @@ router.post(
 );
 router.get("/me", getMyOrganizerProfile);
 router.get("/me/trips", getMyOrganizerTrips);
+router.get(
+  "/me/trips/:tripId/bookings",
+  [
+    param("tripId").isMongoId().withMessage("Valid tripId is required"),
+    query("status")
+      .optional()
+      .isIn(["pending", "confirmed", "cancelled", "completed"])
+      .withMessage("status must be pending, confirmed, cancelled, or completed"),
+    validateRequest,
+  ],
+  getMyTripBookings,
+);
 
 module.exports = router;

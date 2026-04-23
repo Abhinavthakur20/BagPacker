@@ -58,3 +58,170 @@ body {
 .border-3 {
   border-width: 3px;
 }
+
+/* ── AI Copilot Markdown (Gemini-style formatting) ── */
+
+.copilot-markdown > *:first-child {
+  margin-top: 0;
+}
+.copilot-markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.copilot-markdown p {
+  margin: 0.5em 0;
+  line-height: 1.7;
+}
+
+.copilot-markdown h1,
+.copilot-markdown h2,
+.copilot-markdown h3,
+.copilot-markdown h4 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1em 0 0.4em;
+  color: #0f3d2d;
+}
+.copilot-markdown h1 { font-size: 1.25rem; }
+.copilot-markdown h2 { font-size: 1.1rem; }
+.copilot-markdown h3 { font-size: 1rem; }
+.copilot-markdown h4 { font-size: 0.95rem; }
+
+.copilot-markdown strong {
+  font-weight: 700;
+  color: #132c22;
+}
+
+.copilot-markdown em {
+  font-style: italic;
+}
+
+.copilot-markdown ul,
+.copilot-markdown ol {
+  margin: 0.5em 0;
+  padding-left: 1.4em;
+}
+
+.copilot-markdown ul {
+  list-style-type: disc;
+}
+
+.copilot-markdown ol {
+  list-style-type: decimal;
+}
+
+.copilot-markdown li {
+  margin: 0.3em 0;
+  line-height: 1.65;
+}
+
+.copilot-markdown li > ul,
+.copilot-markdown li > ol {
+  margin: 0.15em 0 0.15em 0.2em;
+}
+
+.copilot-markdown li > ul {
+  list-style-type: circle;
+}
+
+.copilot-markdown code {
+  font-family: "Fira Code", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.85em;
+  background: rgba(1, 45, 29, 0.08);
+  color: #1a513d;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+}
+
+.copilot-markdown pre {
+  margin: 0.6em 0;
+  padding: 0.8em 1em;
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.82em;
+  line-height: 1.6;
+}
+
+.copilot-markdown pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.copilot-markdown hr {
+  border: none;
+  border-top: 1px solid #c1c8c2;
+  margin: 0.8em 0;
+}
+
+.copilot-markdown blockquote {
+  border-left: 3px solid #fd9d1a;
+  margin: 0.5em 0;
+  padding: 0.3em 0 0.3em 0.9em;
+  color: #4a554f;
+  font-style: italic;
+}
+
+.copilot-markdown a {
+  color: #1a513d;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.copilot-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6em 0;
+  font-size: 0.88em;
+}
+
+.copilot-markdown th,
+.copilot-markdown td {
+  border: 1px solid #c1c8c2;
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+
+.copilot-markdown th {
+  background: rgba(1, 45, 29, 0.06);
+  font-weight: 700;
+  color: #0f3d2d;
+}
+
+/* ── Themed scrollbars (Chat / Copilot) ── */
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(1, 45, 29, 0.38) rgba(229, 226, 219, 0.7);
+}
+
+.chat-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.chat-scroll::-webkit-scrollbar-track {
+  background: rgba(229, 226, 219, 0.7);
+  border-radius: 999px;
+}
+
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(1, 45, 29, 0.32),
+    rgba(26, 81, 61, 0.5)
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(229, 226, 219, 0.8);
+}
+
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(1, 45, 29, 0.42),
+    rgba(26, 81, 61, 0.62)
+  );
+}

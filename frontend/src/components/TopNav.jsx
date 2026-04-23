@@ -56,7 +56,7 @@ export default function TopNav() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <NavLink
           to="/"
-          className="inline-flex items-center gap-2 font-headline text-2xl font-extrabold tracking-tight text-on-surface"
+          className="inline-flex items-center gap-2 font-headline text-lg font-extrabold tracking-tight text-on-surface"
         >
           <BsSuitcase className="text-[1.8rem]" aria-hidden="true" />
           BagPacker

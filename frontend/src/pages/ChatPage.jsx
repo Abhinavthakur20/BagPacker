@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { io } from "socket.io-client";
+import ReactMarkdown from "react-markdown";
+import { Link } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
@@ -391,6 +393,7 @@ export default function ChatPage() {
               id: aiMessageId,
               sender: "other",
               text: response?.answer || "I could not generate a reply right now.",
+              suggestedTrips: response?.suggestedTrips || [],
               time: new Date().toLocaleTimeString("en-IN", {
                 hour: "numeric",
                 minute: "2-digit",
@@ -433,9 +436,9 @@ export default function ChatPage() {
 
   return (
     <MainLayout withFooter={false}>
-      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[1440px] bg-[#efeee9]">
+      <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-[1440px] overflow-hidden bg-[#efeee9]">
         <aside className="hidden w-[320px] border-r border-[#dbd7cd] bg-[#efeee9] p-4 md:block">
-          <h1 className="font-headline text-4xl font-extrabold text-[#132c22]">
+          <h1 className="font-headline text-2xl font-extrabold text-[#132c22]">
             Messages
           </h1>
 
@@ -485,10 +488,10 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col bg-[#f6f4ee]">
+        <section className="flex min-w-0 flex-1 flex-col min-h-0 bg-[#f6f4ee]">
           <header className="flex items-center justify-between border-b border-[#dbd7cd] px-4 py-4 md:px-6">
             <div>
-              <h2 className="break-words font-headline text-xl font-extrabold text-[#132c22] sm:text-2xl">
+              <h2 className="break-words font-headline text-xl font-extrabold text-[#132c22] sm:text-lg">
                 {selectedContact?.name || "Select a chat"}
               </h2>
               <p className="text-xs text-[#6e736a]">
@@ -552,7 +555,7 @@ export default function ChatPage() {
             </div>
           ) : null}
 
-            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-7 md:py-5">
+            <div className="chat-scroll flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:px-7 md:py-5">
             {isMessagesLoading ? (
               <div className="flex h-full items-center justify-center text-center text-sm text-[#6f736b]">
                 Loading messages...
@@ -564,15 +567,47 @@ export default function ChatPage() {
                   className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}
                 >
                   <div className="max-w-[84%] md:max-w-[72%]">
-                    <p
+                    <div
                       className={`rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
                         message.sender === "me"
                           ? "bg-[#0d432d] text-white"
                           : "bg-[#e1dfd8] text-[#272b27]"
+                      }${
+                        message.sender !== "me" && selectedRoomId === AI_ROOM_ID
+                          ? " copilot-markdown"
+                          : ""
                       }`}
                     >
-                      {message.text}
-                    </p>
+                      {message.sender !== "me" && selectedRoomId === AI_ROOM_ID ? (
+                        <ReactMarkdown>{message.text}</ReactMarkdown>
+                      ) : (
+                        message.text
+                      )}
+                    </div>
+                    {message.suggestedTrips && message.suggestedTrips.length > 0 ? (
+                      <div className="mt-3 flex flex-col gap-2">
+                        {message.suggestedTrips.map((trip) => (
+                          <Link 
+                            key={trip._id} 
+                            to={`/trips/${trip._id}`}
+                            className="flex gap-3 rounded-xl bg-white p-3 shadow-sm border border-[#e1dfd8] transition-all hover:-translate-y-0.5 hover:shadow-md"
+                          >
+                            {trip.image ? (
+                              <img src={trip.image} alt={trip.title} className="h-16 w-16 rounded-lg object-cover" />
+                            ) : (
+                              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-[#e1dfd8]">
+                                <span className="material-symbols-outlined text-[#8a8f86]">image</span>
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <h4 className="truncate font-headline text-sm font-bold text-[#132c22]">{trip.title}</h4>
+                              <p className="mt-0.5 text-xs text-[#4a554f]">{trip.duration}</p>
+                              <p className="mt-1 text-sm font-bold text-[#0d432d]">₹{trip.pricePerPerson.toLocaleString("en-IN")}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
                     <p className="mt-1 px-1 text-[11px] text-[#8a8f86]">
                       {message.time}
                     </p>
@@ -623,7 +658,7 @@ export default function ChatPage() {
         <div className="fixed inset-0 z-50 bg-black/45 p-4 md:hidden">
           <div className="mx-auto flex h-[calc(100dvh-2rem)] max-w-xl flex-col rounded-2xl bg-[#efeee9] p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-headline text-2xl font-bold text-[#132c22]">
+              <h2 className="font-headline text-lg font-bold text-[#132c22]">
                 Messages
               </h2>
               <button
@@ -642,7 +677,7 @@ export default function ChatPage() {
               </div>
             ) : null}
 
-            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+            <div className="chat-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain">
               {contacts.map((contact) => (
                 <button
                   key={`mobile-room-${contact.id}`}
