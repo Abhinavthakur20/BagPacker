@@ -193,7 +193,14 @@ function App() {
               </RoleRoute>
             }
           />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route
+            path="/profile"
+            element={
+              <RoleRoute allowedRoles={["traveler", "organizer", "admin"]}>
+                <ProfilePage />
+              </RoleRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

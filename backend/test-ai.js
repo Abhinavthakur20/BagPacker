@@ -13,7 +13,7 @@ async function test() {
 
   if (filters?.isSearch) {
     const query = { status: "active", availableSeats: { $gt: 0 } };
-    if (filters.destination) query.destination = new RegExp(filters.destination, "i");
+    if (filters.destination) query.destination = new RegExp(filters.destination.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
     if (filters.maxBudget) query.pricePerPerson = { $lte: filters.maxBudget };
     
     console.log("Query:", query);

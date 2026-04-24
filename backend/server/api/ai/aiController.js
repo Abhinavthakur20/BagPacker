@@ -1,6 +1,8 @@
 const { buildCopilotPrompt, buildTripAutofillPrompt, callGroqCopilot, extractTripSearchFilters } = require("./aiService");
 const Trip = require("../trip/tripModel");
 
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const normalizeIntent = (value) => {
   const normalized = String(value || "qa").trim().toLowerCase();
   if (["packing", "route", "safety", "qa"].includes(normalized)) {
@@ -84,7 +86,7 @@ const askCopilot = async (req, res) => {
       if (searchFilters?.isSearch) {
         const query = { status: "active", availableSeats: { $gt: 0 } };
         if (searchFilters.destination) {
-          query.destination = new RegExp(searchFilters.destination, "i");
+          query.destination = new RegExp(escapeRegex(searchFilters.destination), "i");
         }
         if (searchFilters.maxBudget && typeof searchFilters.maxBudget === "number") {
           query.pricePerPerson = { $lte: searchFilters.maxBudget };
