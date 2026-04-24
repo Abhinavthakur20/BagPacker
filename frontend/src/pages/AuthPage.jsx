@@ -53,8 +53,13 @@ export default function AuthPage() {
 
   useEffect(() => {
     const updateWidth = () => {
-      const viewportWidth = window.innerWidth || 320;
-      setGoogleButtonWidth(Math.max(220, Math.min(360, viewportWidth - 56)));
+      if (googleButtonRef.current) {
+        const containerWidth = googleButtonRef.current.parentElement.offsetWidth;
+        setGoogleButtonWidth(Math.max(220, Math.min(360, containerWidth)));
+      } else {
+        const viewportWidth = window.innerWidth || 320;
+        setGoogleButtonWidth(Math.max(220, Math.min(360, viewportWidth - 104)));
+      }
     };
     updateWidth();
     window.addEventListener("resize", updateWidth);
