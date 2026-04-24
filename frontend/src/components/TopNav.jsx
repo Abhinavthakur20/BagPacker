@@ -6,9 +6,7 @@ import { BsSuitcase } from "react-icons/bs";
 const getLinkClass = ({ isActive }) =>
   [
     "relative text-sm font-headline font-semibold tracking-tight transition-all duration-300",
-    isActive
-      ? "text-secondary-container"
-      : "text-white/80 hover:text-white",
+    isActive ? "text-secondary-container" : "text-white/80 hover:text-white",
   ].join(" ");
 
 const activeDot = (
@@ -33,10 +31,8 @@ export default function TopNav() {
 
   // Close mobile menu on route change
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
-  }, [location.pathname, isMobileMenuOpen]);
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const resolvedNavLinks = (() => {
     if (!isLoggedIn) {
@@ -81,12 +77,12 @@ export default function TopNav() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
         {/* ── Logo ── */}
-        <NavLink
-          to="/"
-          className="group inline-flex items-center gap-2.5"
-        >
+        <NavLink to="/" className="group inline-flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary-container/20 transition-all duration-300 group-hover:bg-secondary-container/30 group-hover:scale-105">
-            <BsSuitcase className="text-lg text-secondary-container" aria-hidden="true" />
+            <BsSuitcase
+              className="text-lg text-secondary-container"
+              aria-hidden="true"
+            />
           </span>
           <span className="font-headline text-lg font-extrabold tracking-tight text-white">
             Bag<span className="text-secondary-container">Packer</span>
@@ -96,11 +92,7 @@ export default function TopNav() {
         {/* ── Desktop nav links ── */}
         <div className="hidden items-center gap-1 md:flex">
           {resolvedNavLinks.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={getLinkClass}
-            >
+            <NavLink key={item.to} to={item.to} className={getLinkClass}>
               {({ isActive }) => (
                 <span className="relative inline-flex items-center rounded-lg px-3 py-2 transition-all duration-200 hover:bg-white/10">
                   {item.label}
@@ -144,7 +136,9 @@ export default function TopNav() {
         {/* ── Mobile hamburger ── */}
         <button
           type="button"
-          aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-label={
+            isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((v) => !v)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white md:hidden"
@@ -188,7 +182,9 @@ export default function TopNav() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-secondary-container px-4 py-2.5 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(253,157,26,0.25)] transition-all duration-300 hover:brightness-110"
               >
-                <span className="material-symbols-outlined text-[1.1rem]">account_circle</span>
+                <span className="material-symbols-outlined text-[1.1rem]">
+                  account_circle
+                </span>
                 Profile
               </NavLink>
             ) : (
