@@ -219,7 +219,7 @@ export default function AuthPage() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.92),rgba(248,250,252,0.96))]" />
-        <div className="relative mx-auto w-full max-w-5xl rounded-3xl border border-outline-variant/20 bg-surface-container-lowest/95 p-3 shadow-[0_30px_70px_rgba(15,23,42,0.25)] backdrop-blur-sm md:p-5 md:overflow-visible md:max-h-none max-h-[calc(100dvh-4rem-3rem)] overflow-y-auto">
+        <div className="relative mx-auto w-full max-w-5xl rounded-3xl border border-outline-variant/20 bg-surface-container-lowest/95 p-3 shadow-[0_30px_70px_rgba(15,23,42,0.25)] backdrop-blur-sm md:p-5">
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <aside className="hidden overflow-hidden rounded-2xl bg-primary shadow-[0_20px_50px_rgba(1,45,29,0.25)] lg:block">
               <img
