@@ -219,7 +219,7 @@ export default function SearchPage() {
   return (
     <MainLayout>
       <div className="mx-auto w-full max-w-7xl px-4 py-10 md:px-8">
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="font-headline text-xl font-extrabold tracking-tight text-primary sm:text-2xl md:text-3xl">
               Expeditions Found
@@ -254,248 +254,239 @@ export default function SearchPage() {
           </div>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-12">
-          <aside className="hidden md:col-span-3 md:block">
-            <div className="rounded-2xl bg-surface-container-low p-6">
-              <h2 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary">
-                <span className="material-symbols-outlined">tune</span>
-                Filters
-              </h2>
+        {/* ── Horizontal Filter Bar (Desktop) ── */}
+        <div className="mb-8 hidden items-end gap-4 rounded-2xl bg-surface-container-low p-5 md:flex flex-wrap lg:flex-nowrap">
+          <div className="flex-1 min-w-[140px]">
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+              From
+            </label>
+            <input
+              value={fromCity}
+              onChange={(e) => setFromCity(e.target.value)}
+              placeholder="Source city"
+              className="w-full rounded-xl bg-surface-container-highest px-3 py-2.5 text-sm"
+            />
+          </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                    From
-                  </label>
-                  <input
-                    value={fromCity}
-                    onChange={(e) => setFromCity(e.target.value)}
-                    placeholder="Source city"
-                    className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
-                  />
-                </div>
+          <div className="flex-1 min-w-[140px]">
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+              To
+            </label>
+            <input
+              value={toCity}
+              onChange={(e) => setToCity(e.target.value)}
+              placeholder="Destination city"
+              className="w-full rounded-xl bg-surface-container-highest px-3 py-2.5 text-sm"
+            />
+          </div>
 
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                    To
-                  </label>
-                  <input
-                    value={toCity}
-                    onChange={(e) => setToCity(e.target.value)}
-                    placeholder="Destination city"
-                    className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
-                  />
-                </div>
+          <div className="flex-1 min-w-[140px]">
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+              Date
+            </label>
+            <input
+              type="date"
+              value={travelDate}
+              onChange={(e) => setTravelDate(e.target.value)}
+              className="w-full rounded-xl bg-surface-container-highest px-3 py-2.5 text-sm"
+            />
+          </div>
 
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={travelDate}
-                    onChange={(e) => setTravelDate(e.target.value)}
-                    className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
-                  />
-                </div>
+          <div className="flex-[1.5] min-w-[160px]">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                Max Budget
+              </label>
+              <span className="text-xs font-bold text-primary">
+                {formatINR(maxBudget)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="5000"
+              max="50000"
+              step="500"
+              value={maxBudget}
+              onChange={(e) => setMaxBudget(Number(e.target.value))}
+              className="w-full accent-secondary"
+            />
+          </div>
 
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                      Budget
-                    </label>
-                    <span className="text-sm font-bold text-primary">
-                      {formatINR(maxBudget)}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5000"
-                    max="50000"
-                    step="500"
-                    value={maxBudget}
-                    onChange={(e) => setMaxBudget(Number(e.target.value))}
-                    className="w-full accent-secondary"
-                  />
-                </div>
+          <div className="w-[80px]">
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+              Seats
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={seatsNeeded}
+              onChange={(e) =>
+                setSeatsNeeded(Number(e.target.value || 1))
+              }
+              className="w-full rounded-xl bg-surface-container-highest px-3 py-2.5 text-sm"
+            />
+          </div>
 
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                    Min. Seats Needed
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={seatsNeeded}
-                    onChange={(e) =>
-                      setSeatsNeeded(Number(e.target.value || 1))
-                    }
-                    className="w-full rounded-xl bg-surface-container-highest px-3 py-3 text-sm"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-outline-variant/30 pt-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-xl border border-outline-variant bg-surface px-4 py-2.5 text-sm font-bold text-primary hover:bg-surface-container-highest"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={applySearch}
+              className="rounded-xl bg-primary-container px-6 py-2.5 text-sm font-bold text-white hover:bg-primary"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
+        <section className="space-y-6">
+          {error ? (
+            <div className="rounded-2xl bg-error-container p-4 text-sm font-semibold text-on-error-container">
+              {error}
+            </div>
+          ) : null}
+
+          {isLoading ? <LoadingPanel label="Loading trips..." className="rounded-2xl !p-8" /> : null}
+
+          {!isLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {cards.map((trip, index) => {
+                const imageCount = trip.images?.length || 1;
+                const activeImageIndex =
+                  imageCount > 1 ? (carouselTick + index) % imageCount : 0;
+
+                return (
+                  <article
+                    key={trip.id}
+                    className="group overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_24px_rgba(28,28,24,0.08)] transition hover:-translate-y-1"
+                  >
+                    <div className="relative h-56 w-full overflow-hidden">
+                      <img
+                        src={trip.images[activeImageIndex] || campfireImage}
+                        alt={trip.title}
+                        className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
+                      />
+                      {pageStartIndex + index === 0 ? (
+                        <span className="absolute left-3 top-3 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                          Trending
+                        </span>
+                      ) : null}
+                      {imageCount > 1 ? (
+                        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/35 px-2 py-1">
+                          {trip.images.map((_, dotIndex) => (
+                            <span
+                              key={`${trip.id}-dot-${dotIndex}`}
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                dotIndex === activeImageIndex ? "bg-white" : "bg-white/45"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="line-clamp-2 break-words font-headline text-lg font-bold leading-tight text-primary">
+                          {trip.title}
+                        </h2>
+                        <span className="shrink-0 rounded-full bg-primary-fixed px-2 py-1 text-[11px] font-bold text-primary">
+                          {trip.duration}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-on-surface-variant">{trip.route}</p>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <p className="font-headline text-xl font-black text-primary">
+                          {formatINR(trip.price)}
+                        </p>
+                        <p className="text-on-surface-variant">{trip.seatsLeft} seats left</p>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-outline-variant/20 pt-3">
+                        <p className="text-xs text-on-surface-variant">
+                          by <span className="font-bold text-primary">{trip.organizer}</span>
+                        </p>
+                        <Link
+                          to={`/trips/${trip.id}`}
+                          className="inline-flex items-center gap-1 text-sm font-bold text-secondary"
+                        >
+                          View
+                          <span className="material-symbols-outlined text-base">
+                            arrow_forward
+                          </span>
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {!isLoading && visibleTrips.length === 0 ? (
+            <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
+              No trips match the current filters.
+              <div className="mt-4">
                 <button
                   type="button"
-                  onClick={clearFilters}
-                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-3 font-bold text-primary hover:bg-surface-container-highest"
+                  onClick={() => fetchTrips({ forceRefresh: true })}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={applySearch}
-                  className="w-full rounded-xl bg-primary-container py-3 font-bold text-white hover:bg-primary"
-                >
-                  Search
+                  Refresh results
                 </button>
               </div>
             </div>
-          </aside>
+          ) : null}
 
-          <section className="space-y-6 md:col-span-9">
-            {error ? (
-              <div className="rounded-2xl bg-error-container p-4 text-sm font-semibold text-on-error-container">
-                {error}
-              </div>
-            ) : null}
-
-            {isLoading ? <LoadingPanel label="Loading trips..." className="rounded-2xl !p-8" /> : null}
-
-            {!isLoading ? (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {cards.map((trip, index) => {
-                  const imageCount = trip.images?.length || 1;
-                  const activeImageIndex =
-                    imageCount > 1 ? (carouselTick + index) % imageCount : 0;
-
-                  return (
-                    <article
-                      key={trip.id}
-                      className="group overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_24px_rgba(28,28,24,0.08)] transition hover:-translate-y-1"
-                    >
-                      <div className="relative h-56 w-full overflow-hidden">
-                        <img
-                          src={trip.images[activeImageIndex] || campfireImage}
-                          alt={trip.title}
-                          className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
-                        />
-                        {pageStartIndex + index === 0 ? (
-                          <span className="absolute left-3 top-3 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                            Trending
-                          </span>
-                        ) : null}
-                        {imageCount > 1 ? (
-                          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/35 px-2 py-1">
-                            {trip.images.map((_, dotIndex) => (
-                              <span
-                                key={`${trip.id}-dot-${dotIndex}`}
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  dotIndex === activeImageIndex ? "bg-white" : "bg-white/45"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="space-y-3 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <h2 className="line-clamp-2 break-words font-headline text-lg font-bold leading-tight text-primary">
-                            {trip.title}
-                          </h2>
-                          <span className="shrink-0 rounded-full bg-primary-fixed px-2 py-1 text-[11px] font-bold text-primary">
-                            {trip.duration}
-                          </span>
-                        </div>
-
-                        <p className="text-sm text-on-surface-variant">{trip.route}</p>
-
-                        <div className="flex items-center justify-between text-sm">
-                          <p className="font-headline text-xl font-black text-primary">
-                            {formatINR(trip.price)}
-                          </p>
-                          <p className="text-on-surface-variant">{trip.seatsLeft} seats left</p>
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-outline-variant/20 pt-3">
-                          <p className="text-xs text-on-surface-variant">
-                            by <span className="font-bold text-primary">{trip.organizer}</span>
-                          </p>
-                          <Link
-                            to={`/trips/${trip.id}`}
-                            className="inline-flex items-center gap-1 text-sm font-bold text-secondary"
-                          >
-                            View
-                            <span className="material-symbols-outlined text-base">
-                              arrow_forward
-                            </span>
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            {!isLoading && visibleTrips.length === 0 ? (
-              <div className="rounded-2xl bg-surface-container-low p-10 text-center text-on-surface-variant">
-                No trips match the current filters.
-                <div className="mt-4">
+          {!isLoading && visibleTrips.length > 0 && totalPages > 1 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-container-low p-4">
+              <p className="text-sm text-on-surface-variant">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
+                  disabled={page === 1}
+                  className="rounded-lg bg-surface-container-highest px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
                   <button
+                    key={pageNumber}
                     type="button"
-                    onClick={() => fetchTrips({ forceRefresh: true })}
-                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                      pageNumber === page
+                        ? "bg-primary text-white"
+                        : "bg-surface-container-highest text-primary"
+                    }`}
                   >
-                    Refresh results
+                    {pageNumber}
                   </button>
-                </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((value) => Math.min(totalPages, value + 1))}
+                  disabled={page === totalPages}
+                  className="rounded-lg bg-surface-container-highest px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
               </div>
-            ) : null}
-
-            {!isLoading && visibleTrips.length > 0 && totalPages > 1 ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-container-low p-4">
-                <p className="text-sm text-on-surface-variant">
-                  Page {page} of {totalPages}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
-                    disabled={page === 1}
-                    className="rounded-lg bg-surface-container-highest px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                    <button
-                      key={pageNumber}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNumber)}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                        pageNumber === page
-                          ? "bg-primary text-white"
-                          : "bg-surface-container-highest text-primary"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((value) => Math.min(totalPages, value + 1))}
-                    disabled={page === totalPages}
-                    className="rounded-lg bg-surface-container-highest px-3 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </section>
-        </div>
+            </div>
+          ) : null}
+        </section>
       </div>
 
       {showMobileFilters ? (
