@@ -41,7 +41,7 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
 
   return (
     <section
-      className="relative flex min-h-[92vh] items-center justify-center overflow-hidden"
+      className="relative -mt-16 flex min-h-[92vh] items-center justify-center overflow-hidden pt-16"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

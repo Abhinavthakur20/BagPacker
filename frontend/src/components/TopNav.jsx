@@ -33,8 +33,10 @@ export default function TopNav() {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [location.pathname, isMobileMenuOpen]);
 
   const resolvedNavLinks = (() => {
     if (!isLoggedIn) {
