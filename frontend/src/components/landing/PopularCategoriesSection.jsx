@@ -1,6 +1,6 @@
 export default function PopularCategoriesSection({ tripTypes, onExplore }) {
-  // Asymmetric grid: first item is tall (spans 2 rows), the rest fill the right column
-  const [first, ...rest] = tripTypes;
+  // Use exactly 3 items to match the reference asymmetric grid
+  const [first, second, third] = tripTypes;
 
   return (
     <section className="mx-auto max-w-7xl px-6 pb-20">
@@ -17,11 +17,11 @@ export default function PopularCategoriesSection({ tripTypes, onExplore }) {
         and tailored experiences.
       </p>
 
-      {/* ── Asymmetric grid like reference ── */}
+      {/* ── Asymmetric grid: 1 column mobile, 2 columns desktop ── */}
       <div className="grid gap-5 md:grid-cols-2 md:grid-rows-2">
-        {/* Large card — spans 2 rows */}
+        {/* Large card — spans 2 rows on desktop */}
         <article
-          className="group relative row-span-2 overflow-hidden rounded-3xl shadow-[0_8px_30px_rgba(28,28,24,0.12)] transition-all duration-300 hover:shadow-[0_16px_48px_rgba(28,28,24,0.18)]"
+          className="group relative overflow-hidden rounded-3xl shadow-[0_8px_30px_rgba(28,28,24,0.12)] transition-all duration-300 hover:shadow-[0_16px_48px_rgba(28,28,24,0.18)] md:row-span-2"
           style={{ minHeight: "420px" }}
         >
           <img
@@ -52,11 +52,11 @@ export default function PopularCategoriesSection({ tripTypes, onExplore }) {
         </article>
 
         {/* Right column cards */}
-        {rest.map((tripType) => (
+        {[second, third].filter(Boolean).map((tripType) => (
           <article
             key={tripType.title}
             className="group relative overflow-hidden rounded-3xl shadow-[0_8px_30px_rgba(28,28,24,0.12)] transition-all duration-300 hover:shadow-[0_16px_48px_rgba(28,28,24,0.18)]"
-            style={{ minHeight: "200px" }}
+            style={{ minHeight: "220px" }}
           >
             <img
               src={tripType.image}
