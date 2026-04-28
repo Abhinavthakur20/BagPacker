@@ -191,8 +191,14 @@ const initiateBookingPayment = async (req, res) => {
   try {
     const { tripId, pickupPointId, seatsBooked } = req.body;
     const normalizedSeats = Number(seatsBooked);
+    if (!Number.isInteger(normalizedSeats) || normalizedSeats < 1) {
+      return res.status(400).json({ message: "Seats booked must be a valid number greater than 0" });
+    }
 
     const { trip } = await getBookingTripAndPickup({ tripId, pickupPointId });
+    if (normalizedSeats > Number(trip.availableSeats || 0)) {
+      return res.status(409).json({ message: "Requested seats are no longer available" });
+    }
     const subtotal = trip.pricePerPerson * normalizedSeats;
     const serviceFee = Math.round(subtotal * BOOKING_SERVICE_FEE_RATE);
     const totalAmount = subtotal + serviceFee;

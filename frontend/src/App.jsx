@@ -22,6 +22,7 @@ const CompanionPage = lazy(() => import("./pages/CompanionPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const CreateTripPage = lazy(() => import("./pages/CreateTripPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 
 function DashboardRedirect() {
   const user = useSelector((state) => state.auth.user);
@@ -201,6 +202,7 @@ function App() {
               </RoleRoute>
             }
           />
+          <Route path="/users/:id" element={<PublicProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

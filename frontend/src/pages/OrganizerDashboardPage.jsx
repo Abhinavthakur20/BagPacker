@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
-import { api } from "../lib/api";
+import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 
 const safeNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -24,9 +24,15 @@ export default function OrganizerDashboardPage() {
   const isLoggedIn = Boolean(token);
   const [organizer, setOrganizer] = useState(null);
   const [trips, setTrips] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeView, setActiveView] = useState("overview"); // "overview" | "trips"
+  const [activeView, setActiveView] = useState("overview"); // "overview" | "trips" | "social"
+  const [caption, setCaption] = useState("");
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [isPosting, setIsPosting] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState("");
+  const [selectedComposerPreviewIndex, setSelectedComposerPreviewIndex] = useState(0);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -38,11 +44,14 @@ export default function OrganizerDashboardPage() {
         setIsLoading(true);
         setError("");
 
-        const organizerProfile = await api.get("/organizers/me");
+        const [organizerProfile, organizerTrips, organizerPosts] = await Promise.all([
+          api.get("/organizers/me"),
+          api.get("/organizers/me/trips"),
+          api.get("/organizers/me/posts"),
+        ]);
         setOrganizer(organizerProfile);
-
-        const organizerTrips = await api.get("/organizers/me/trips");
         setTrips(Array.isArray(organizerTrips) ? organizerTrips : []);
+        setPosts(Array.isArray(organizerPosts) ? organizerPosts : []);
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {
@@ -140,6 +149,65 @@ export default function OrganizerDashboardPage() {
     [trips],
   );
 
+  const previewProfileUrl = organizer?.userId?._id ? `/users/${organizer.userId._id}` : "/trips/search";
+
+  const submitPost = async () => {
+    if (!mediaFiles.length) {
+      setError("Please select at least one photo or video.");
+      return;
+    }
+
+    try {
+      setIsPosting(true);
+      setError("");
+      const formData = new FormData();
+      formData.append("caption", caption);
+      mediaFiles.forEach((file) => formData.append("media", file));
+      await api.post("/organizers/me/posts", formData);
+      const organizerPosts = await api.get("/organizers/me/posts");
+      setPosts(Array.isArray(organizerPosts) ? organizerPosts : []);
+      setCaption("");
+      setMediaFiles([]);
+      setSelectedComposerPreviewIndex(0);
+    } catch (postError) {
+      setError(postError.message);
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const removePost = async (postId) => {
+    try {
+      setDeletingPostId(postId);
+      setError("");
+      await api.del(`/organizers/me/posts/${postId}`);
+      setPosts((prev) => prev.filter((item) => item._id !== postId));
+    } catch (deleteError) {
+      setError(deleteError.message);
+    } finally {
+      setDeletingPostId("");
+    }
+  };
+
+  const composerPreviews = useMemo(
+    () =>
+      mediaFiles.map((file) => ({
+        file,
+        url: URL.createObjectURL(file),
+        isVideo: file.type.startsWith("video/"),
+      })),
+    [mediaFiles],
+  );
+
+  useEffect(
+    () => () => {
+      composerPreviews.forEach((item) => URL.revokeObjectURL(item.url));
+    },
+    [composerPreviews],
+  );
+
+  const selectedComposerPreview = composerPreviews[selectedComposerPreviewIndex] || null;
+
   return (
     <MainLayout>
       <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-6 lg:px-8">
@@ -204,6 +272,18 @@ export default function OrganizerDashboardPage() {
                 >
                   <span className="material-symbols-outlined text-base">inventory_2</span>
                   My Posted Trips
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("social")}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold ${
+                    activeView === "social"
+                      ? "bg-primary text-white"
+                      : "bg-surface-container-low text-primary hover:bg-surface-container-high"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">photo_library</span>
+                  Social Profile
                 </button>
                 <Link
                   to="/trips/search"
@@ -378,7 +458,7 @@ export default function OrganizerDashboardPage() {
                     </article>
                   </section>
                 </>
-              ) : (
+              ) : activeView === "trips" ? (
                 <section className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -491,6 +571,178 @@ export default function OrganizerDashboardPage() {
                       </div>
                     )}
                   </div>
+                </section>
+              ) : (
+                <section className="space-y-6">
+                  <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h2 className="font-headline text-xl font-extrabold text-primary">
+                          Create new post
+                        </h2>
+                        <p className="mt-1 text-sm text-on-surface-variant">
+                          Add photos or videos and publish like Instagram desktop.
+                        </p>
+                      </div>
+                      <Link
+                        to={previewProfileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl bg-surface-container-low px-4 py-2 text-sm font-bold text-primary"
+                      >
+                        View Public Profile
+                      </Link>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
+                      <div className="overflow-hidden rounded-2xl border border-outline-variant/20 bg-black">
+                        <div className="aspect-square">
+                          {selectedComposerPreview ? (
+                            selectedComposerPreview.isVideo ? (
+                              <video
+                                src={selectedComposerPreview.url}
+                                controls
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <img
+                                src={selectedComposerPreview.url}
+                                alt="Selected media preview"
+                                className="h-full w-full object-cover"
+                              />
+                            )
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-white/70">
+                              Select media to preview
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <textarea
+                          value={caption}
+                          onChange={(event) => setCaption(event.target.value)}
+                          placeholder="Write a caption..."
+                          className="min-h-28 w-full rounded-2xl bg-surface-container-low px-4 py-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        />
+
+                        <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-container-low px-4 py-2 text-sm font-bold text-primary">
+                          <span className="material-symbols-outlined text-base">add_photo_alternate</span>
+                          Select from computer
+                          <input
+                            type="file"
+                            multiple
+                            accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm"
+                            onChange={(event) => {
+                              const files = Array.from(event.target.files || []);
+                              setMediaFiles(files);
+                              setSelectedComposerPreviewIndex(0);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {mediaFiles.length ? (
+                          <div className="grid grid-cols-5 gap-2">
+                            {composerPreviews.map((preview, index) => (
+                              <button
+                                type="button"
+                                key={`${preview.file.name}-${index}`}
+                                onClick={() => setSelectedComposerPreviewIndex(index)}
+                                className={`relative aspect-square overflow-hidden rounded-lg border ${
+                                  index === selectedComposerPreviewIndex
+                                    ? "border-primary"
+                                    : "border-outline-variant/30"
+                                }`}
+                              >
+                                {preview.isVideo ? (
+                                  <video
+                                    src={preview.url}
+                                    className="h-full w-full object-cover"
+                                    muted
+                                  />
+                                ) : (
+                                  <img
+                                    src={preview.url}
+                                    alt={preview.file.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          onClick={submitPost}
+                          disabled={isPosting || !mediaFiles.length}
+                          className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isPosting ? "Sharing..." : "Share"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h3 className="font-headline text-xl font-extrabold text-primary">
+                        Instagram-style Feed
+                      </h3>
+                      <p className="text-sm font-bold text-on-surface-variant">
+                        {posts.length} post(s)
+                      </p>
+                    </div>
+
+                    {posts.length ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {posts.map((post) => {
+                          const firstMedia = post.media?.[0];
+                          if (!firstMedia) {
+                            return null;
+                          }
+
+                          return (
+                            <div
+                              key={post._id}
+                              className="group relative overflow-hidden bg-surface-container-low"
+                            >
+                              <div className="aspect-square overflow-hidden">
+                                {firstMedia.mediaType === "video" ? (
+                                  <video
+                                    src={resolveMediaUrl(firstMedia.url)}
+                                    className="h-full w-full object-cover"
+                                    muted
+                                    controls
+                                  />
+                                ) : (
+                                  <img
+                                    src={optimizeCloudinaryImage(resolveMediaUrl(firstMedia.url), "f_auto,q_auto,w_900")}
+                                    alt={post.caption || "Organizer post"}
+                                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                  />
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removePost(post._id)}
+                                disabled={deletingPostId === post._id}
+                                className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-1 text-[11px] font-bold text-white disabled:opacity-60"
+                              >
+                                {deletingPostId === post._id ? "..." : "×"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl bg-surface-container-low p-8 text-center text-on-surface-variant">
+                        No posts yet. Publish your first travel reel/photo.
+                      </div>
+                    )}
+                  </article>
                 </section>
               )
             ) : null}

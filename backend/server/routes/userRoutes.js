@@ -1,6 +1,11 @@
 const express = require("express");
 const { body } = require("express-validator");
-const { getProfile, updateProfile, uploadGovernmentId } = require("../api/user/userController");
+const {
+  getProfile,
+  getPublicProfileById,
+  updateProfile,
+  uploadGovernmentId,
+} = require("../api/user/userController");
 const authMiddleware = require("../middleware/authMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 const validateRequest = require("../middleware/validateRequest");
@@ -9,6 +14,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 router.get("/profile", getProfile);
+router.get("/:id", getPublicProfileById);
 router.put(
   "/profile",
   [

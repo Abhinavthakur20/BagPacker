@@ -32,6 +32,22 @@ const getProfile = async (req, res) => {
   }
 };
 
+const getPublicProfileById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select("_id name role avatarUrl verificationStatus trustScore createdAt")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const updateProfile = async (req, res) => {
   try {
     const duplicatePhone = await User.findOne({
@@ -92,6 +108,7 @@ const uploadGovernmentId = async (req, res) => {
 
 module.exports = {
   getProfile,
+  getPublicProfileById,
   updateProfile,
   uploadGovernmentId,
 };

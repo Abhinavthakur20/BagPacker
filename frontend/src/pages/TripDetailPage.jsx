@@ -270,9 +270,12 @@ export default function TripDetailPage() {
                   Edit Trip
                 </Link>
               ) : null}
-              <button className="rounded-xl border border-primary/20 px-6 py-2 font-semibold text-primary hover:bg-primary hover:text-white">
+              <Link
+                to={`/users/${trip.organizerId?.userId?._id || ""}`}
+                className="rounded-xl border border-primary/20 px-6 py-2 font-semibold text-primary hover:bg-primary hover:text-white"
+              >
                 View Profile
-              </button>
+              </Link>
             </div>
           </article>
 
