@@ -129,7 +129,7 @@ export default function CompanionPage() {
         api.get(`/companions/find?${bookingQuery}`, { cacheTtlMs: 25000 }),
         api.get("/companions/my?page=1&limit=50", { cacheTtlMs: 15000 }),
         api.get(`/companions/search?${searchQuery}`, { cacheTtlMs: 25000 }),
-        api.get("/companions/posts/mine"),
+        api.get("/companions/posts/mine?page=1&limit=50"),
         api.get("/notifications?page=1&limit=25", { cacheTtlMs: 10000 }),
       ]);
 
@@ -147,7 +147,13 @@ export default function CompanionPage() {
             ? foundPosts.data
             : [],
       );
-      setMyPersonalPosts(Array.isArray(minePosts) ? minePosts : []);
+      setMyPersonalPosts(
+        Array.isArray(minePosts?.items)
+          ? minePosts.items
+          : Array.isArray(minePosts)
+            ? minePosts
+            : [],
+      );
       setMyRequests(requests || { sent: [], received: [] });
       setNotifications(Array.isArray(userNotifications?.items) ? userNotifications.items : []);
       setIndex(0);

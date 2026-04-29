@@ -1,5 +1,5 @@
 const express = require("express");
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 const {
   getAllUsers,
   getPendingOrganizers,
@@ -17,7 +17,18 @@ const router = express.Router();
 
 router.use(authMiddleware, roleMiddleware(["admin"]));
 
-router.get("/users", getAllUsers);
+router.get(
+  "/users",
+  [
+    query("page").optional().isInt({ min: 1 }).withMessage("page must be a positive integer"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("limit must be between 1 and 100"),
+    validateRequest,
+  ],
+  getAllUsers,
+);
 router.get("/organizers/pending", getPendingOrganizers);
 router.put(
   "/organizers/:id/approve",

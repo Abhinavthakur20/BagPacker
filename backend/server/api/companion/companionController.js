@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const CompanionRequest = require("./companionRequestModel");
 const PersonalTripPost = require("./personalTripPostModel");
 const Notification = require("../notification/notificationModel");
@@ -387,51 +388,93 @@ const findCompanions = async (req, res) => {
       tripFilters.startDate = { $gte: range.start, $lte: range.end };
     }
 
-    const trips = await Trip.find(tripFilters).select("_id source destination startDate").lean();
+    const tripMatchStage = {
+      status: tripFilters.status,
+      ...(tripFilters.source ? { source: tripFilters.source } : {}),
+      ...(tripFilters.destination ? { destination: tripFilters.destination } : {}),
+      ...(tripFilters.startDate ? { startDate: tripFilters.startDate } : {}),
+    };
 
-    if (!trips.length) {
-      if (!usePagination) {
-        return res.status(200).json([]);
-      }
+    const candidateSnapshots = await Booking.aggregate([
+      {
+        $match: {
+          travelerId: { $ne: new mongoose.Types.ObjectId(req.user._id) },
+          status: { $in: ["confirmed", "completed"] },
+        },
+      },
+      {
+        $lookup: {
+          from: "trips",
+          localField: "tripId",
+          foreignField: "_id",
+          as: "trip",
+          pipeline: [
+            { $match: tripMatchStage },
+            { $project: { _id: 1, source: 1, destination: 1, startDate: 1 } },
+          ],
+        },
+      },
+      { $unwind: "$trip" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "travelerId",
+          foreignField: "_id",
+          as: "traveler",
+          pipeline: [{ $project: { name: 1, trustScore: 1, verificationStatus: 1, role: 1 } }],
+        },
+      },
+      { $unwind: "$traveler" },
+      {
+        $match: {
+          "traveler.role": "traveler",
+          "traveler.verificationStatus": { $ne: "rejected" },
+        },
+      },
+      {
+        $addFields: {
+          dateDistanceScore: selectedDate
+            ? { $abs: { $subtract: ["$trip.startDate", selectedDate] } }
+            : 0,
+          candidateScore: {
+            $subtract: [
+              selectedDate ? { $abs: { $subtract: ["$trip.startDate", selectedDate] } } : 0,
+              { $multiply: [{ $ifNull: ["$traveler.trustScore", 0] }, 60 * 1000] },
+            ],
+          },
+        },
+      },
+      { $sort: { candidateScore: 1, createdAt: -1 } },
+      {
+        $group: {
+          _id: "$travelerId",
+          booking: { $first: "$$ROOT" },
+          score: { $first: "$candidateScore" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          travelerId: "$booking.travelerId",
+          traveler: "$booking.traveler",
+          trip: "$booking.trip",
+        },
+      },
+    ]);
 
-      return res.status(200).json(createPaginationPayload([], page, limit, 0));
-    }
+    const candidatesByUser = new Map(
+      candidateSnapshots.map((item) => [
+        String(item.travelerId),
+        {
+          booking: {
+            travelerId: item.traveler,
+            tripId: item.trip,
+          },
+        },
+      ]),
+    );
 
-    const tripIds = trips.map((trip) => trip._id);
-    const candidateBookings = await Booking.find({
-      tripId: { $in: tripIds },
-      travelerId: { $ne: req.user._id },
-      status: { $in: ["confirmed", "completed"] },
-    })
-      .sort({ createdAt: -1 })
-      .populate("travelerId", "name trustScore verificationStatus role")
-      .populate("tripId", "source destination startDate")
-      .lean();
-
-    const candidatesByUser = new Map();
-
-    for (const booking of candidateBookings) {
-      const traveler = booking.travelerId;
-      if (!traveler || traveler.role !== "traveler" || traveler.verificationStatus === "rejected") {
-        continue;
-      }
-
-      const travelerId = String(traveler._id);
-      const tripStartDate = booking?.tripId?.startDate ? new Date(booking.tripId.startDate) : null;
-      const dateDistanceScore =
-        selectedDate && tripStartDate
-          ? Math.abs(new Date(tripStartDate).getTime() - selectedDate.getTime())
-          : 0;
-      const trustScore = Number(traveler.trustScore || 0);
-      const candidateScore = dateDistanceScore - trustScore * 60 * 1000;
-      const existing = candidatesByUser.get(travelerId);
-
-      if (!existing || candidateScore < existing.score) {
-        candidatesByUser.set(travelerId, { booking, score: candidateScore });
-      }
-    }
-
-    const candidateUserIds = [...candidatesByUser.keys()];
+    const candidateUserIds = candidateSnapshots.map((item) => String(item.travelerId));
     if (!candidateUserIds.length) {
       if (!usePagination) {
         return res.status(200).json([]);
@@ -858,16 +901,32 @@ const getUserCompanionRequests = async (req, res) => {
 
 const getMyPersonalTripPosts = async (req, res) => {
   try {
-    const posts = await PersonalTripPost.find({ ownerId: req.user._id })
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const [posts, total] = await Promise.all([
+      PersonalTripPost.find({ ownerId: req.user._id })
       .sort({ createdAt: -1 })
-      .lean();
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      PersonalTripPost.countDocuments({ ownerId: req.user._id }),
+    ]);
 
     const payload = posts.map((post) => ({
       ...post,
       seatsAvailable: resolvePostSeatsAvailable(post),
     }));
 
-    return res.status(200).json(payload);
+    return res.status(200).json({
+      items: payload,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

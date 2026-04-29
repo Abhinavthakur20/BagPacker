@@ -3,10 +3,26 @@ const Organizer = require("../organizer/organizerModel");
 const Report = require("../report/reportModel");
 const User = require("../user/userModel");
 
-const getAllUsers = async (_req, res) => {
+const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-passwordHash").sort({ createdAt: -1 });
-    return res.status(200).json(users);
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      User.find().select("-passwordHash").sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(),
+    ]);
+
+    return res.status(200).json({
+      items: users,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

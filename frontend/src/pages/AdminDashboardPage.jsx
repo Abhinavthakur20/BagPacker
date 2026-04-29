@@ -27,13 +27,13 @@ export default function AdminDashboardPage() {
       setError("");
 
       const [allUsers, organizers, verifications, userReports] = await Promise.all([
-        api.get("/admin/users"),
+        api.get("/admin/users?page=1&limit=200"),
         api.get("/admin/organizers/pending"),
         api.get("/admin/verifications/pending"),
         api.get("/admin/reports"),
       ]);
 
-      setUsers(Array.isArray(allUsers) ? allUsers : []);
+      setUsers(Array.isArray(allUsers?.items) ? allUsers.items : Array.isArray(allUsers) ? allUsers : []);
       setPendingOrganizers(Array.isArray(organizers) ? organizers : []);
       setPendingVerifications(Array.isArray(verifications) ? verifications : []);
       setReports(Array.isArray(userReports) ? userReports : []);

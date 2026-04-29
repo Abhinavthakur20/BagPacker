@@ -77,7 +77,7 @@ const companionRequestBodyValidators = [
 router.get("/search", [...pagingValidators, ...companionFilterValidators, validateRequest], searchPersonalTripPosts);
 router.get("/find", [...pagingValidators, validateRequest], findCompanions);
 router.get("/posts", [...pagingValidators, ...companionFilterValidators, validateRequest], listPersonalTripPosts);
-router.get("/posts/mine", getMyPersonalTripPosts);
+router.get("/posts/mine", [...pagingValidators, validateRequest], getMyPersonalTripPosts);
 router.get(
   "/users/:userId/requests",
   [

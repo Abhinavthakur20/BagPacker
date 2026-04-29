@@ -81,6 +81,8 @@ export default function SearchPage() {
     if (submittedSource) query.set("source", submittedSource);
     if (submittedDestination) query.set("destination", submittedDestination);
     if (submittedDate) query.set("date", submittedDate);
+    query.set("priceMax", String(maxBudget));
+    query.set("seatsMin", String(seatsNeeded));
     query.set("page", "1");
     query.set("limit", "60");
     const cacheKey = query.toString();
@@ -147,7 +149,7 @@ export default function SearchPage() {
   useEffect(() => {
     fetchTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submittedDate, submittedDestination, submittedSource]);
+  }, [submittedDate, submittedDestination, submittedSource, maxBudget, seatsNeeded]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -159,11 +161,7 @@ export default function SearchPage() {
 
   const visibleTrips = useMemo(() => {
     const normalizedTrips = trips.map(mapTrip);
-    const filtered = normalizedTrips.filter(
-      (trip) =>
-        trip.price <= maxBudget &&
-        trip.seatsLeft >= seatsNeeded,
-    );
+    const filtered = normalizedTrips;
 
     if (sortBy === "price_low") {
       return [...filtered].sort((a, b) => a.price - b.price);
@@ -177,7 +175,7 @@ export default function SearchPage() {
       );
     }
     return filtered;
-  }, [maxBudget, seatsNeeded, sortBy, trips]);
+  }, [sortBy, trips]);
 
   const totalPages = Math.max(1, Math.ceil(visibleTrips.length / TRIPS_PER_PAGE));
   const page = Math.min(currentPage, totalPages);

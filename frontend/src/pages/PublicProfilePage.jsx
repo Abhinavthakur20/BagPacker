@@ -30,14 +30,20 @@ export default function PublicProfilePage() {
         setError("");
         const [organizerResponse, userReviews] = await Promise.all([
           api.get(`/organizers/public/user/${id}`),
-          api.get(`/reviews/${id}`),
+          api.get(`/reviews/${id}?page=1&limit=20`),
         ]);
         setOrganizerProfile(organizerResponse.organizer);
         const nextPosts = Array.isArray(organizerResponse?.posts) ? organizerResponse.posts : [];
         setPosts(nextPosts);
         setPostsCount(Number(organizerResponse?.organizer?.postsCount || nextPosts.length || 0));
         setFollowersCount(Number(organizerResponse?.organizer?.followersCount || 0));
-        setReviews(Array.isArray(userReviews) ? userReviews : []);
+        setReviews(
+          Array.isArray(userReviews?.items)
+            ? userReviews.items
+            : Array.isArray(userReviews)
+              ? userReviews
+              : [],
+        );
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {

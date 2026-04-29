@@ -208,23 +208,42 @@ const callGroqCopilot = async (prompt, options = {}) => {
 };
 
 const extractTripSearchFilters = async (message) => {
-  const prompt = `Analyze this message and extract search filters for group trips.
-If the user is asking to find, suggest, or book trips/packages/tours, return JSON: {"isSearch":true,"destination":"CityName","maxBudget":Number}.
-If they are NOT looking to book trips (e.g. asking for packing tips, route info, general QA), return JSON: {"isSearch":false}.
-Only return valid JSON. Do not include markdown or explanations.
-Message: "${message}"`;
-
-  try {
-    const response = await callGroqCopilot(prompt, {
-      systemPrompt: "You are a JSON parser. Output only valid JSON.",
-      jsonMode: true,
-      temperature: 0.1,
-      maxTokens: 200,
-    });
-    return JSON.parse(response);
-  } catch (err) {
+  const text = String(message || "").toLowerCase();
+  if (!text.trim()) {
     return null;
   }
+
+  const searchIntentPattern =
+    /\b(find|search|suggest|show|book|booking|trip|trips|tour|tours|package|packages|vacation|holiday)\b/;
+  if (!searchIntentPattern.test(text)) {
+    return { isSearch: false };
+  }
+
+  let maxBudget;
+  const budgetMatch = text.match(
+    /\b(?:under|below|within|max(?:imum)?|upto|up to)\s*(?:rs\.?|inr|₹)?\s*(\d[\d,]*)\b/i,
+  );
+  if (budgetMatch?.[1]) {
+    const parsedBudget = Number(budgetMatch[1].replace(/,/g, ""));
+    if (Number.isFinite(parsedBudget) && parsedBudget > 0) {
+      maxBudget = parsedBudget;
+    }
+  }
+
+  let destination = "";
+  const destinationMatch = text.match(/\b(?:to|for)\s+([a-z][a-z\s]{1,40})\b/i);
+  if (destinationMatch?.[1]) {
+    destination = destinationMatch[1]
+      .trim()
+      .replace(/\b(trip|trips|tour|tours|package|packages)\b/gi, "")
+      .trim();
+  }
+
+  return {
+    isSearch: true,
+    ...(destination ? { destination } : {}),
+    ...(maxBudget ? { maxBudget } : {}),
+  };
 };
 
 // ─────────────────────────────────────────────

@@ -74,11 +74,27 @@ const createReview = async (req, res) => {
 
 const getReviewsForUser = async (req, res) => {
   try {
-    const reviews = await Review.find({ revieweeId: req.params.userId })
-      .sort({ createdAt: -1 })
-      .populate("reviewerId", "name");
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+    const skip = (page - 1) * limit;
+    const [reviews, total] = await Promise.all([
+      Review.find({ revieweeId: req.params.userId })
+        .sort({ createdAt: -1 })
+        .populate("reviewerId", "name")
+        .skip(skip)
+        .limit(limit),
+      Review.countDocuments({ revieweeId: req.params.userId }),
+    ]);
 
-    return res.status(200).json(reviews);
+    return res.status(200).json({
+      items: reviews,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

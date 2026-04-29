@@ -141,6 +141,20 @@ const getTrips = async (req, res) => {
       }
     }
 
+    if (req.query.priceMax !== undefined) {
+      const priceMax = Number(req.query.priceMax);
+      if (Number.isFinite(priceMax)) {
+        filters.pricePerPerson = { $lte: priceMax };
+      }
+    }
+
+    if (req.query.seatsMin !== undefined) {
+      const seatsMin = Number(req.query.seatsMin);
+      if (Number.isFinite(seatsMin)) {
+        filters.availableSeats = { $gte: seatsMin };
+      }
+    }
+
     const listQuery = Trip.find(filters)
       .select(
         "title source destination startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",

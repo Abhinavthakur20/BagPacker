@@ -41,8 +41,14 @@ export default function ProfilePage() {
           phone: userProfile.phone || "",
         });
 
-        const userReviews = await api.get(`/reviews/${userProfile._id}`);
-        setReviews(Array.isArray(userReviews) ? userReviews : []);
+        const userReviews = await api.get(`/reviews/${userProfile._id}?page=1&limit=20`);
+        setReviews(
+          Array.isArray(userReviews?.items)
+            ? userReviews.items
+            : Array.isArray(userReviews)
+              ? userReviews
+              : [],
+        );
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {

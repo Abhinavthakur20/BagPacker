@@ -4,6 +4,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "")
 const API_ORIGIN = API_BASE_URL.startsWith("http") ? new URL(API_BASE_URL).origin : "";
 const responseCache = new Map();
 const inFlightRequests = new Map();
+const RESPONSE_CACHE_MAX_ENTRIES = 200;
 
 const cloneData = (value) => {
     if (typeof structuredClone === "function") {
@@ -14,6 +15,29 @@ const cloneData = (value) => {
 
 const getRequestCacheKey = ({ method, path, token, body }) =>
     `${method}:${path}:token=${token || ""}:body=${body ? JSON.stringify(body) : ""}`;
+
+const pruneResponseCache = () => {
+    const now = Date.now();
+    for (const [cacheKey, cacheValue] of responseCache.entries()) {
+        if (!cacheValue || cacheValue.expireAt <= now) {
+            responseCache.delete(cacheKey);
+        }
+    }
+
+    if (responseCache.size <= RESPONSE_CACHE_MAX_ENTRIES) {
+        return;
+    }
+
+    const overflow = responseCache.size - RESPONSE_CACHE_MAX_ENTRIES;
+    let removed = 0;
+    for (const cacheKey of responseCache.keys()) {
+        responseCache.delete(cacheKey);
+        removed += 1;
+        if (removed >= overflow) {
+            break;
+        }
+    }
+};
 
 async function request(path, options = {}) {
     const { method = "GET", body, headers = {}, token, cacheTtlMs = 0, forceRefresh = false } = options;
@@ -70,6 +94,7 @@ async function request(path, options = {}) {
         }
 
         if (normalizedMethod === "GET" && cacheTtlMs > 0) {
+            pruneResponseCache();
             responseCache.set(requestKey, {
                 data: cloneData(data),
                 expireAt: Date.now() + cacheTtlMs,

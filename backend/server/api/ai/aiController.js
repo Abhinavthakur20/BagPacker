@@ -82,7 +82,6 @@ const askCopilot = async (req, res) => {
     let suggestedTrips = [];
     try {
       const searchFilters = await extractTripSearchFilters(message);
-      console.log("Extracted search filters:", searchFilters);
       if (searchFilters?.isSearch) {
         const query = { status: "active", availableSeats: { $gt: 0 } };
         if (searchFilters.destination) {
@@ -91,27 +90,29 @@ const askCopilot = async (req, res) => {
         if (searchFilters.maxBudget && typeof searchFilters.maxBudget === "number") {
           query.pricePerPerson = { $lte: searchFilters.maxBudget };
         }
-        
-        console.log("Executing trip query:", query);
+
         const trips = await Trip.find(query).sort({ startDate: 1 }).limit(3).lean();
-        console.log("Found trips:", trips.length);
-        
-        suggestedTrips = trips.map(t => ({
+
+        suggestedTrips = trips.map((t) => ({
           _id: String(t._id),
           title: String(t.title),
           destination: String(t.destination),
           pricePerPerson: Number(t.pricePerPerson),
           startDate: t.startDate,
-          duration: Math.max(1, Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24))) + " Days",
-          image: Array.isArray(t.images) && t.images.length > 0 ? t.images[0] : null
+          duration:
+            Math.max(
+              1,
+              Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24)),
+            ) + " Days",
+          image: Array.isArray(t.images) && t.images.length > 0 ? t.images[0] : null,
         }));
-        
-        if (suggestedTrips.length > 0) {
-          context.foundTrips = suggestedTrips.map(t => ({ title: t.title, price: t.pricePerPerson }));
-        }
       }
-    } catch (err) {
-      console.error("Trip search filter failed:", err);
+    } catch (_error) {
+      suggestedTrips = [];
+    }
+
+    if (suggestedTrips.length > 0) {
+      context.foundTrips = suggestedTrips.map((t) => ({ title: t.title, price: t.pricePerPerson }));
     }
 
     const prompt = buildCopilotPrompt({
