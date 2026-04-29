@@ -147,7 +147,7 @@ export default function SearchPage() {
   useEffect(() => {
     fetchTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submittedDate, submittedDestination, submittedSource, searchTripsCache]);
+  }, [submittedDate, submittedDestination, submittedSource]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

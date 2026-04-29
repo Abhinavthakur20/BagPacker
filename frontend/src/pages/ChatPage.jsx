@@ -51,6 +51,9 @@ export default function ChatPage() {
 
     const socket = io(getSocketUrl(), {
       transports: ["websocket", "polling"],
+      auth: {
+        token,
+      },
     });
 
     socketRef.current = socket;
@@ -89,7 +92,7 @@ export default function ChatPage() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isLoggedIn, user?._id, user?.name]);
+  }, [isLoggedIn, token, user?._id, user?.name]);
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -163,9 +166,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (socketRef.current && selectedRoomId && selectedRoomId !== AI_ROOM_ID) {
-      socketRef.current.emit("join_room", { roomId: selectedRoomId, userId: user?._id });
+      socketRef.current.emit("join_room", { roomId: selectedRoomId });
     }
-  }, [selectedRoomId, user?._id]);
+  }, [selectedRoomId]);
 
   useEffect(() => {
     const loadRoomMessages = async () => {
@@ -416,7 +419,6 @@ export default function ChatPage() {
     socketRef.current.emit("send_message", {
       roomId: selectedRoomId,
       message: trimmedMessage,
-      userId: user?._id,
     });
 
     setDraft("");

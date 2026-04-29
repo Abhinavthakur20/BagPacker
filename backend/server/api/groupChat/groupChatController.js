@@ -1,7 +1,5 @@
 const GroupChat = require("./groupChatModel");
 const Organizer = require("../organizer/organizerModel");
-const Booking = require("../booking/bookingModel");
-const Trip = require("../trip/tripModel");
 
 const buildTripRoomId = (tripId) => `trip_${String(tripId)}`;
 
@@ -72,39 +70,6 @@ const addMemberToTripGroup = async ({ tripId, userId }) => {
 
 const getMyTripGroups = async (req, res) => {
   try {
-    const organizerProfile = await Organizer.findOne({ userId: req.user._id }).select("_id");
-
-    if (organizerProfile) {
-      const organizerTrips = await Trip.find({ organizerId: organizerProfile._id }).select("_id");
-      for (const trip of organizerTrips) {
-        await ensureTripGroupChat({ tripId: trip._id, organizerUserId: req.user._id });
-      }
-    }
-
-    const myBookings = await Booking.find({
-      travelerId: req.user._id,
-      status: { $in: ["confirmed", "completed"] },
-    }).populate({
-      path: "tripId",
-      select: "_id organizerId",
-      populate: {
-        path: "organizerId",
-        select: "userId",
-      },
-    });
-
-    for (const booking of myBookings) {
-      const trip = booking.tripId;
-      const organizerUserId = trip?.organizerId?.userId;
-
-      if (!trip?._id || !organizerUserId) {
-        continue;
-      }
-
-      await ensureTripGroupChat({ tripId: trip._id, organizerUserId });
-      await addMemberToTripGroup({ tripId: trip._id, userId: req.user._id });
-    }
-
     const groups = await GroupChat.find({
       members: {
         $elemMatch: {

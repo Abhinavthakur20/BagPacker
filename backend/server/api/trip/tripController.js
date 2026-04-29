@@ -108,8 +108,8 @@ const getTrips = async (req, res) => {
   try {
     const filters = {};
     const page = Math.max(1, Number(req.query.page || 1));
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 0)));
-    const usePagination = Number.isFinite(limit) && limit > 0;
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+    const usePagination = true;
 
     if (req.query.includeAllStatuses !== "true") {
       filters.status = "active";

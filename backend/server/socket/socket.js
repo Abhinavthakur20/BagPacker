@@ -3,77 +3,99 @@ const GroupChat = require("../api/groupChat/groupChatModel");
 const ChatMessage = require("../api/chat/chatMessageModel");
 const { canAccessChatRoom } = require("../api/chat/chatAccess");
 const User = require("../api/user/userModel");
+const jwt = require("jsonwebtoken");
 
 const initSocket = (io) => {
   ioInstance = io;
 
+  io.use(async (socket, next) => {
+    try {
+      const rawToken = String(socket.handshake.auth?.token || "").trim();
+      if (!rawToken) {
+        return next(new Error("Authentication required"));
+      }
+
+      const token = rawToken.startsWith("Bearer ") ? rawToken.slice(7).trim() : rawToken;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select("name role");
+
+      if (!user) {
+        return next(new Error("Invalid authentication token"));
+      }
+
+      socket.data.user = {
+        _id: String(user._id),
+        name: user.name,
+        role: user.role,
+      };
+      return next();
+    } catch (_error) {
+      return next(new Error("Invalid authentication token"));
+    }
+  });
+
   io.on("connection", (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    socket.on("join_room", async ({ roomId, userId }) => {
-      if (!roomId || !userId) {
-        return;
-      }
+    socket.on("join_room", async ({ roomId }) => {
+      try {
+        const authenticatedUserId = socket.data?.user?._id;
+        if (!roomId || !authenticatedUserId) {
+          return;
+        }
 
-      const canJoin = await canAccessChatRoom({ roomId, userId });
-      if (!canJoin) {
-        return;
-      }
+        const canJoin = await canAccessChatRoom({ roomId, userId: authenticatedUserId });
+        if (!canJoin) {
+          return;
+        }
 
-      socket.join(roomId);
+        socket.join(roomId);
+      } catch (_error) {
+        socket.emit("error", { message: "Failed to join room" });
+      }
     });
 
-    socket.on("send_message", async ({ roomId, message, userId }) => {
-      if (!roomId || !message || !userId) {
-        return;
+    socket.on("send_message", async ({ roomId, message }) => {
+      try {
+        const authenticatedUserId = socket.data?.user?._id;
+        const authenticatedUserName = socket.data?.user?.name;
+        if (!roomId || !message || !authenticatedUserId) {
+          return;
+        }
+
+        const trimmedMessage = String(message).trim();
+        if (!trimmedMessage) {
+          return;
+        }
+
+        const canSend = await canAccessChatRoom({ roomId, userId: authenticatedUserId });
+        if (!canSend) {
+          return;
+        }
+
+        const savedMessage = await ChatMessage.create({
+          roomId,
+          senderId: authenticatedUserId,
+          senderName: authenticatedUserName,
+          message: trimmedMessage,
+          sentAt: new Date(),
+        });
+
+        if (roomId.startsWith("trip_")) {
+          await GroupChat.updateOne({ roomId }, { $set: { updatedAt: savedMessage.sentAt } });
+        }
+
+        io.to(roomId).emit("receive_message", {
+          id: String(savedMessage._id),
+          roomId,
+          message: savedMessage.message,
+          sender: savedMessage.senderName,
+          senderId: String(savedMessage.senderId),
+          timestamp: savedMessage.sentAt.toISOString(),
+        });
+      } catch (_error) {
+        socket.emit("error", { message: "Failed to send message" });
       }
-
-      const trimmedMessage = String(message).trim();
-      if (!trimmedMessage) {
-        return;
-      }
-
-      const canSend = await canAccessChatRoom({ roomId, userId });
-      if (!canSend) {
-        return;
-      }
-
-      const senderUser = await User.findById(userId).select("name");
-      if (!senderUser) {
-        return;
-      }
-
-      const savedMessage = await ChatMessage.create({
-        roomId,
-        senderId: userId,
-        senderName: senderUser.name,
-        message: trimmedMessage,
-        sentAt: new Date(),
-      });
-
-      if (roomId.startsWith("trip_")) {
-        await GroupChat.updateOne({ roomId }, { $set: { updatedAt: savedMessage.sentAt } });
-      }
-
-      io.to(roomId).emit("receive_message", {
-        id: String(savedMessage._id),
-        roomId,
-        message: savedMessage.message,
-        sender: savedMessage.senderName,
-        senderId: String(savedMessage.senderId),
-        timestamp: savedMessage.sentAt.toISOString(),
-      });
-    });
-
-    socket.on("seat_update", ({ tripId, availableSeats }) => {
-      if (!tripId) {
-        return;
-      }
-
-      io.emit(`seat_update_${tripId}`, {
-        tripId,
-        availableSeats,
-      });
     });
 
     socket.on("disconnect", () => {
@@ -89,12 +111,7 @@ const emitSeatUpdate = (tripId, availableSeats) => {
     return;
   }
 
-  ioInstance.emit(`seat_update_${tripId}`, {
-    tripId: String(tripId),
-    availableSeats,
-  });
-
-  ioInstance.emit("seat_update", {
+  ioInstance.to(`trip_${String(tripId)}`).emit(`seat_update_${tripId}`, {
     tripId: String(tripId),
     availableSeats,
   });
