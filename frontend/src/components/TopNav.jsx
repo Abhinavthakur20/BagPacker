@@ -85,7 +85,7 @@ export default function TopNav() {
             />
           </span>
           <span className="font-headline text-lg font-extrabold tracking-tight text-white">
-            Bag<span className="text-secondary-container">Packer</span>
+            Bag <span className="text-secondary-container">Packer</span>
           </span>
         </NavLink>
 
