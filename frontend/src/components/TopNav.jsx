@@ -20,14 +20,6 @@ export default function TopNav() {
   const role = user?.role;
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -68,13 +60,7 @@ export default function TopNav() {
   })();
 
   return (
-    <nav
-      className={`glass-nav fixed top-0 z-40 w-full transition-all duration-500 ${
-        scrolled
-          ? "bg-primary/90 shadow-[0_4px_30px_rgba(1,45,29,0.25)]"
-          : "bg-primary/70"
-      }`}
-    >
+    <nav className="glass-nav fixed top-0 z-40 w-full bg-primary shadow-[0_4px_30px_rgba(1,45,29,0.25)]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
         {/* ── Logo ── */}
         <NavLink to="/" className="group inline-flex items-center gap-2.5">
