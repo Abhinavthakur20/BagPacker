@@ -13,8 +13,14 @@ const cloneData = (value) => {
     return JSON.parse(JSON.stringify(value));
 };
 
+const getTokenFingerprint = (token) => {
+    if (!token) return "";
+    // Use last 8 chars as a short fingerprint to avoid leaking full token in memory keys
+    return token.slice(-8);
+};
+
 const getRequestCacheKey = ({ method, path, token, body }) =>
-    `${method}:${path}:token=${token || ""}:body=${body ? JSON.stringify(body) : ""}`;
+    `${method}:${path}:t=${getTokenFingerprint(token)}:body=${body ? JSON.stringify(body) : ""}`;
 
 const pruneResponseCache = () => {
     const now = Date.now();

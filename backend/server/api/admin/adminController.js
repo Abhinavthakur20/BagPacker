@@ -124,7 +124,7 @@ const resolveReport = async (req, res) => {
 
     if (req.body.adminAction === "ban") {
       await User.findByIdAndUpdate(report.reportedUserId, {
-        verificationStatus: "rejected",
+        isBanned: true,
       });
     }
 

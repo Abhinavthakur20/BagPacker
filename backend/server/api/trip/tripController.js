@@ -3,6 +3,7 @@ const Organizer = require("../organizer/organizerModel");
 const Itinerary = require("./itineraryModel");
 const PickupPoint = require("./pickupPointModel");
 const Trip = require("./tripModel");
+const GroupChat = require("../groupChat/groupChatModel");
 const { ensureTripGroupChat } = require("../groupChat/groupChatController");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 
@@ -109,7 +110,6 @@ const getTrips = async (req, res) => {
     const filters = {};
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
-    const usePagination = true;
 
     if (req.query.includeAllStatuses !== "true") {
       filters.status = "active";
@@ -155,45 +155,53 @@ const getTrips = async (req, res) => {
       }
     }
 
-    const listQuery = Trip.find(filters)
-      .select(
-        "title source destination startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
-      )
-      .sort({ startDate: 1, createdAt: -1 })
-      .populate({
-        path: "organizerId",
-        select: "businessName approvalStatus userId",
-        populate: {
-          path: "userId",
-          select: "name trustScore verificationStatus",
+    // Single $facet aggregation returns both data and total count atomically
+    const [result] = await Trip.aggregate([
+      { $match: filters },
+      { $sort: { startDate: 1, createdAt: -1 } },
+      {
+        $facet: {
+          items: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            {
+              $project: {
+                title: 1, source: 1, destination: 1, startDate: 1, endDate: 1,
+                pricePerPerson: 1, totalSeats: 1, availableSeats: 1, status: 1,
+                images: 1, organizerId: 1, createdAt: 1,
+              },
+            },
+          ],
+          totalCount: [{ $count: "count" }],
         },
-      })
+      },
+    ]);
+
+    const total = result.totalCount[0]?.count || 0;
+    const tripIds = result.items.map((t) => t.organizerId);
+
+    // Populate organizer data manually since $facet doesn't support Mongoose populate
+    const organizers = await Organizer.find({ _id: { $in: tripIds } })
+      .select("businessName approvalStatus userId")
+      .populate({ path: "userId", select: "name trustScore verificationStatus" })
       .lean();
 
-    if (usePagination) {
-      listQuery.skip((page - 1) * limit).limit(limit);
-    }
+    const organizerMap = new Map(organizers.map((o) => [String(o._id), o]));
 
-    const trips = await listQuery;
-    const mappedTrips = trips.map((trip) => ({
+    const mappedTrips = result.items.map((trip) => ({
       ...trip,
-      organizerId: shapeOrganizer(trip.organizerId),
+      organizerId: shapeOrganizer(organizerMap.get(String(trip.organizerId)) || null),
     }));
 
-    if (usePagination) {
-      const total = await Trip.countDocuments(filters);
-      return res.status(200).json({
-        items: mappedTrips,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.max(1, Math.ceil(total / limit)),
-        },
-      });
-    }
-
-    return res.status(200).json(mappedTrips);
+    return res.status(200).json({
+      items: mappedTrips,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -322,10 +330,10 @@ const createTrip = async (req, res) => {
 
 const updateTrip = async (req, res) => {
   try {
-    const organizer = await Organizer.findOne({ userId: req.user._id });
+    const organizer = await Organizer.findOne({ userId: req.user._id, approvalStatus: "approved" });
 
     if (!organizer) {
-      return res.status(404).json({ message: "Organizer profile not found" });
+      return res.status(403).json({ message: "Only approved organizers can edit trips" });
     }
 
     const trip = await Trip.findOne({ _id: req.params.id, organizerId: organizer._id });
@@ -424,16 +432,27 @@ const deleteTrip = async (req, res) => {
       return res.status(404).json({ message: "Organizer profile not found" });
     }
 
-    const trip = await Trip.findOneAndDelete({ _id: req.params.id, organizerId: organizer._id });
+    const trip = await Trip.findOne({ _id: req.params.id, organizerId: organizer._id });
 
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
+    // Block deletion if there are confirmed paid bookings
+    const confirmedBookings = await Booking.countDocuments({ tripId: trip._id, status: "confirmed" });
+    if (confirmedBookings > 0) {
+      return res.status(400).json({
+        message: "Cannot delete a trip with confirmed bookings. Cancel the trip instead.",
+      });
+    }
+
+    await trip.deleteOne();
+
     await Promise.all([
       Itinerary.deleteMany({ tripId: trip._id }),
       PickupPoint.deleteMany({ tripId: trip._id }),
       Booking.deleteMany({ tripId: trip._id }),
+      GroupChat.deleteMany({ tripId: trip._id }),
     ]);
 
     return res.status(200).json({ message: "Trip deleted successfully" });

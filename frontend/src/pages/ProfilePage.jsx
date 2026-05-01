@@ -66,7 +66,11 @@ export default function ProfilePage() {
     if (profile?.verificationStatus === "rejected") {
       return "bg-[#ffd7d7] text-[#8a1f1f]";
     }
-    return "bg-[#ffe9cd] text-[#9b5600]";
+    if (profile?.verificationStatus === "pending") {
+      return "bg-[#ffe9cd] text-[#9b5600]";
+    }
+    // "unverified" or unknown
+    return "bg-[#e4e4e4] text-[#555]";
   }, [profile?.verificationStatus]);
 
   const saveProfile = async () => {
@@ -206,7 +210,7 @@ export default function ProfilePage() {
                     Account Details
                   </h2>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${verificationTone}`}>
-                    {profile?.verificationStatus || "pending"}
+                    {profile?.verificationStatus || "unverified"}
                   </span>
                 </div>
 

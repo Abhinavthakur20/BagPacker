@@ -55,7 +55,7 @@ const initSocket = (io) => {
       }
     });
 
-    socket.on("send_message", async ({ roomId, message }) => {
+    socket.on("send_message", async ({ roomId, message, clientMessageId }) => {
       try {
         const authenticatedUserId = socket.data?.user?._id;
         const authenticatedUserName = socket.data?.user?.name;
@@ -63,8 +63,14 @@ const initSocket = (io) => {
           return;
         }
 
+        const MAX_MSG_LENGTH = 2000;
         const trimmedMessage = String(message).trim();
         if (!trimmedMessage) {
+          return;
+        }
+
+        if (trimmedMessage.length > MAX_MSG_LENGTH) {
+          socket.emit("error", { message: "Message too long" });
           return;
         }
 
@@ -73,12 +79,22 @@ const initSocket = (io) => {
           return;
         }
 
+        // Duplicate guard: if client provides a messageId, check for duplicates
+        const sanitizedClientId = clientMessageId ? String(clientMessageId).trim().slice(0, 64) : null;
+        if (sanitizedClientId) {
+          const existing = await ChatMessage.findOne({ roomId, clientMessageId: sanitizedClientId }).select("_id").lean();
+          if (existing) {
+            return; // Already saved — skip duplicate
+          }
+        }
+
         const savedMessage = await ChatMessage.create({
           roomId,
           senderId: authenticatedUserId,
           senderName: authenticatedUserName,
           message: trimmedMessage,
           sentAt: new Date(),
+          ...(sanitizedClientId ? { clientMessageId: sanitizedClientId } : {}),
         });
 
         if (roomId.startsWith("trip_")) {

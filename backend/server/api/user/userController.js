@@ -50,21 +50,32 @@ const getPublicProfileById = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const duplicatePhone = await User.findOne({
-      phone: req.body.phone.trim(),
-      _id: { $ne: req.user._id },
-    });
+    const phone = req.body.phone?.trim();
+    const name = req.body.name?.trim();
 
-    if (duplicatePhone) {
-      return res.status(400).json({ message: "Phone is already registered" });
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    if (phone) {
+      const duplicatePhone = await User.findOne({
+        phone,
+        _id: { $ne: req.user._id },
+      });
+
+      if (duplicatePhone) {
+        return res.status(400).json({ message: "Phone is already registered" });
+      }
+    }
+
+    const updateFields = { name };
+    if (phone) {
+      updateFields.phone = phone;
     }
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      {
-        name: req.body.name.trim(),
-        phone: req.body.phone.trim(),
-      },
+      updateFields,
       { returnDocument: "after", runValidators: true },
     ).select("-passwordHash");
 

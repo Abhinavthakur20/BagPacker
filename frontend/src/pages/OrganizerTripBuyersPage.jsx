@@ -213,7 +213,7 @@ export default function OrganizerTripBuyersPage() {
                             {traveler.phone || "—"}
                           </p>
                           <p className="mt-1 text-xs text-outline">
-                            Trust: {safeNumber(traveler.trustScore)} • {traveler.verificationStatus || "pending"}
+                            Trust: {safeNumber(traveler.trustScore)} • {traveler.verificationStatus || "unverified"}
                           </p>
                         </div>
 

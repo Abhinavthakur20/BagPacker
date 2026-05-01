@@ -73,6 +73,12 @@ function App() {
       return;
     }
 
+    // Destroy any existing instance before creating a new one (React Strict Mode safe)
+    if (locomotiveRef.current) {
+      locomotiveRef.current.destroy();
+      locomotiveRef.current = null;
+    }
+
     locomotiveRef.current = new LocomotiveScroll({
       el: scrollContainerRef.current,
       smooth: true,
@@ -96,10 +102,17 @@ function App() {
       return;
     }
 
+    // Reset scroll position and rebuild scroll metrics for new page content
     scroller.scrollTo(0, { duration: 0, disableLerp: true });
-    if (typeof scroller.update === "function") {
-      scroller.update();
-    }
+
+    // Delay update to allow new page content to render before recalculating height
+    const rafId = requestAnimationFrame(() => {
+      if (typeof scroller.update === "function") {
+        scroller.update();
+      }
+    });
+
+    return () => cancelAnimationFrame(rafId);
   }, [location.pathname]);
 
   return (

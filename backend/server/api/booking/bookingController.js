@@ -207,6 +207,7 @@ const initiateBookingPayment = async (req, res) => {
       return res.status(400).json({ message: "Invalid booking amount" });
     }
 
+    const ORDER_EXPIRY_MS = 14 * 60 * 1000; // 14 min (Razorpay orders expire after 15 min)
     const existingPending = await Booking.findOne({
       travelerId: req.user._id,
       tripId,
@@ -216,16 +217,20 @@ const initiateBookingPayment = async (req, res) => {
       paymentStatus: "created",
     })
       .sort({ createdAt: -1 })
-      .select("razorpayOrderId totalAmount currency paymentProvider status paymentStatus");
+      .select("razorpayOrderId totalAmount currency paymentProvider status paymentStatus createdAt");
 
     if (existingPending?.razorpayOrderId) {
-      return res.status(200).json({
-        bookingId: existingPending._id,
-        orderId: existingPending.razorpayOrderId,
-        amount: toPaise(existingPending.totalAmount),
-        currency: existingPending.currency || RAZORPAY_CURRENCY,
-        keyId: String(process.env.RAZORPAY_KEY_ID || "").trim(),
-      });
+      const isExpired = (Date.now() - new Date(existingPending.createdAt).getTime()) > ORDER_EXPIRY_MS;
+      if (!isExpired) {
+        return res.status(200).json({
+          bookingId: existingPending._id,
+          orderId: existingPending.razorpayOrderId,
+          amount: toPaise(existingPending.totalAmount),
+          currency: existingPending.currency || RAZORPAY_CURRENCY,
+          keyId: String(process.env.RAZORPAY_KEY_ID || "").trim(),
+        });
+      }
+      // Expired order — fall through and create a new one
     }
 
     const draftBooking = await Booking.create({
@@ -410,7 +415,22 @@ const cancelBooking = async (req, res) => {
       return res.status(400).json({ message: "Completed bookings cannot be cancelled" });
     }
 
+    // Enforce 24-hour cancellation window before departure
+    const trip = await Trip.findById(booking.tripId).select("startDate");
+    if (trip?.startDate) {
+      const hoursUntilTrip = (new Date(trip.startDate) - Date.now()) / 36e5;
+      if (hoursUntilTrip < 24) {
+        return res.status(400).json({ message: "Bookings cannot be cancelled within 24 hours of departure" });
+      }
+    }
+
     const shouldReleaseSeats = booking.status === "confirmed";
+
+    // Flag refund tracking for confirmed paid bookings
+    if (booking.status === "confirmed" && booking.paymentStatus === "paid") {
+      booking.paymentStatus = "refund_required";
+    }
+
     booking.status = "cancelled";
     await booking.save();
 
@@ -440,13 +460,19 @@ const cancelBooking = async (req, res) => {
 
 const completeBooking = async (req, res) => {
   try {
-    const booking = await Booking.findOne({
-      _id: req.params.id,
-      travelerId: req.user._id,
-    });
+    const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Only the trip's organizer can mark bookings as complete
+    const trip = await Trip.findById(booking.tripId).select("endDate title organizerId");
+    if (trip) {
+      const organizer = await Organizer.findById(trip.organizerId).select("userId");
+      if (!organizer || String(organizer.userId) !== String(req.user._id)) {
+        return res.status(403).json({ message: "Only the trip organizer can complete bookings" });
+      }
     }
 
     if (booking.status === "cancelled") {
@@ -456,8 +482,6 @@ const completeBooking = async (req, res) => {
     if (booking.status === "completed") {
       return res.status(400).json({ message: "Booking is already marked as completed" });
     }
-
-    const trip = await Trip.findById(booking.tripId).select("endDate title");
 
     if (trip?.endDate && new Date(trip.endDate).getTime() > Date.now()) {
       return res.status(400).json({
@@ -469,7 +493,7 @@ const completeBooking = async (req, res) => {
     await booking.save();
 
     await Notification.create({
-      userId: req.user._id,
+      userId: booking.travelerId,
       type: "trip_alert",
       message: `Your booking for ${trip?.title || "this trip"} is marked as completed.`,
     });

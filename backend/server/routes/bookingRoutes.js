@@ -55,7 +55,7 @@ router.put(
 );
 router.put(
   "/:id/complete",
-  [param("id").isMongoId().withMessage("Valid booking id is required"), validateRequest],
+  [authMiddleware, roleMiddleware(["organizer"]), param("id").isMongoId().withMessage("Valid booking id is required"), validateRequest],
   completeBooking,
 );
 

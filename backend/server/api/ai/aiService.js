@@ -230,13 +230,46 @@ const extractTripSearchFilters = async (message) => {
     }
   }
 
+  // Curated list of popular Indian destinations for reliable extraction
+  const knownCities = [
+    "goa", "manali", "shimla", "jaipur", "udaipur", "rishikesh", "varanasi",
+    "kerala", "munnar", "ooty", "darjeeling", "ladakh", "leh", "srinagar",
+    "andaman", "coorg", "mussoorie", "nainital", "mcleodganj", "kasol",
+    "agra", "delhi", "mumbai", "bangalore", "chennai", "kolkata", "hyderabad",
+    "pune", "ahmedabad", "amritsar", "jodhpur", "pushkar", "hampi", "mysore",
+    "kodaikanal", "lonavala", "mahabaleshwar", "alleppey", "wayanad",
+    "pondicherry", "spiti", "meghalaya", "shillong", "gangtok", "sikkim",
+    "auli", "chopta", "bir billing", "tirthan valley", "dalhousie",
+    "mount abu", "rann of kutch", "kutch", "dwarka", "somnath",
+  ];
+
   let destination = "";
-  const destinationMatch = text.match(/\b(?:to|for)\s+([a-z][a-z\s]{1,40})\b/i);
-  if (destinationMatch?.[1]) {
-    destination = destinationMatch[1]
-      .trim()
-      .replace(/\b(trip|trips|tour|tours|package|packages)\b/gi, "")
-      .trim();
+
+  // First try matching known cities in the message
+  for (const city of knownCities) {
+    if (text.includes(city)) {
+      destination = city;
+      break;
+    }
+  }
+
+  // Fallback: try "to <place>" pattern but only if the captured word is >2 chars
+  // and is NOT a common stop-word
+  if (!destination) {
+    const stopWords = new Set([
+      "me", "us", "you", "the", "a", "an", "my", "our", "your", "some", "any",
+      "this", "that", "it", "them", "go", "see", "get", "do", "be", "have",
+    ]);
+    const destinationMatch = text.match(/\b(?:to|for)\s+([a-z][a-z\s]{2,40})\b/i);
+    if (destinationMatch?.[1]) {
+      const candidate = destinationMatch[1]
+        .trim()
+        .replace(/\b(trip|trips|tour|tours|package|packages|booking|book)\b/gi, "")
+        .trim();
+      if (candidate.length > 2 && !stopWords.has(candidate)) {
+        destination = candidate;
+      }
+    }
   }
 
   return {

@@ -45,8 +45,8 @@ const userSchema = new mongoose.Schema(
     },
     verificationStatus: {
       type: String,
-      enum: ["pending", "verified", "rejected"],
-      default: "pending",
+      enum: ["unverified", "pending", "verified", "rejected"],
+      default: "unverified",
     },
     governmentIdUrl: {
       type: String,
@@ -57,6 +57,10 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
       max: 100,
+    },
+    isBanned: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true },

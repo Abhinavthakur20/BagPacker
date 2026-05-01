@@ -25,6 +25,11 @@ const chatMessageSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2000,
     },
+    clientMessageId: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     sentAt: {
       type: Date,
       default: Date.now,
@@ -35,5 +40,6 @@ const chatMessageSchema = new mongoose.Schema(
 );
 
 chatMessageSchema.index({ roomId: 1, sentAt: 1 });
+chatMessageSchema.index({ roomId: 1, clientMessageId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.models.ChatMessage || mongoose.model("ChatMessage", chatMessageSchema);

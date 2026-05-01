@@ -100,14 +100,20 @@ const getMyOrganizerTrips = async (req, res) => {
       return res.status(404).json({ message: "Organizer profile not found" });
     }
 
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+
     const trips = await Trip.find({ organizerId: organizer._id })
       .select(
         "title source destination startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
       )
       .sort({ startDate: 1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .lean();
 
-    return res.status(200).json(trips);
+    const total = await Trip.countDocuments({ organizerId: organizer._id });
+    return res.status(200).json({ items: trips, pagination: { page, limit, total } });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Booking = require("../booking/bookingModel");
 const Notification = require("../notification/notificationModel");
 const Review = require("./reviewModel");
+const Trip = require("../trip/tripModel");
 const User = require("../user/userModel");
 
 const createReview = async (req, res) => {
@@ -20,6 +21,12 @@ const createReview = async (req, res) => {
 
     if (!booking) {
       return res.status(400).json({ message: "Only completed bookings can be reviewed" });
+    }
+
+    // Verify revieweeId is the organizer of this trip
+    const trip = await Trip.findById(booking.tripId).populate("organizerId", "userId");
+    if (!trip || String(trip.organizerId?.userId) !== String(revieweeId)) {
+      return res.status(400).json({ message: "Invalid reviewee for this booking" });
     }
 
     const existingReview = await Review.findOne({
