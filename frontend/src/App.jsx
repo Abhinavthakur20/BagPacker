@@ -120,7 +120,7 @@ function App() {
       <Suspense
         fallback={
           <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
-            <LoadingPanel label="Loading page..." />
+            <LoadingPanel label="Loading page..." variant="page" />
           </div>
         }
       >

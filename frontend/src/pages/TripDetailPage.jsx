@@ -124,7 +124,7 @@ export default function TripDetailPage() {
     return (
       <MainLayout>
         <div className="mx-auto max-w-7xl px-4 py-20">
-          <LoadingPanel label="Loading trip details..." />
+          <LoadingPanel label="Loading trip details..." variant="page" />
         </div>
       </MainLayout>
     );
@@ -519,7 +519,7 @@ export default function TripDetailPage() {
                 {isLoggedIn ? (
                   <Link
                     to={bookingUrl}
-                    className={`block rounded-2xl px-5 py-4 text-center font-headline text-lg font-extrabold shadow-[0_8px_24px_rgba(253,157,26,0.25)] ${
+                    className={`block rounded-2xl px-5 py-4 text-center font-headline text-lg font-extrabold shadow-[0_8px_24px_rgba(127,161,28,0.25)] ${
                       canBook
                         ? "bg-linear-to-br from-secondary to-secondary-container text-on-secondary-container"
                         : "pointer-events-none bg-surface-container-high text-outline"
@@ -530,7 +530,7 @@ export default function TripDetailPage() {
                 ) : (
                   <Link
                     to="/auth?mode=login"
-                    className="block rounded-2xl bg-linear-to-br from-secondary to-secondary-container px-5 py-4 text-center font-headline text-lg font-extrabold text-on-secondary-container shadow-[0_8px_24px_rgba(253,157,26,0.25)]"
+                    className="block rounded-2xl bg-linear-to-br from-secondary to-secondary-container px-5 py-4 text-center font-headline text-lg font-extrabold text-on-secondary-container shadow-[0_8px_24px_rgba(127,161,28,0.25)]"
                   >
                     LOGIN TO BOOK
                   </Link>

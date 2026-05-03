@@ -3,15 +3,13 @@ import { useSelector } from "react-redux";
 import { NavLink, useLocation } from "react-router-dom";
 import { BsSuitcase } from "react-icons/bs";
 
-const getLinkClass = ({ isActive }) =>
+const getDesktopLinkClass = ({ isActive }) =>
   [
-    "relative text-sm font-headline font-semibold tracking-tight transition-all duration-300",
-    isActive ? "text-secondary-container" : "text-white/80 hover:text-white",
+    "nav-link relative inline-flex items-center px-3 py-2 text-sm font-headline font-semibold tracking-tight text-white transition-all duration-300",
+    isActive
+      ? "nav-link-active text-white"
+      : "text-white/90 hover:text-white",
   ].join(" ");
-
-const activeDot = (
-  <span className="absolute -bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-secondary-container" />
-);
 
 export default function TopNav() {
   const token = useSelector((state) => state.auth.token);
@@ -60,11 +58,11 @@ export default function TopNav() {
   })();
 
   return (
-    <nav className="glass-nav fixed top-0 z-40 w-full bg-primary shadow-[0_4px_30px_rgba(1,45,29,0.25)]">
+    <nav className="fixed top-0 z-[100] w-full border-b border-white/15 bg-[#1f2430] shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
         {/* ── Logo ── */}
         <NavLink to="/" className="group inline-flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary-container/20 transition-all duration-300 group-hover:bg-secondary-container/30 group-hover:scale-105">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary-container/20 transition-all duration-300 group-hover:bg-secondary-container/30 group-hover:scale-105">
             <BsSuitcase
               className="text-lg text-secondary-container"
               aria-hidden="true"
@@ -76,15 +74,14 @@ export default function TopNav() {
         </NavLink>
 
         {/* ── Desktop nav links ── */}
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-6 md:flex">
           {resolvedNavLinks.map((item) => (
-            <NavLink key={item.to} to={item.to} className={getLinkClass}>
-              {({ isActive }) => (
-                <span className="relative inline-flex items-center rounded-lg px-3 py-2 transition-all duration-200 hover:bg-white/10">
-                  {item.label}
-                  {isActive && activeDot}
-                </span>
-              )}
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={getDesktopLinkClass}
+            >
+              {item.label}
             </NavLink>
           ))}
         </div>
@@ -95,7 +92,7 @@ export default function TopNav() {
             <NavLink
               to="/profile"
               aria-label="Open profile"
-              className="group flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:bg-white/10"
+              className="group flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 transition-all duration-300 hover:bg-white/20"
             >
               <span className="material-symbols-outlined text-[1.5rem] text-white/80 transition-colors group-hover:text-secondary-container">
                 account_circle
@@ -105,13 +102,13 @@ export default function TopNav() {
             <>
               <NavLink
                 to="/auth?mode=login"
-                className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 transition-all duration-300 hover:border-white/40 hover:bg-white/10 hover:text-white active:scale-[0.97]"
+                className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:text-white active:scale-[0.97]"
               >
                 Login
               </NavLink>
               <NavLink
                 to="/auth?mode=signup"
-                className="rounded-lg bg-secondary-container px-4 py-2 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(253,157,26,0.3)] transition-all duration-300 hover:shadow-[0_4px_20px_rgba(253,157,26,0.45)] hover:brightness-110 active:scale-[0.97]"
+                className="rounded-lg bg-secondary-container px-4 py-2 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(127,161,28,0.3)] transition-all duration-300 hover:shadow-[0_4px_20px_rgba(127,161,28,0.45)] hover:brightness-110 active:scale-[0.97]"
               >
                 Sign Up
               </NavLink>
@@ -127,7 +124,7 @@ export default function TopNav() {
           }
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-white/80 transition-all duration-300 hover:bg-white/20 hover:text-white md:hidden"
         >
           <span className="material-symbols-outlined text-[1.35rem]">
             {isMobileMenuOpen ? "close" : "menu"}
@@ -141,17 +138,17 @@ export default function TopNav() {
           isMobileMenuOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t border-white/10 bg-primary/95 px-4 pb-5 pt-3">
-          <div className="grid gap-0.5">
+        <div className="border-t border-white/15 bg-[#252b38] px-4 pb-5 pt-3">
+          <div className="grid gap-1">
             {resolvedNavLinks.map((item) => (
               <NavLink
                 key={`mobile-${item.to}`}
                 to={item.to}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                  `rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? "bg-white/10 text-secondary-container"
+                      ? "bg-secondary-container text-on-secondary-container"
                       : "text-white/80 hover:bg-white/5 hover:text-white"
                   }`
                 }
@@ -166,7 +163,7 @@ export default function TopNav() {
               <NavLink
                 to="/profile"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-secondary-container px-4 py-2.5 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(253,157,26,0.25)] transition-all duration-300 hover:brightness-110"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-secondary-container px-4 py-2.5 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(127,161,28,0.25)] transition-all duration-300 hover:brightness-110"
               >
                 <span className="material-symbols-outlined text-[1.1rem]">
                   account_circle
@@ -178,14 +175,14 @@ export default function TopNav() {
                 <NavLink
                   to="/auth?mode=login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 px-3 py-2 text-sm font-semibold text-white/90 transition-all duration-200 hover:bg-white/10"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold text-white/90 transition-all duration-200 hover:bg-white/10"
                 >
                   Login
                 </NavLink>
                 <NavLink
                   to="/auth?mode=signup"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-secondary-container px-3 py-2 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(253,157,26,0.25)]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-secondary-container px-3 py-2 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(127,161,28,0.25)]"
                 >
                   Sign Up
                 </NavLink>

@@ -61,13 +61,13 @@ export default function ProfilePage() {
 
   const verificationTone = useMemo(() => {
     if (profile?.verificationStatus === "verified") {
-      return "bg-[#d8f5e5] text-[#0f5132]";
+      return "bg-[#012d1d] text-[#7fa11c]";
     }
     if (profile?.verificationStatus === "rejected") {
-      return "bg-[#ffd7d7] text-[#8a1f1f]";
+      return "bg-error-container text-error";
     }
     if (profile?.verificationStatus === "pending") {
-      return "bg-[#ffe9cd] text-[#9b5600]";
+      return "bg-[#3d4466] text-[#7fa11c]";
     }
     // "unverified" or unknown
     return "bg-[#e4e4e4] text-[#555]";
@@ -159,24 +159,24 @@ export default function ProfilePage() {
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-2xl bg-[#d8f5e5] p-4 font-semibold text-[#0f5132]">
+          <div className="rounded-2xl bg-[#012d1d] p-4 font-semibold text-[#7fa11c]">
             {successMessage}
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container p-5 text-white shadow-xl sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary-container">
+        <div className="overflow-hidden rounded-xl bg-linear-to-r from-[#012d1d] to-[#3d4466] p-5 text-white shadow-xl sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
             Live Profile
           </p>
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="break-words font-headline text-xl font-extrabold sm:text-3xl">
+              <h1 className="break-words font-manrope text-xl font-extrabold sm:text-3xl">
                 {profile?.name || storedUser?.name || "BagPacker User"}
               </h1>
               <p className="mt-2 text-white/80">
                 {profile?.email || storedUser?.email}
               </p>
-              <p className="mt-1 text-sm uppercase tracking-[0.14em] text-secondary-container">
+              <p className="mt-1 text-sm uppercase tracking-[0.14em] text-[#7fa11c]">
                 {profile?.role || storedUser?.role || "traveler"}
               </p>
             </div>
@@ -197,16 +197,14 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {isLoading ? (
-          <LoadingPanel label="Loading profile..." />
-        ) : null}
+        {isLoading ? <LoadingPanel label="Loading profile..." variant="page" /> : null}
 
         {!isLoading ? (
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <section className="space-y-6">
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
                 <div className="flex items-center justify-between gap-4">
-                  <h2 className="font-headline text-xl font-bold text-primary">
+                  <h2 className="font-manrope text-xl font-bold text-primary">
                     Account Details
                   </h2>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${verificationTone}`}>
@@ -250,8 +248,8 @@ export default function ProfilePage() {
                 </button>
               </article>
 
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h3 className="font-headline text-xl font-bold text-primary">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
+                <h3 className="font-manrope text-xl font-bold text-primary">
                   Reviews Received
                 </h3>
                 <div className="mt-5 space-y-4">
@@ -265,7 +263,7 @@ export default function ProfilePage() {
                           <p className="font-bold text-primary">
                             {review.reviewerId?.name || "Traveler"}
                           </p>
-                          <p className="text-sm font-bold text-secondary">
+                          <p className="text-sm font-bold text-[#7fa11c]">
                             {review.rating}/5
                           </p>
                         </div>
@@ -284,20 +282,20 @@ export default function ProfilePage() {
             </section>
 
             <aside className="space-y-6">
-              <article className="rounded-3xl bg-primary-container p-6 text-white shadow-xl">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-on-primary-container">
+              <article className="rounded-xl bg-primary-container p-6 text-white shadow-xl">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
                   Trust Score
                 </p>
-                 <p className="mt-2 font-headline text-3xl font-black sm:text-4xl">
+                 <p className="mt-2 font-manrope text-3xl font-black sm:text-4xl">
                   {profile?.trustScore ?? storedUser?.trustScore ?? 0}
                 </p>
-                <p className="mt-3 text-sm text-on-primary-container">
+                <p className="mt-3 text-sm text-slate-300">
                   Calculated from reviews received on completed bookings.
                 </p>
               </article>
 
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h3 className="font-headline text-xl font-bold text-primary">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
+                <h3 className="font-manrope text-xl font-bold text-primary">
                   Government ID
                 </h3>
                 <p className="mt-2 text-sm text-on-surface-variant">
@@ -338,3 +336,4 @@ export default function ProfilePage() {
     </MainLayout>
   );
 }
+

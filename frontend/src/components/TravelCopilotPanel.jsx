@@ -80,7 +80,7 @@ export default function TravelCopilotPanel({ context = {}, className = "" }) {
   return (
     <article className={`rounded-2xl bg-[#f1eee7] p-4 shadow-sm ${className}`}>
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8a5b18]">AI Travel Copilot</p>
-      <h3 className="mt-1 font-headline text-lg font-bold text-[#132c22]">Plan smarter, travel safer</h3>
+      <h3 className="mt-1 font-manrope text-lg font-bold text-[#132c22]">Plan smarter, travel safer</h3>
 
       {!hasUsefulContext ? (
         <p className="mt-2 text-xs text-[#6b7069]">
@@ -164,7 +164,7 @@ export default function TravelCopilotPanel({ context = {}, className = "" }) {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <h4 className="truncate font-headline text-sm font-bold text-[#132c22]">
+                    <h4 className="truncate font-manrope text-sm font-bold text-[#132c22]">
                       {trip.title}
                     </h4>
                     <p className="mt-0.5 text-xs text-[#4a554f]">

@@ -61,10 +61,10 @@ export default function OrganizerTripsPage() {
       <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
               Organizer
             </p>
-            <h1 className="font-headline text-2xl font-extrabold text-primary">
+            <h1 className="font-manrope text-2xl font-extrabold text-primary">
               My Posted Trips
             </h1>
             <p className="mt-2 text-sm text-on-surface-variant">
@@ -94,10 +94,10 @@ export default function OrganizerTripsPage() {
           </div>
         ) : null}
 
-        {isLoading ? <LoadingPanel label="Loading trips..." /> : null}
+        {isLoading ? <LoadingPanel label="Loading trips..." variant="list" /> : null}
 
         {!isLoading ? (
-          <div className="overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface-container-lowest shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-lowest shadow-sm">
             <div className="grid grid-cols-[1.6fr_1fr_0.9fr_0.9fr] gap-3 bg-surface-container-low px-5 py-4 text-[11px] font-black uppercase tracking-[0.16em] text-outline">
               <span>Trip</span>
               <span className="hidden md:block">Route</span>
@@ -118,16 +118,16 @@ export default function OrganizerTripsPage() {
                     key={trip._id}
                     type="button"
                     onClick={() => navigate(`/dashboard/organizer/trips/${trip._id}`)}
-                    className="grid w-full grid-cols-[1.6fr_1fr_0.9fr_0.9fr] items-center gap-3 border-t border-outline-variant/20 bg-white px-5 py-5 text-left hover:bg-surface-container-lowest"
+                    className="grid w-full grid-cols-[1.6fr_1fr_0.9fr_0.9fr] items-center gap-3 border-t border-outline-variant/20 bg-surface-container px-5 py-5 text-left hover:bg-surface-container-lowest"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-headline text-lg font-extrabold text-primary">
+                      <p className="truncate font-manrope text-lg font-extrabold text-primary">
                         {trip.title}
                       </p>
                       <p className="mt-1 text-sm text-on-surface-variant md:hidden">
                         {trip.source} → {trip.destination}
                       </p>
-                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
                         {String(trip.status || "active")}
                       </p>
                     </div>
@@ -147,7 +147,7 @@ export default function OrganizerTripsPage() {
                       </p>
                       <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
                         <div
-                          className="h-full rounded-full bg-secondary-container"
+                          className="h-full rounded-full bg-[#7fa11c]"
                           style={{ width: `${Math.min(100, Math.max(0, occupancy))}%` }}
                         />
                       </div>
@@ -166,8 +166,8 @@ export default function OrganizerTripsPage() {
                 );
               })
             ) : (
-              <div className="bg-white p-12 text-center text-on-surface-variant">
-                <p className="font-headline text-lg font-extrabold text-primary">
+              <div className="bg-surface-container p-12 text-center text-on-surface-variant">
+                <p className="font-manrope text-lg font-extrabold text-primary">
                   No trips posted yet
                 </p>
                 <p className="mt-2 text-sm">
@@ -176,7 +176,7 @@ export default function OrganizerTripsPage() {
                 <div className="mt-5">
                   <Link
                     to="/trips/new"
-                    className="inline-flex items-center gap-2 rounded-2xl bg-secondary-container px-5 py-3 text-sm font-black text-on-secondary-container"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#7fa11c] px-5 py-3 text-sm font-black text-white"
                   >
                     <span className="material-symbols-outlined text-base">add_circle</span>
                     Create Trip
@@ -190,4 +190,5 @@ export default function OrganizerTripsPage() {
     </MainLayout>
   );
 }
+
 

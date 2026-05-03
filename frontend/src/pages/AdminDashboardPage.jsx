@@ -168,10 +168,10 @@ export default function AdminDashboardPage() {
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-8 px-4 py-10">
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
             Admin Portal
           </p>
-          <h1 className="font-headline text-2xl font-extrabold text-primary">
+          <h1 className="font-manrope text-2xl font-extrabold text-primary">
             Platform Moderation Dashboard
           </h1>
           <p className="mt-2 text-on-surface-variant">
@@ -186,14 +186,12 @@ export default function AdminDashboardPage() {
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-2xl bg-[#d8f5e5] p-4 font-semibold text-[#0f5132]">
+          <div className="rounded-2xl bg-[#012d1d] p-4 font-semibold text-[#7fa11c]">
             {successMessage}
           </div>
         ) : null}
 
-        {isLoading ? (
-          <LoadingPanel label="Loading admin data..." />
-        ) : null}
+        {isLoading ? <LoadingPanel label="Loading admin data..." variant="grid" /> : null}
 
         {!isLoading ? (
           <>
@@ -208,7 +206,7 @@ export default function AdminDashboardPage() {
                   <p className={`text-sm ${index === 2 ? "text-white/80" : "text-outline"}`}>
                     {label}
                   </p>
-                  <p className="mt-2 font-headline text-3xl font-extrabold">
+                  <p className="mt-2 font-manrope text-3xl font-extrabold">
                     {value}
                   </p>
                 </article>
@@ -216,8 +214,8 @@ export default function AdminDashboardPage() {
             </section>
 
             <section className="grid gap-6 xl:grid-cols-2">
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h2 className="font-headline text-xl font-extrabold text-primary">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
+                <h2 className="font-manrope text-xl font-extrabold text-primary">
                   Pending Organizer Approvals
                 </h2>
                 <div className="mt-5 space-y-4">
@@ -258,8 +256,8 @@ export default function AdminDashboardPage() {
                 </div>
               </article>
 
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-                <h2 className="font-headline text-xl font-extrabold text-primary">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
+                <h2 className="font-manrope text-xl font-extrabold text-primary">
                   Pending User Verifications
                 </h2>
                 <div className="mt-5 space-y-4">
@@ -306,8 +304,8 @@ export default function AdminDashboardPage() {
               </article>
             </section>
 
-            <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
-              <h2 className="font-headline text-xl font-extrabold text-primary">
+            <section className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
+              <h2 className="font-manrope text-xl font-extrabold text-primary">
                 User Reports
               </h2>
               <div className="mt-5 space-y-4">
@@ -326,7 +324,7 @@ export default function AdminDashboardPage() {
                           <p className="mt-1 text-sm text-on-surface-variant">
                             {report.reason}
                           </p>
-                          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
                             {report.status}
                           </p>
                         </div>
@@ -344,7 +342,7 @@ export default function AdminDashboardPage() {
                             ))}
                           </div>
                         ) : (
-                          <span className="rounded-full bg-[#d8f5e5] px-3 py-1 text-xs font-bold uppercase text-[#0f5132]">
+                          <span className="rounded-full bg-[#012d1d] px-3 py-1 text-xs font-bold uppercase text-[#7fa11c]">
                             {report.adminAction || "resolved"}
                           </span>
                         )}
@@ -364,3 +362,4 @@ export default function AdminDashboardPage() {
     </MainLayout>
   );
 }
+

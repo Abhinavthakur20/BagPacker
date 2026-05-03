@@ -25,7 +25,7 @@ const toneMap = {
     badge: "bg-[#ffe9cd] text-[#9b5600]",
     panel: "border-[#f0d4a5]",
     icon: "campaign",
-    button: "bg-secondary-container text-on-secondary-container",
+    button: "bg-[#7fa11c] text-on-secondary-container",
   },
 };
 
@@ -93,10 +93,10 @@ export default function AlertHost() {
                 {styles.icon}
               </span>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-secondary-container">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
                   BagPacker Notice
                 </p>
-                <h2 className="mt-1 font-headline text-lg font-extrabold">
+                <h2 className="mt-1 font-manrope text-lg font-extrabold">
                   {activeAlert.title}
                 </h2>
               </div>
@@ -145,3 +145,4 @@ export default function AlertHost() {
     document.body,
   );
 }
+

@@ -126,11 +126,11 @@ export default function PublicProfilePage() {
           </div>
         ) : null}
 
-        {isLoading ? <LoadingPanel label="Loading profile..." /> : null}
+        {isLoading ? <LoadingPanel label="Loading profile..." variant="page" /> : null}
 
         {!isLoading && organizerProfile ? (
           <>
-            <article className="rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-6 shadow-sm md:p-8">
+            <article className="rounded-xl border border-outline-variant/25 bg-surface-container-lowest p-6 shadow-sm md:p-8">
               <div className="grid gap-6 md:grid-cols-[150px_1fr] md:items-center">
                 <img
                   src={
@@ -142,7 +142,7 @@ export default function PublicProfilePage() {
                 />
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-headline text-2xl font-extrabold text-primary">
+                    <h2 className="font-manrope text-2xl font-extrabold text-primary">
                       {organizerProfile.businessName || "organizer"}
                     </h2>
                     {!isOwnProfile ? (
@@ -261,7 +261,7 @@ export default function PublicProfilePage() {
                       <div key={review._id} className="rounded-2xl bg-surface-container-low p-4">
                         <div className="flex items-center justify-between gap-3">
                           <p className="font-bold text-primary">{review.reviewerId?.name || "Traveler"}</p>
-                          <p className="text-sm font-bold text-secondary">{review.rating}/5</p>
+                          <p className="text-sm font-bold text-[#7fa11c]">{review.rating}/5</p>
                         </div>
                         <p className="mt-2 text-sm text-on-surface-variant">
                           {review.comment || "No comment shared."}
@@ -349,3 +349,4 @@ export default function PublicProfilePage() {
     </MainLayout>
   );
 }
+

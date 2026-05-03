@@ -603,8 +603,8 @@ export default function CreateTripPage() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#efeee9] px-4 py-20 text-center">
-        <div className="mx-auto max-w-3xl rounded-3xl bg-[#f7f5ef] p-10 shadow-lg">
-          <p className="font-semibold text-[#8a1f1f]">
+        <div className="mx-auto max-w-3xl rounded-xl bg-[#f7f5ef] p-10 shadow-lg">
+          <p className="font-semibold text-error">
             Please login as an organizer to manage trips.
           </p>
         </div>
@@ -618,15 +618,15 @@ export default function CreateTripPage() {
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-5">
           <Link
             to="/"
-            className="font-headline text-xl font-extrabold text-[#132c22] sm:text-2xl"
+            className="font-manrope text-xl font-extrabold text-on-surface sm:text-2xl"
           >
             BagPacker
           </Link>
-          <nav className="hidden items-center gap-8 text-sm font-medium text-[#1d2a24] md:flex">
-            <Link to="/dashboard/organizer" className="hover:text-[#8f5300]">
+          <nav className="hidden items-center gap-8 text-sm font-medium text-on-surface md:flex">
+            <Link to="/dashboard/organizer" className="hover:text-[#4f6f16]">
               Organizer Dashboard
             </Link>
-            <Link to="/trips/search" className="hover:text-[#8f5300]">
+            <Link to="/trips/search" className="hover:text-[#4f6f16]">
               Search Trips
             </Link>
           </nav>
@@ -636,10 +636,10 @@ export default function CreateTripPage() {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 md:px-5">
         <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#a26216]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#5f7f19]">
               Organizer Workspace
             </p>
-            <h1 className="font-headline text-xl font-extrabold text-[#0f3d2d] sm:text-2xl md:text-3xl">
+            <h1 className="font-manrope text-xl font-extrabold text-on-surface sm:text-2xl md:text-3xl">
               {isEditMode ? "Edit Trip Details" : "Create New Expedition"}
             </h1>
             <p className="mt-2 max-w-3xl text-[#6f736b]">
@@ -651,10 +651,10 @@ export default function CreateTripPage() {
           <span
             className={`rounded-full px-4 py-2 text-sm font-bold uppercase ${
               organizer?.approvalStatus === "approved"
-                ? "bg-[#d8f5e5] text-[#0f5132]"
+                ? "bg-[#012d1d] text-[#7fa11c]"
                 : organizer?.approvalStatus === "rejected"
-                  ? "bg-[#ffd7d7] text-[#8a1f1f]"
-                  : "bg-[#ffe9cd] text-[#9b5600]"
+                  ? "bg-error-container text-error"
+                  : "bg-[#3d4466] text-[#7fa11c]"
             }`}
           >
             {organizer?.approvalStatus || "loading"}
@@ -662,13 +662,13 @@ export default function CreateTripPage() {
         </header>
 
         {error ? (
-          <div className="rounded-2xl bg-[#ffd7d7] p-4 font-semibold text-[#8a1f1f]">
+          <div className="rounded-2xl bg-error-container p-4 font-semibold text-error">
             {error}
           </div>
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-2xl bg-[#d8f5e5] p-4 font-semibold text-[#0f5132]">
+          <div className="rounded-2xl bg-[#012d1d] p-4 font-semibold text-[#7fa11c]">
             {successMessage}
           </div>
         ) : null}
@@ -676,12 +676,13 @@ export default function CreateTripPage() {
         {isLoading ? (
           <LoadingPanel
             label={isEditMode ? "Loading trip editor..." : "Loading organizer profile..."}
+            variant="page"
           />
         ) : null}
 
         {!isLoading && organizer?.approvalStatus !== "approved" ? (
-          <div className="rounded-3xl bg-[#f7f5ef] p-10 text-center shadow-sm">
-            <h2 className="font-headline text-xl font-extrabold text-[#132c22]">
+          <div className="rounded-xl bg-[#f7f5ef] p-10 text-center shadow-sm">
+            <h2 className="font-manrope text-xl font-extrabold text-on-surface">
               Organizer approval is still {organizer?.approvalStatus || "pending"}
             </h2>
             <p className="mt-3 text-[#6f736b]">
@@ -689,7 +690,7 @@ export default function CreateTripPage() {
             </p>
             <Link
               to="/dashboard/organizer"
-              className="mt-6 inline-block rounded-xl bg-[#0f3d2d] px-6 py-3 font-bold text-white"
+              className="mt-6 inline-block rounded-xl bg-surface px-6 py-3 font-bold text-white"
             >
               Back to Dashboard
             </Link>
@@ -699,8 +700,8 @@ export default function CreateTripPage() {
         {!isLoading && organizer?.approvalStatus === "approved" ? (
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
             <section className="space-y-6">
-              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
-                <h2 className="font-headline text-xl font-bold text-[#132c22]">
+              <article className="rounded-xl bg-[#f7f5ef] p-6 shadow-sm">
+                <h2 className="font-manrope text-xl font-bold text-on-surface">
                   Core Trip Information
                 </h2>
                 <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -785,9 +786,9 @@ export default function CreateTripPage() {
                 </div>
               </article>
 
-              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+              <article className="rounded-xl bg-[#f7f5ef] p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="font-headline text-xl font-bold text-[#132c22]">
+                  <h2 className="font-manrope text-xl font-bold text-on-surface">
                     Day-wise Itinerary
                   </h2>
                   <button
@@ -831,9 +832,9 @@ export default function CreateTripPage() {
                 </div>
               </article>
 
-              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+              <article className="rounded-xl bg-[#f7f5ef] p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="font-headline text-xl font-bold text-[#132c22]">
+                  <h2 className="font-manrope text-xl font-bold text-on-surface">
                     Pickup Points
                   </h2>
                   <button
@@ -877,9 +878,9 @@ export default function CreateTripPage() {
                 </div>
               </article>
 
-              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
+              <article className="rounded-xl bg-[#f7f5ef] p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="font-headline text-xl font-bold text-[#132c22]">
+                  <h2 className="font-manrope text-xl font-bold text-on-surface">
                     {isEditMode ? "Current Trip Images" : "Trip Image Carousel"}
                   </h2>
                   <p className="rounded-full bg-[#e6efe8] px-3 py-1 text-xs font-bold uppercase text-[#124f38]">
@@ -947,7 +948,7 @@ export default function CreateTripPage() {
                               </button>
                               <button
                                 onClick={() => removeTripImage(index)}
-                                className="w-full rounded-md bg-[#fce0e0] px-1 py-1 text-[10px] font-bold uppercase text-[#8a1f1f]"
+                                className="w-full rounded-md bg-[#fce0e0] px-1 py-1 text-[10px] font-bold uppercase text-error"
                                 aria-label={`Remove trip image ${index + 1}`}
                               >
                                 Remove
@@ -989,11 +990,11 @@ export default function CreateTripPage() {
             </section>
 
             <aside className="space-y-6">
-              <article className="rounded-3xl bg-[#154c37] p-6 text-white shadow-sm">
+              <article className="rounded-xl bg-[#012d1d] p-6 text-white shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#b6e5c7]">
                   Live Preview
                 </p>
-                <h3 className="mt-4 font-headline text-2xl font-bold">
+                <h3 className="mt-4 font-manrope text-2xl font-bold">
                   {tripForm.title || "Trip title appears here"}
                 </h3>
                 <p className="mt-3 text-sm text-[#d3efe0]">
@@ -1009,8 +1010,8 @@ export default function CreateTripPage() {
                 </div>
               </article>
 
-              <article className="rounded-3xl bg-[#f7f5ef] p-6 shadow-sm">
-                <h3 className="font-headline text-lg font-bold text-[#132c22]">
+              <article className="rounded-xl bg-[#f7f5ef] p-6 shadow-sm">
+                <h3 className="font-manrope text-lg font-bold text-on-surface">
                   {isEditMode ? "Ready to save?" : "Ready to publish?"}
                 </h3>
                 <p className="mt-3 text-sm text-[#6f736b]">
@@ -1021,7 +1022,7 @@ export default function CreateTripPage() {
                 <button
                   onClick={submitTrip}
                   disabled={isSubmitting}
-                  className="mt-6 w-full rounded-xl bg-[#0f3d2d] px-6 py-4 font-bold text-white disabled:opacity-60"
+                  className="mt-6 w-full rounded-xl bg-surface px-6 py-4 font-bold text-white disabled:opacity-60"
                 >
                   {isSubmitting
                     ? isEditMode
@@ -1042,7 +1043,7 @@ export default function CreateTripPage() {
           <div className="w-full max-w-3xl rounded-2xl bg-[#f7f5ef] p-5 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-headline text-xl font-bold text-[#132c22]">
+                <h2 className="font-manrope text-xl font-bold text-on-surface">
                   Square Crop
                 </h2>
                 <p className="text-sm text-[#6f736b]">
@@ -1053,7 +1054,7 @@ export default function CreateTripPage() {
               <button
                 onClick={skipCurrentImage}
                 disabled={isCroppingImage}
-                className="rounded-lg bg-[#fce0e0] px-3 py-2 text-xs font-bold uppercase text-[#8a1f1f] disabled:opacity-60"
+                className="rounded-lg bg-[#fce0e0] px-3 py-2 text-xs font-bold uppercase text-error disabled:opacity-60"
               >
                 Skip
               </button>
@@ -1126,3 +1127,4 @@ export default function CreateTripPage() {
     </div>
   );
 }
+

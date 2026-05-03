@@ -510,13 +510,13 @@ export default function CompanionPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-10">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a5b18]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7fa11c]">
               Companion Finder
             </p>
-            <h1 className="mt-1 font-headline text-xl font-extrabold text-[#132c22] sm:text-2xl">
+            <h1 className="mt-1 font-manrope text-xl font-extrabold text-on-surface sm:text-2xl">
               Find your travel companion
             </h1>
-            <p className="mt-1 text-sm text-[#6b7069]">
+            <p className="mt-1 text-sm text-on-surface-variant">
               Search by route, date, seats, and preferences, then compare how close each match is.
             </p>
           </div>
@@ -528,14 +528,14 @@ export default function CompanionPage() {
                 setInboxTab("requests");
                 setIsInboxOpen(true);
               }}
-              className="inline-flex items-center gap-3 self-start rounded-2xl border border-[#d8d2c7] bg-white px-4 py-3 shadow-sm"
+              className="inline-flex items-center gap-3 self-start rounded-2xl border border-outline-variant/20 bg-surface-container px-4 py-3 shadow-sm"
             >
-              <span className="material-symbols-outlined text-[#184b38]">notifications</span>
+              <span className="material-symbols-outlined text-[#7fa11c]">notifications</span>
               <span className="text-left">
-                <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#8a5b18]">
+                <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
                   Companion Inbox
                 </span>
-                <span className="block text-sm font-semibold text-[#21332b]">
+                <span className="block text-sm font-semibold text-on-surface">
                   {pendingIncomingCount} pending, {unreadNotificationCount} unread
                 </span>
               </span>
@@ -555,42 +555,42 @@ export default function CompanionPage() {
           </div>
         ) : null}
 
-        <div className="mb-6 rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
+        <div className="mb-6 rounded-2xl bg-surface-container-low p-4 shadow-sm">
           <div className="mb-3">
-            <p className="text-sm font-bold text-[#1d2a24]">Find Travel Companions</p>
+            <p className="text-sm font-bold text-on-surface">Find Travel Companions</p>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="relative block">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-[#6d746d]">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
                 trip_origin
               </span>
               <input
                 value={source}
                 onChange={(event) => setSource(event.target.value)}
-                className="w-full rounded-xl bg-white px-10 py-3 text-sm"
+                className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
                 placeholder="From"
               />
             </label>
             <label className="relative block">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-[#6d746d]">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
                 near_me
               </span>
               <input
                 value={destination}
                 onChange={(event) => setDestination(event.target.value)}
-                className="w-full rounded-xl bg-white px-10 py-3 text-sm"
+                className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
                 placeholder="To"
               />
             </label>
             <label className="relative block">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-[#6d746d]">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
                 calendar_month
               </span>
               <input
                 type="date"
                 value={travelDate}
                 onChange={(event) => setTravelDate(event.target.value)}
-                className="w-full rounded-xl bg-white px-10 py-3 text-sm"
+                className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
               />
             </label>
           </div>
@@ -598,7 +598,7 @@ export default function CompanionPage() {
             <select
               value={requestedSeats}
               onChange={(event) => setRequestedSeats(Number(event.target.value))}
-              className="rounded-xl bg-white px-4 py-3 text-sm"
+              className="rounded-xl bg-surface-container px-4 py-3 text-sm"
             >
               <option value={1}>1 seat</option>
               <option value={2}>2 seats</option>
@@ -608,7 +608,7 @@ export default function CompanionPage() {
             <select
               value={searchGenderPreference}
               onChange={(event) => setSearchGenderPreference(event.target.value)}
-              className="rounded-xl bg-white px-4 py-3 text-sm"
+              className="rounded-xl bg-surface-container px-4 py-3 text-sm"
             >
               <option value="Any">Any gender</option>
               <option value="F">Female only</option>
@@ -617,7 +617,7 @@ export default function CompanionPage() {
             <select
               value={searchVehicleType}
               onChange={(event) => setSearchVehicleType(event.target.value)}
-              className="rounded-xl bg-white px-4 py-3 text-sm"
+              className="rounded-xl bg-surface-container px-4 py-3 text-sm"
             >
               <option value="">Any vehicle</option>
               <option value="car">Car</option>
@@ -626,7 +626,7 @@ export default function CompanionPage() {
             <button
               onClick={() => loadCompanionData()}
               disabled={!loggedIn || isLoading}
-              className="rounded-xl bg-linear-to-r from-primary to-[#0f5a3d] px-4 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-linear-to-r from-[#012d1d] to-[#3d4466] px-4 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? "Loading..." : "Find Matches"}
             </button>
@@ -635,9 +635,9 @@ export default function CompanionPage() {
 
         <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
           <aside className="space-y-5">
-            <article className="rounded-2xl bg-linear-to-br from-[#154f39] to-[#0f3f2e] p-4 text-white shadow-lg">
+            <article className="rounded-2xl bg-linear-to-br from-[#012d1d] to-[#3d4466] p-4 text-white shadow-lg">
               <div className="flex items-end justify-between gap-2">
-                <p className="font-headline text-3xl font-extrabold leading-none">
+                <p className="font-manrope text-3xl font-extrabold leading-none">
                   {discoverItems.length}
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/80">
@@ -652,9 +652,9 @@ export default function CompanionPage() {
               </p>
             </article>
 
-            <article className="rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
-              <p className="text-sm font-bold text-[#2f3a35]">Search Snapshot</p>
-              <div className="mt-3 space-y-2 text-sm text-[#546059]">
+            <article className="rounded-2xl bg-surface-container-low p-4 shadow-sm">
+              <p className="text-sm font-bold text-on-surface">Search Snapshot</p>
+              <div className="mt-3 space-y-2 text-sm text-on-surface-variant">
                 <p>{`${source} -> ${destination}`}</p>
                 <p>{formatTravelDate(travelDate)}</p>
                 <p>{requestedSeats} seat{requestedSeats > 1 ? "s" : ""} requested</p>
@@ -668,23 +668,23 @@ export default function CompanionPage() {
               </div>
             </article>
 
-            <article className="rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
-              <p className="text-sm font-bold text-[#2f3a35]">Decision Stats</p>
+            <article className="rounded-2xl bg-surface-container-low p-4 shadow-sm">
+              <p className="text-sm font-bold text-on-surface">Decision Stats</p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-full bg-[#d8f5e5] px-3 py-2 text-xs font-semibold text-[#0f5f3f]">
+                <div className="rounded-full bg-[#012d1d] px-3 py-2 text-xs font-semibold text-[#012d1d]">
                   Accepted <span className="font-black">{accepted}</span>
                 </div>
-                <div className="rounded-full bg-[#ffdfe2] px-3 py-2 text-xs font-semibold text-[#a64040]">
+                <div className="rounded-full bg-[#f2f9d8] px-3 py-2 text-xs font-semibold text-error">
                   Declined <span className="font-black">{declined}</span>
                 </div>
               </div>
             </article>
 
-            <article className="rounded-2xl bg-[#f1eee7] p-4 shadow-sm">
+            <article className="rounded-2xl bg-surface-container-low p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold text-[#2f3a35]">Inbox Summary</p>
-                  <p className="mt-1 text-sm text-[#667068]">
+                  <p className="text-sm font-bold text-on-surface">Inbox Summary</p>
+                  <p className="mt-1 text-sm text-on-surface-variant">
                     {pendingIncomingCount} requests need action
                   </p>
                 </div>
@@ -694,7 +694,7 @@ export default function CompanionPage() {
                     setInboxTab("requests");
                     setIsInboxOpen(true);
                   }}
-                  className="rounded-xl bg-[#1a513d] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white"
+                  className="rounded-xl bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white"
                 >
                   Open Inbox
                 </button>
@@ -707,28 +707,28 @@ export default function CompanionPage() {
           <section>
             {current ? (
               <>
-                <article className="relative overflow-hidden rounded-[28px] shadow-[0_18px_50px_rgba(17,48,35,0.2)]">
+                <article className="relative overflow-hidden rounded-xl shadow-[0_18px_50px_rgba(17,48,35,0.2)]">
                   <img
                     src={current.image}
                     alt={current.name}
                     className="h-[430px] w-full object-cover object-top sm:h-[530px]"
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-[#103f2f] via-[#103f2f]/35 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-[#012d1d] via-[#012d1d]/35 to-transparent" />
 
                   <div className="absolute left-5 top-5 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#d8f5e8] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#0f5f3f]">
+                    <span className="rounded-full bg-[#f2f9d8] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#012d1d]">
                       {current.verificationStatus === "verified" ? "Verified" : "Unverified"}
                     </span>
-                    <span className="rounded-full bg-[#b8e6ca] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#0b4f35]">
+                    <span className="rounded-full bg-[#ffcdd2] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#012d1d]">
                       {current.trust} Trust
                     </span>
-                    <span className="rounded-full bg-[#ffe9bf] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#8a5700]">
+                    <span className="rounded-full bg-[#fff0d6] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#8f6f71]">
                       {getScoreBadge(current.score)}
                     </span>
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8">
-                    <h1 className="break-words font-headline text-xl font-extrabold leading-tight sm:text-3xl">
+                    <h1 className="break-words font-manrope text-xl font-extrabold leading-tight sm:text-3xl">
                       {current.name}
                     </h1>
                     <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold uppercase tracking-[0.12em] text-white/90">
@@ -769,7 +769,7 @@ export default function CompanionPage() {
                 <div className="mt-7 flex items-center justify-center gap-8">
                   <button
                     onClick={() => onDecision("decline")}
-                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#efb9be] bg-[#fff7f8] text-[#c4515f] transition hover:scale-105"
+                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-error/30 bg-[#fff0f2] text-[#7fa11c] transition hover:scale-105"
                     aria-label="Decline or skip companion"
                   >
                     <span className="material-symbols-outlined text-[30px]">close</span>
@@ -781,7 +781,7 @@ export default function CompanionPage() {
                       !current.requestId &&
                       Number(current.seatsAvailable || 0) < Number(requestedSeats)
                     }
-                    className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fd9d1a] text-[#2e2200] shadow-[0_14px_30px_rgba(253,157,26,0.35)] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex h-20 w-20 items-center justify-center rounded-full bg-[#7fa11c] text-[#2e2200] shadow-[0_14px_30px_rgba(127,161,28,0.35)] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="Primary companion action"
                   >
                     <span className="material-symbols-outlined text-[34px]">
@@ -795,7 +795,7 @@ export default function CompanionPage() {
                   </button>
                   <button
                     onClick={() => setIndex((value) => value + 1)}
-                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#bfd0d9] bg-[#f6fbff] text-[#517286] transition hover:scale-105"
+                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-surface-variant/30 bg-surface-container-low text-[#575d77] transition hover:scale-105"
                     aria-label="Skip companion"
                   >
                     <span className="material-symbols-outlined text-[30px]">
@@ -805,13 +805,17 @@ export default function CompanionPage() {
                 </div>
               </>
             ) : isLoading ? (
-              <LoadingPanel label="Searching companions..." className="rounded-2xl" />
+              <LoadingPanel
+                label="Searching companions..."
+                variant="list"
+                className="rounded-2xl"
+              />
             ) : (
               <div className="rounded-2xl bg-surface-container-low p-8 text-center">
                 <span className="material-symbols-outlined text-2xl text-[#6f736b]">
                   travel_explore
                 </span>
-                <p className="mt-3 font-semibold text-[#2a322d]">
+                <p className="mt-3 font-semibold text-on-surface">
                   No companions found for this route
                 </p>
                 <p className="mt-1 text-sm text-[#6f736b]">
@@ -829,33 +833,33 @@ export default function CompanionPage() {
           </section>
 
           <aside className="space-y-5">
-            <article className="rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
-              <h2 className="font-headline text-lg font-bold text-[#202925]">
+            <article className="rounded-2xl bg-surface-container-low p-5 shadow-sm">
+              <h2 className="font-manrope text-lg font-bold text-[#202925]">
                 Create Personal Trip Post
               </h2>
               <div className="mt-3 space-y-2">
                 <input
                   value={postSource}
                   onChange={(event) => setPostSource(event.target.value)}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                   placeholder="Source city"
                 />
                 <input
                   value={postDestination}
                   onChange={(event) => setPostDestination(event.target.value)}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                   placeholder="Destination city"
                 />
                 <input
                   type="date"
                   value={postTravelDate}
                   onChange={(event) => setPostTravelDate(event.target.value)}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                 />
                 <select
                   value={postSeatsAvailable}
                   onChange={(event) => setPostSeatsAvailable(Number(event.target.value))}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                 >
                   <option value={1}>1 seat available</option>
                   <option value={2}>2 seats available</option>
@@ -865,7 +869,7 @@ export default function CompanionPage() {
                 <select
                   value={postGenderPreference}
                   onChange={(event) => setPostGenderPreference(event.target.value)}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                 >
                   <option value="Any">Any gender</option>
                   <option value="F">Female only</option>
@@ -874,7 +878,7 @@ export default function CompanionPage() {
                 <select
                   value={postVehicleType}
                   onChange={(event) => setPostVehicleType(event.target.value)}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                 >
                   <option value="">Any vehicle</option>
                   <option value="car">Car</option>
@@ -883,7 +887,7 @@ export default function CompanionPage() {
                 <textarea
                   value={postNote}
                   onChange={(event) => setPostNote(event.target.value)}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                   placeholder="Optional note for your post"
                   rows={3}
                 />
@@ -897,8 +901,8 @@ export default function CompanionPage() {
               </div>
             </article>
 
-            <article className="rounded-2xl bg-[#f1eee7] p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 font-headline text-lg font-bold text-[#202925]">
+            <article className="rounded-2xl bg-surface-container-low p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 font-manrope text-lg font-bold text-[#202925]">
                 My Personal Posts
                 <span className="rounded-full bg-[#275f49] px-2 py-0.5 text-[11px] font-bold text-white">
                   {myPersonalPosts.length}
@@ -907,7 +911,7 @@ export default function CompanionPage() {
               <div className="mt-4 space-y-3">
                 {myPersonalPosts.length ? (
                   myPersonalPosts.map((item) => (
-                    <div key={item._id} className="rounded-xl border-l-3 border-[#275f49] bg-white p-3">
+                    <div key={item._id} className="rounded-xl border-l-3 border-primary bg-surface-container p-3">
                       <p className="font-semibold text-[#262e2a]">
                         {item.source} -&gt; {item.destination}
                       </p>
@@ -933,7 +937,7 @@ export default function CompanionPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-xl bg-white p-3 text-sm text-[#6b7069]">
+                  <div className="rounded-xl bg-surface-container p-3 text-sm text-on-surface-variant">
                     No personal posts yet.
                   </div>
                 )}
@@ -954,7 +958,7 @@ export default function CompanionPage() {
         >
           <span className="material-symbols-outlined">notifications</span>
           <span className="text-sm font-bold">Inbox</span>
-          <span className="rounded-full bg-[#fd9d1a] px-2 py-0.5 text-xs font-black text-[#2b2100]">
+          <span className="rounded-full bg-[#7fa11c] px-2 py-0.5 text-xs font-black text-[#2b2100]">
             {inboxCount}
           </span>
         </button>
@@ -971,16 +975,16 @@ export default function CompanionPage() {
 
           <aside className="absolute right-0 top-0 h-full w-full max-w-[420px] overflow-hidden bg-[#f7f4ed] shadow-[0_24px_60px_rgba(16,24,22,0.22)]">
             <div className="flex h-full flex-col">
-              <div className="border-b border-[#e4ddd0] bg-white px-5 py-5">
+              <div className="border-b border-outline-variant/20 bg-surface-container px-5 py-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a5b18]">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7fa11c]">
                       Requests & Updates
                     </p>
-                    <h2 className="mt-1 font-headline text-xl font-extrabold text-[#173228]">
+                    <h2 className="mt-1 font-manrope text-xl font-extrabold text-[#173228]">
                       Companion Inbox
                     </h2>
-                    <p className="mt-1 text-sm text-[#667068]">
+                    <p className="mt-1 text-sm text-on-surface-variant">
                       Handle requests without scrolling through the whole page.
                     </p>
                   </div>
@@ -988,7 +992,7 @@ export default function CompanionPage() {
                   <button
                     type="button"
                     onClick={() => setIsInboxOpen(false)}
-                    className="rounded-full bg-[#f1eee7] p-2 text-[#173228]"
+                    className="rounded-full bg-surface-container-low p-2 text-[#173228]"
                   >
                     <span className="material-symbols-outlined">close</span>
                   </button>
@@ -1027,15 +1031,15 @@ export default function CompanionPage() {
                       requestRows.map((item) => (
                         <article
                           key={item.key}
-                          className={`rounded-[24px] border bg-white p-4 shadow-sm ${
+                          className={`rounded-[24px] border bg-surface-container p-4 shadow-sm ${
                             item.direction === "incoming" && item.status === "pending"
                               ? "border-[#ffb24a]"
-                              : "border-[#ece4d8]"
+                              : "border-outline-variant/20"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-headline text-lg font-bold text-[#20322b]">
+                              <p className="font-manrope text-lg font-bold text-[#20322b]">
                                 {item.name}
                               </p>
                               <p className="mt-1 text-sm text-[#798078]">{item.route}</p>
@@ -1109,11 +1113,11 @@ export default function CompanionPage() {
                         </article>
                       ))
                     ) : (
-                      <div className="rounded-[24px] bg-white p-8 text-center shadow-sm">
+                      <div className="rounded-[24px] bg-surface-container p-8 text-center shadow-sm">
                         <span className="material-symbols-outlined text-2xl text-[#71766e]">
                           notifications_none
                         </span>
-                        <p className="mt-3 font-semibold text-[#2a322d]">
+                        <p className="mt-3 font-semibold text-on-surface">
                           No requests right now
                         </p>
                         <p className="mt-1 text-sm text-[#6f736b]">
@@ -1130,7 +1134,7 @@ export default function CompanionPage() {
                           key={notification._id}
                           className={`rounded-[24px] border p-4 shadow-sm ${
                             notification.isRead
-                              ? "border-[#ece4d8] bg-white"
+                              ? "border-outline-variant/20 bg-surface-container"
                               : "border-[#c9e5d8] bg-[#edf9f1]"
                           }`}
                         >
@@ -1161,11 +1165,11 @@ export default function CompanionPage() {
                         </article>
                       ))
                     ) : (
-                      <div className="rounded-[24px] bg-white p-8 text-center shadow-sm">
+                      <div className="rounded-[24px] bg-surface-container p-8 text-center shadow-sm">
                         <span className="material-symbols-outlined text-2xl text-[#71766e]">
                           inbox
                         </span>
-                        <p className="mt-3 font-semibold text-[#2a322d]">
+                        <p className="mt-3 font-semibold text-on-surface">
                           No notifications yet
                         </p>
                         <p className="mt-1 text-sm text-[#6f736b]">
@@ -1183,3 +1187,4 @@ export default function CompanionPage() {
     </MainLayout>
   );
 }
+

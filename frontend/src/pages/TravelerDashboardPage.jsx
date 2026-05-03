@@ -153,7 +153,7 @@ export default function TravelerDashboardPage() {
 
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="font-headline text-2xl font-extrabold tracking-tight text-primary">
+            <h1 className="font-manrope text-2xl font-extrabold tracking-tight text-primary">
               {profile?.name ? `Namaste, ${profile.name.split(" ")[0]}!` : "Traveler Dashboard"}
             </h1>
             <p className="text-on-surface-variant">
@@ -168,35 +168,33 @@ export default function TravelerDashboardPage() {
           </Link>
         </header>
 
-        {isLoading ? (
-          <LoadingPanel label="Loading dashboard..." />
-        ) : null}
+        {isLoading ? <LoadingPanel label="Loading dashboard..." variant="grid" /> : null}
 
         {!isLoading ? (
           <>
-            <section className="overflow-hidden rounded-3xl bg-linear-to-r from-primary to-primary-container px-4 py-5 sm:px-6 sm:py-7 md:px-10 md:py-9">
+            <section className="overflow-hidden rounded-xl bg-linear-to-r from-[#012d1d] to-[#3d4466] px-4 py-5 sm:px-6 sm:py-7 md:px-10 md:py-9">
               <div className="flex items-stretch justify-between gap-2 text-center sm:gap-4 md:grid md:gap-8 md:grid-cols-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-headline text-2xl font-extrabold tracking-tight text-secondary-container sm:text-3xl md:text-4xl">
+                  <p className="font-manrope text-2xl font-extrabold tracking-tight text-[#7fa11c] sm:text-3xl md:text-4xl">
                     {bookings.length}
                   </p>
-                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-300 sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
                     Total Bookings
                   </p>
                 </div>
                 <div className="min-w-0 flex-1 border-x border-white/15 px-2 md:border-x md:border-y-0 md:px-0">
-                  <p className="font-headline text-2xl font-extrabold tracking-tight text-secondary-container sm:text-3xl md:text-4xl">
+                  <p className="font-manrope text-2xl font-extrabold tracking-tight text-[#7fa11c] sm:text-3xl md:text-4xl">
                     {profile?.trustScore ?? 0}
                   </p>
-                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-300 sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
                     Trust Score
                   </p>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-headline text-2xl font-extrabold tracking-tight text-secondary-container sm:text-3xl md:text-4xl">
+                  <p className="font-manrope text-2xl font-extrabold tracking-tight text-[#7fa11c] sm:text-3xl md:text-4xl">
                     {recommendedTrips.length}
                   </p>
-                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-300 sm:text-[10px] md:text-[11px] md:tracking-[0.2em]">
                     Fresh Recommendations
                   </p>
                 </div>
@@ -220,7 +218,7 @@ export default function TravelerDashboardPage() {
                   <p className="text-[9px] uppercase tracking-[0.08em] text-outline md:text-xs md:tracking-[0.14em]">
                     {label}
                   </p>
-                  <p className="mt-1 font-headline text-2xl font-extrabold text-primary md:mt-2 md:text-3xl">
+                  <p className="mt-1 font-manrope text-2xl font-extrabold text-primary md:mt-2 md:text-3xl">
                     {value}
                   </p>
                 </article>
@@ -228,12 +226,12 @@ export default function TravelerDashboardPage() {
             </section>
 
             <section className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="font-headline text-xl font-extrabold text-primary">
+                  <h2 className="font-manrope text-xl font-extrabold text-primary">
                     Recent Bookings
                   </h2>
-                  <Link to="/payment" className="text-sm font-bold text-secondary">
+                  <Link to="/payment" className="text-sm font-bold text-[#7fa11c]">
                     Open Booking Center
                   </Link>
                 </div>
@@ -258,7 +256,7 @@ export default function TravelerDashboardPage() {
                             <p className="font-bold text-primary">
                               {formatINR(booking.totalAmount)}
                             </p>
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
                               {booking.status}
                             </p>
                           </div>
@@ -273,12 +271,12 @@ export default function TravelerDashboardPage() {
                 </div>
               </article>
 
-              <article className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
+              <article className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="font-headline text-xl font-extrabold text-primary">
+                  <h2 className="font-manrope text-xl font-extrabold text-primary">
                     Recommended for You
                   </h2>
-                  <Link to="/trips/search" className="text-sm font-bold text-secondary">
+                  <Link to="/trips/search" className="text-sm font-bold text-[#7fa11c]">
                     View all trips
                   </Link>
                 </div>
@@ -291,7 +289,7 @@ export default function TravelerDashboardPage() {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <h3 className="font-headline text-lg font-bold text-primary">
+                          <h3 className="font-manrope text-lg font-bold text-primary">
                             {trip.title}
                           </h3>
                           <p className="text-sm text-on-surface-variant">
@@ -302,12 +300,12 @@ export default function TravelerDashboardPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-headline text-lg font-black text-primary">
+                          <p className="font-manrope text-lg font-black text-primary">
                             {formatINR(trip.pricePerPerson)}
                           </p>
                           <Link
                             to={`/trips/${trip._id}`}
-                            className="mt-2 inline-block rounded-xl bg-secondary-container px-4 py-2 text-sm font-bold text-on-secondary-container"
+                            className="mt-2 inline-block rounded-xl bg-[#7fa11c] px-4 py-2 text-sm font-bold text-white"
                           >
                             View
                           </Link>
@@ -319,17 +317,17 @@ export default function TravelerDashboardPage() {
               </article>
             </section>
 
-            <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
+            <section className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h2 className="font-headline text-xl font-extrabold text-primary">
+                  <h2 className="font-manrope text-xl font-extrabold text-primary">
                     E-Tickets
                   </h2>
                   <p className="text-sm text-on-surface-variant">
                     Professional digital passes for your confirmed trips.
                   </p>
                 </div>
-                <Link to="/payment" className="text-sm font-bold text-secondary">
+                <Link to="/payment" className="text-sm font-bold text-[#7fa11c]">
                   Open Booking Center
                 </Link>
               </div>
@@ -343,67 +341,67 @@ export default function TravelerDashboardPage() {
                     return (
                       <article
                         key={`eticket-${booking._id}`}
-                        className="relative overflow-hidden rounded-3xl border border-[#d3d9d4] bg-white p-5 shadow-[0_16px_40px_rgba(18,31,24,0.08)]"
+                        className="relative overflow-hidden rounded-xl border border-surface-variant/30 bg-white p-5 shadow-[0_16px_40px_rgba(18,31,24,0.08)]"
                       >
-                        <div className="absolute right-4 top-4 rounded-full bg-[#d8f5e5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#0f5f3f]">
+                        <div className="absolute right-4 top-4 rounded-full bg-[#f2f9d8] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#012d1d]">
                           Confirmed
                         </div>
 
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b9490]">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
                           BagPacker E-Ticket
                         </p>
-                        <h3 className="mt-2 font-headline text-lg font-extrabold text-[#143526]">
+                        <h3 className="mt-2 font-manrope text-lg font-extrabold text-on-surface">
                           {booking.tripId?.title || "Trip Ticket"}
                         </h3>
-                        <p className="mt-1 text-sm font-semibold text-[#2b3e33]">
+                        <p className="mt-1 text-sm font-semibold text-on-surface">
                           {booking.tripId?.source || "Source"} to{" "}
                           {booking.tripId?.destination || "Destination"}
                         </p>
 
-                        <div className="mt-4 grid gap-3 rounded-2xl bg-[#f4f6f3] p-4 text-sm text-[#3f4b45] sm:grid-cols-2">
+                        <div className="mt-4 grid gap-3 rounded-2xl bg-surface-container-low p-4 text-sm text-on-surface-variant sm:grid-cols-2">
                           <p>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-outline">
                               Traveler
                             </span>
                             {profile?.name || "Traveler"}
                           </p>
                           <p>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-outline">
                               Ticket ID
                             </span>
-                            <span className="font-bold text-[#1d3328]">{ticketCode}</span>
+                            <span className="font-bold text-on-surface">{ticketCode}</span>
                           </p>
                           <p>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-outline">
                               Journey
                             </span>
                             {formatDateLabel(booking.tripId?.startDate)} -{" "}
                             {formatDateLabel(booking.tripId?.endDate)}
                           </p>
                           <p>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-outline">
                               Pickup
                             </span>
                             {booking.pickupPointId?.location || "TBD"} ({booking.pickupPointId?.time || "TBD"})
                           </p>
                           <p>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-outline">
                               Seats
                             </span>
                             {booking.seatsBooked || 1}
                           </p>
                           <p>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#7c8782]">
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-outline">
                               Paid Amount
                             </span>
-                            <span className="font-bold text-[#1d3328]">
+                            <span className="font-bold text-on-surface">
                               {formatINR(booking.totalAmount || 0)}
                             </span>
                           </p>
                         </div>
 
                         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-xs text-[#6f7772]">
+                          <p className="text-xs text-on-surface-variant">
                             Issued: {formatDateTimeLabel(booking.createdAt)}
                             {paymentId ? ` | Payment: ${paymentId}` : ""}
                           </p>
@@ -425,9 +423,9 @@ export default function TravelerDashboardPage() {
               )}
             </section>
 
-            <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-lg">
+            <section className="rounded-xl bg-surface-container-lowest p-6 shadow-lg">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="font-headline text-xl font-extrabold text-primary">
+                <h2 className="font-manrope text-xl font-extrabold text-primary">
                   Notifications
                 </h2>
                 <p className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">
@@ -477,3 +475,4 @@ export default function TravelerDashboardPage() {
     </MainLayout>
   );
 }
+

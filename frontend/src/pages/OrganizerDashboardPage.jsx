@@ -12,10 +12,10 @@ const safeNumber = (value, fallback = 0) => {
 };
 
 const badgeStylesByStatus = {
-  active: "bg-[#d8f5e5] text-[#0f5132]",
-  draft: "bg-[#e8e4db] text-[#415049]",
-  completed: "bg-[#d6e7ff] text-[#123a6b]",
-  cancelled: "bg-[#ffd7d7] text-[#8a1f1f]",
+  active: "bg-[#012d1d] text-[#7fa11c]",
+  draft: "bg-surface-container-high text-on-surface-variant",
+  completed: "bg-[#e2e8fb] text-[#012d1d]",
+  cancelled: "bg-error-container text-error",
 };
 
 export default function OrganizerDashboardPage() {
@@ -135,10 +135,10 @@ export default function OrganizerDashboardPage() {
 
   const approvalTone =
     organizer?.approvalStatus === "approved"
-      ? "bg-[#d8f5e5] text-[#0f5132]"
+      ? "bg-[#012d1d] text-[#7fa11c]"
       : organizer?.approvalStatus === "rejected"
-        ? "bg-[#ffd7d7] text-[#8a1f1f]"
-        : "bg-[#ffe9cd] text-[#9b5600]";
+        ? "bg-error-container text-error"
+        : "bg-[#3d4466] text-[#7fa11c]";
   const canCreateTrips = organizer?.approvalStatus === "approved";
 
   const sortedTrips = useMemo(
@@ -219,7 +219,7 @@ export default function OrganizerDashboardPage() {
 
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-5 shadow-sm">
+            <div className="sticky top-24 rounded-xl border border-outline-variant/25 bg-surface-container-lowest p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-fixed text-primary">
                   <span className="material-symbols-outlined">dashboard</span>
@@ -228,7 +228,7 @@ export default function OrganizerDashboardPage() {
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
                     Organizer
                   </p>
-                  <p className="truncate font-headline text-lg font-extrabold text-primary">
+                  <p className="truncate font-manrope text-lg font-extrabold text-primary">
                     {organizer?.businessName || user?.name || "Dashboard"}
                   </p>
                 </div>
@@ -321,13 +321,13 @@ export default function OrganizerDashboardPage() {
           </aside>
 
           <section className="min-w-0 space-y-6">
-            <header className="rounded-3xl bg-linear-to-br from-primary to-primary-container p-6 text-white shadow-xl">
+            <header className="rounded-xl bg-linear-to-br from-[#012d1d] to-[#3d4466] p-6 text-white shadow-xl">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/75">
                     Organizer Portal
                   </p>
-                  <h1 className="mt-2 font-headline text-2xl font-extrabold leading-tight md:text-3xl">
+                  <h1 className="mt-2 font-manrope text-2xl font-extrabold leading-tight md:text-3xl">
                     Welcome {organizer?.businessName || user?.name || "Organizer"}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm text-white/80">
@@ -343,7 +343,9 @@ export default function OrganizerDashboardPage() {
               </div>
             </header>
 
-            {isLoading ? <LoadingPanel label="Loading organizer dashboard..." /> : null}
+            {isLoading ? (
+              <LoadingPanel label="Loading organizer dashboard..." variant="grid" />
+            ) : null}
 
             {!isLoading ? (
               activeView === "overview" ? (
@@ -352,14 +354,14 @@ export default function OrganizerDashboardPage() {
                     {dashboard.cards.map((card) => (
                       <article
                         key={card.label}
-                        className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-5 shadow-sm"
+                        className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-5 shadow-sm"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
                               {card.label}
                             </p>
-                            <p className="mt-2 break-words font-headline text-2xl font-black text-primary">
+                            <p className="mt-2 break-words font-manrope text-2xl font-black text-primary">
                               {card.value}
                             </p>
                             {card.helper ? (
@@ -371,7 +373,7 @@ export default function OrganizerDashboardPage() {
                           <span
                             className={`material-symbols-outlined rounded-2xl p-3 ${
                               card.tone === "primary"
-                                ? "bg-secondary-container text-on-secondary-container"
+                                ? "bg-[#7fa11c] text-white"
                                 : "bg-primary-fixed text-primary"
                             }`}
                           >
@@ -383,8 +385,8 @@ export default function OrganizerDashboardPage() {
                   </section>
 
                   <section className="grid gap-6 xl:grid-cols-[1fr_0.7fr]">
-                    <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
-                      <h2 className="font-headline text-xl font-extrabold text-primary">
+                    <article className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                      <h2 className="font-manrope text-xl font-extrabold text-primary">
                         Performance
                       </h2>
                       <p className="mt-1 text-sm text-on-surface-variant">
@@ -397,7 +399,7 @@ export default function OrganizerDashboardPage() {
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-outline">
                               Occupancy
                             </p>
-                            <p className="font-headline text-lg font-black text-primary">
+                            <p className="font-manrope text-lg font-black text-primary">
                               {dashboard.fillPercent}%
                             </p>
                           </div>
@@ -421,7 +423,7 @@ export default function OrganizerDashboardPage() {
                               payments
                             </span>
                           </div>
-                          <p className="mt-3 font-headline text-2xl font-black">
+                          <p className="mt-3 font-manrope text-2xl font-black">
                             {formatINR(dashboard.revenueEstimate)}
                           </p>
                           <p className="mt-2 text-sm text-white/80">
@@ -431,8 +433,8 @@ export default function OrganizerDashboardPage() {
                       </div>
                     </article>
 
-                    <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
-                      <h2 className="font-headline text-xl font-extrabold text-primary">
+                    <article className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                      <h2 className="font-manrope text-xl font-extrabold text-primary">
                         Quick links
                       </h2>
                       <p className="mt-1 text-sm text-on-surface-variant">
@@ -459,10 +461,10 @@ export default function OrganizerDashboardPage() {
                   </section>
                 </>
               ) : activeView === "trips" ? (
-                <section className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                <section className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h2 className="font-headline text-xl font-extrabold text-primary">
+                      <h2 className="font-manrope text-xl font-extrabold text-primary">
                         My Posted Trips
                       </h2>
                       <p className="mt-1 text-sm text-on-surface-variant">
@@ -494,16 +496,16 @@ export default function OrganizerDashboardPage() {
                           : 0;
                         const statusLabel = String(trip.status || "active").toLowerCase();
                         const statusTone =
-                          badgeStylesByStatus[statusLabel] || "bg-[#e8e4db] text-[#415049]";
+                          badgeStylesByStatus[statusLabel] || "bg-surface-container-high text-on-surface-variant";
 
                         return (
                           <div
                             key={trip._id}
-                            className="grid grid-cols-[1.6fr_1fr_0.8fr_0.9fr] items-center gap-3 border-t border-outline-variant/20 bg-white px-4 py-4"
+                            className="grid grid-cols-[1.6fr_1fr_0.8fr_0.9fr] items-center gap-3 border-t border-outline-variant/20 bg-surface-container px-4 py-4"
                           >
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="truncate font-headline text-base font-extrabold text-primary">
+                                <p className="truncate font-manrope text-base font-extrabold text-primary">
                                   {trip.title}
                                 </p>
                                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${statusTone}`}>
@@ -537,7 +539,7 @@ export default function OrganizerDashboardPage() {
                               </p>
                               <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
                                 <div
-                                  className="h-full rounded-full bg-secondary-container"
+                                  className="h-full rounded-full bg-[#7fa11c]"
                                   style={{ width: `${occupancy}%` }}
                                 />
                               </div>
@@ -561,8 +563,8 @@ export default function OrganizerDashboardPage() {
                         );
                       })
                     ) : (
-                      <div className="bg-white p-10 text-center text-on-surface-variant">
-                        <p className="font-headline text-lg font-extrabold text-primary">
+                      <div className="bg-surface-container p-10 text-center text-on-surface-variant">
+                        <p className="font-manrope text-lg font-extrabold text-primary">
                           No trips yet
                         </p>
                         <p className="mt-2 text-sm">
@@ -574,10 +576,10 @@ export default function OrganizerDashboardPage() {
                 </section>
               ) : (
                 <section className="space-y-6">
-                  <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                  <article className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <h2 className="font-headline text-xl font-extrabold text-primary">
+                        <h2 className="font-manrope text-xl font-extrabold text-primary">
                           Create new post
                         </h2>
                         <p className="mt-1 text-sm text-on-surface-variant">
@@ -686,9 +688,9 @@ export default function OrganizerDashboardPage() {
                     </div>
                   </article>
 
-                  <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
+                  <article className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
                     <div className="mb-4 flex items-center justify-between gap-3">
-                      <h3 className="font-headline text-xl font-extrabold text-primary">
+                      <h3 className="font-manrope text-xl font-extrabold text-primary">
                         Instagram-style Feed
                       </h3>
                       <p className="text-sm font-bold text-on-surface-variant">
@@ -752,3 +754,4 @@ export default function OrganizerDashboardPage() {
     </MainLayout>
   );
 }
+

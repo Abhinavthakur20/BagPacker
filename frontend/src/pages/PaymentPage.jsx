@@ -169,7 +169,7 @@ export default function PaymentPage() {
             tripId: trip._id,
           },
           theme: {
-            color: "#154c37",
+            color: "#012d1d",
           },
           handler: async (response) => {
             try {
@@ -267,10 +267,10 @@ export default function PaymentPage() {
       <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:py-12">
         <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
               Booking Center
             </p>
-            <h1 className="font-headline text-xl font-extrabold text-primary sm:text-2xl">
+            <h1 className="font-manrope text-xl font-extrabold text-primary sm:text-2xl">
               {user?.name ? `${user.name.split(" ")[0]}, finalize your trip` : "Finalize your trip"}
             </h1>
           </div>
@@ -289,22 +289,20 @@ export default function PaymentPage() {
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-2xl bg-[#d8f5e5] p-4 text-sm font-semibold text-[#0f5132]">
+          <div className="rounded-2xl bg-[#012d1d] p-4 text-sm font-semibold text-[#7fa11c]">
             {successMessage}
           </div>
         ) : null}
 
-        {isLoading ? (
-          <LoadingPanel label="Loading booking details..." />
-        ) : null}
+        {isLoading ? <LoadingPanel label="Loading booking details..." variant="page" /> : null}
 
         {!isLoading && trip ? (
           <div className="grid gap-8 lg:grid-cols-[1.25fr_0.85fr]">
-            <section className="rounded-3xl bg-surface-container-lowest p-5 shadow-xl sm:p-8">
+            <section className="rounded-xl bg-surface-container-lowest p-5 shadow-xl sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
                 Selected Trip
               </p>
-              <h2 className="mt-2 break-words font-headline text-xl font-extrabold text-primary sm:text-2xl">
+              <h2 className="mt-2 break-words font-manrope text-xl font-extrabold text-primary sm:text-2xl">
                 {trip.title}
               </h2>
               <div className="mt-4 grid gap-4 text-sm text-on-surface-variant lg:grid-cols-2">
@@ -362,8 +360,8 @@ export default function PaymentPage() {
               ) : null}
             </section>
 
-            <aside className="rounded-3xl bg-primary p-5 text-white shadow-xl sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary-container">
+            <aside className="rounded-xl bg-primary p-5 text-white shadow-xl sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7fa11c]">
                 Booking Summary
               </p>
               <div className="mt-6 space-y-4 border-b border-white/10 pb-6 text-sm">
@@ -386,7 +384,7 @@ export default function PaymentPage() {
                 disabled={
                   isSubmitting || !pickupPointId || trip.availableSeats < 1 || !isRazorpayReady
                 }
-                className="mt-6 w-full rounded-2xl bg-secondary px-5 py-4 font-headline text-lg font-extrabold text-[#2d2000] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 w-full rounded-2xl bg-secondary px-5 py-4 font-manrope text-lg font-extrabold text-[#2d2000] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting
                   ? "Processing..."
@@ -402,13 +400,13 @@ export default function PaymentPage() {
           </div>
         ) : null}
 
-        <section className="rounded-3xl bg-surface-container-lowest p-5 shadow-lg sm:p-8">
+        <section className="rounded-xl bg-surface-container-lowest p-5 shadow-lg sm:p-8">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
                 Live Data
               </p>
-              <h2 className="font-headline text-xl font-extrabold text-primary">
+              <h2 className="font-manrope text-xl font-extrabold text-primary">
                 My Bookings
               </h2>
             </div>
@@ -429,7 +427,7 @@ export default function PaymentPage() {
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <h3 className="font-headline text-lg font-bold text-primary">
+                      <h3 className="font-manrope text-lg font-bold text-primary">
                         {booking.tripId?.title || "Trip"}
                       </h3>
                       <p className="text-sm text-on-surface-variant">
@@ -440,10 +438,10 @@ export default function PaymentPage() {
                       </p>
                     </div>
                     <div className="text-left lg:text-right">
-                      <p className="font-headline text-lg font-black text-primary">
+                      <p className="font-manrope text-lg font-black text-primary">
                         {formatINR(booking.totalAmount)}
                       </p>
-                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
                         {booking.status}
                       </p>
                       {booking.status === "confirmed" ? (
@@ -470,3 +468,4 @@ export default function PaymentPage() {
     </MainLayout>
   );
 }
+

@@ -18,11 +18,11 @@ const formatDateTime = (value) => {
 
 const statusTone = (status) => {
   const s = String(status || "").toLowerCase();
-  if (s === "confirmed") return "bg-[#d8f5e5] text-[#0f5132]";
-  if (s === "pending") return "bg-[#ffe9cd] text-[#9b5600]";
-  if (s === "cancelled") return "bg-[#ffd7d7] text-[#8a1f1f]";
-  if (s === "completed") return "bg-[#d6e7ff] text-[#123a6b]";
-  return "bg-[#e8e4db] text-[#415049]";
+  if (s === "confirmed") return "bg-[#012d1d] text-[#7fa11c]";
+  if (s === "pending") return "bg-[#3d4466] text-[#7fa11c]";
+  if (s === "cancelled") return "bg-error-container text-error";
+  if (s === "completed") return "bg-[#e2e8fb] text-[#012d1d]";
+  return "bg-surface-container-high text-on-surface-variant";
 };
 
 export default function OrganizerTripBuyersPage() {
@@ -67,10 +67,10 @@ export default function OrganizerTripBuyersPage() {
       <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
               Trip Buyers
             </p>
-            <h1 className="mt-1 font-headline text-2xl font-extrabold text-primary">
+            <h1 className="mt-1 font-manrope text-2xl font-extrabold text-primary">
               {trip?.title || "Trip details"}
             </h1>
             <p className="mt-2 text-sm text-on-surface-variant">
@@ -100,15 +100,15 @@ export default function OrganizerTripBuyersPage() {
           </div>
         ) : null}
 
-        {isLoading ? <LoadingPanel label="Loading buyers..." /> : null}
+        {isLoading ? <LoadingPanel label="Loading buyers..." variant="list" /> : null}
 
         {!isLoading && payload && summary ? (
           <section className="grid gap-4 lg:grid-cols-12">
-            <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm lg:col-span-4">
+            <article className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm lg:col-span-4">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-outline">
                 Occupancy
               </p>
-              <p className="mt-2 font-headline text-3xl font-black text-primary">
+              <p className="mt-2 font-manrope text-3xl font-black text-primary">
                 {occupancy}%
               </p>
               <p className="mt-2 text-sm font-semibold text-on-surface-variant">
@@ -126,7 +126,7 @@ export default function OrganizerTripBuyersPage() {
                   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-outline">
                     Bookings
                   </p>
-                  <p className="mt-2 font-headline text-xl font-black text-primary">
+                  <p className="mt-2 font-manrope text-xl font-black text-primary">
                     {safeNumber(summary.bookingsCount)}
                   </p>
                 </div>
@@ -134,17 +134,17 @@ export default function OrganizerTripBuyersPage() {
                   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
                     Revenue (paid)
                   </p>
-                  <p className="mt-2 font-headline text-xl font-black">
+                  <p className="mt-2 font-manrope text-xl font-black">
                     {formatINR(safeNumber(summary.revenueTotal))}
                   </p>
                 </div>
               </div>
             </article>
 
-            <article className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm lg:col-span-8">
+            <article className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm lg:col-span-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-headline text-xl font-extrabold text-primary">
+                  <h2 className="font-manrope text-xl font-extrabold text-primary">
                     Buyers & Bookings
                   </h2>
                   <p className="mt-1 text-sm text-on-surface-variant">
@@ -186,11 +186,11 @@ export default function OrganizerTripBuyersPage() {
                     return (
                       <div
                         key={String(booking._id)}
-                        className="grid grid-cols-[1.2fr_1fr_0.7fr_0.9fr] gap-3 border-t border-outline-variant/20 bg-white px-4 py-4"
+                        className="grid grid-cols-[1.2fr_1fr_0.7fr_0.9fr] gap-3 border-t border-outline-variant/20 bg-surface-container px-4 py-4"
                       >
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate font-headline text-base font-extrabold text-primary">
+                            <p className="truncate font-manrope text-base font-extrabold text-primary">
                               {traveler.name || "Traveler"}
                             </p>
                             <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${statusTone(bookingStatus)}`}>
@@ -227,7 +227,7 @@ export default function OrganizerTripBuyersPage() {
                           <p className="text-sm font-black text-primary">
                             {formatINR(safeNumber(booking.totalAmount))}
                           </p>
-                          <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-secondary">
+                          <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-[#7fa11c]">
                             {paymentLabel}
                           </p>
                           <p className="mt-1 text-xs text-outline">
@@ -238,7 +238,7 @@ export default function OrganizerTripBuyersPage() {
                     );
                   })
                 ) : (
-                  <div className="bg-white p-10 text-center text-on-surface-variant">
+                  <div className="bg-surface-container p-10 text-center text-on-surface-variant">
                     No bookings found for this trip.
                   </div>
                 )}
@@ -250,4 +250,5 @@ export default function OrganizerTripBuyersPage() {
     </MainLayout>
   );
 }
+
 

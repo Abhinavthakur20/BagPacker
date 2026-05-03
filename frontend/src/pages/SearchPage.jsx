@@ -351,7 +351,13 @@ export default function SearchPage() {
             </div>
           ) : null}
 
-          {isLoading ? <LoadingPanel label="Loading trips..." className="rounded-2xl !p-8" /> : null}
+          {isLoading ? (
+            <LoadingPanel
+              label="Loading trips..."
+              variant="grid"
+              className="rounded-2xl !p-8"
+            />
+          ) : null}
 
           {!isLoading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
