@@ -3,6 +3,7 @@ const { body, param, query } = require("express-validator");
 const {
   createTrip,
   deleteTrip,
+  getCitySuggestions,
   getTripById,
   getTrips,
   updateTrip,
@@ -29,6 +30,22 @@ const isNonEmptyArrayPayload = (value) => {
 
   return false;
 };
+
+router.get(
+  "/cities/suggestions",
+  [
+    query("q")
+      .optional()
+      .isString()
+      .withMessage("q must be a string"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 20 })
+      .withMessage("limit must be between 1 and 20"),
+    validateRequest,
+  ],
+  getCitySuggestions,
+);
 
 router.get(
   "/",

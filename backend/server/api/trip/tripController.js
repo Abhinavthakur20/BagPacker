@@ -67,6 +67,96 @@ const parseJsonArray = (value) => {
   return null;
 };
 
+const normalizeCityName = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
+
+const getCitySuggestions = async (req, res) => {
+  try {
+    const query = normalizeCityName(req.query.q || "");
+    const limit = Math.min(20, Math.max(1, Number(req.query.limit || 10)));
+    if (!query) {
+      return res.status(200).json({
+        items: [],
+        meta: { query, limit },
+      });
+    }
+
+    const osmUrl = new URL("https://nominatim.openstreetmap.org/search");
+    osmUrl.searchParams.set("q", query);
+    osmUrl.searchParams.set("format", "jsonv2");
+    osmUrl.searchParams.set("addressdetails", "1");
+    osmUrl.searchParams.set("limit", String(Math.min(50, limit * 3)));
+    osmUrl.searchParams.set("accept-language", "en");
+
+    if (process.env.NOMINATIM_EMAIL) {
+      osmUrl.searchParams.set("email", process.env.NOMINATIM_EMAIL);
+    }
+
+    const response = await fetch(osmUrl.toString(), {
+      headers: {
+        "User-Agent":
+          process.env.NOMINATIM_USER_AGENT ||
+          "BagPacker/1.0 (OpenStreetMap city autocomplete)",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Nominatim request failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const rawItems = Array.isArray(payload) ? payload : [];
+    const deduped = [];
+    const seen = new Set();
+
+    for (const item of rawItems) {
+      const address = item?.address || {};
+      const cityCandidate =
+        address.city ||
+        address.town ||
+        address.village ||
+        address.municipality ||
+        address.county ||
+        address.state_district ||
+        item?.name ||
+        "";
+      const normalized = normalizeCityName(cityCandidate);
+      if (!normalized) {
+        continue;
+      }
+
+      const key = normalized.toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      deduped.push(normalized);
+
+      if (deduped.length >= limit) {
+        break;
+      }
+    }
+
+    return res.status(200).json({
+      items: deduped,
+      meta: {
+        query,
+        limit,
+        source: "openstreetmap-nominatim",
+      },
+    });
+  } catch (error) {
+    return res.status(200).json({
+      items: [],
+      meta: {
+        query: normalizeCityName(req.query.q || ""),
+        limit: Math.min(20, Math.max(1, Number(req.query.limit || 10))),
+        source: "openstreetmap-nominatim",
+      },
+      warning: error.message,
+    });
+  }
+};
+
 const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
   if (parsedItinerary !== undefined) {
     if (!Array.isArray(parsedItinerary)) {
@@ -463,6 +553,7 @@ const deleteTrip = async (req, res) => {
 
 module.exports = {
   getTrips,
+  getCitySuggestions,
   getTripById,
   createTrip,
   updateTrip,

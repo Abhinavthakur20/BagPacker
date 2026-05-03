@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
+import CityAutocompleteInput from "../components/ui/CityAutocompleteInput";
 import TravelCopilotPanel from "../components/TravelCopilotPanel";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
@@ -564,7 +565,7 @@ export default function CompanionPage() {
               <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
                 trip_origin
               </span>
-              <input
+              <CityAutocompleteInput
                 value={source}
                 onChange={(event) => setSource(event.target.value)}
                 className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
@@ -575,7 +576,7 @@ export default function CompanionPage() {
               <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
                 near_me
               </span>
-              <input
+              <CityAutocompleteInput
                 value={destination}
                 onChange={(event) => setDestination(event.target.value)}
                 className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
@@ -838,13 +839,13 @@ export default function CompanionPage() {
                 Create Personal Trip Post
               </h2>
               <div className="mt-3 space-y-2">
-                <input
+                <CityAutocompleteInput
                   value={postSource}
                   onChange={(event) => setPostSource(event.target.value)}
                   className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
                   placeholder="Source city"
                 />
-                <input
+                <CityAutocompleteInput
                   value={postDestination}
                   onChange={(event) => setPostDestination(event.target.value)}
                   className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"

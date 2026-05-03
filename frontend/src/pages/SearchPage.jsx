@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
+import CityAutocompleteInput from "../components/ui/CityAutocompleteInput";
 import { formatINR } from "../data/mockData";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
@@ -258,7 +259,7 @@ export default function SearchPage() {
             <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
               From
             </label>
-            <input
+            <CityAutocompleteInput
               value={fromCity}
               onChange={(e) => setFromCity(e.target.value)}
               placeholder="Source city"
@@ -270,7 +271,7 @@ export default function SearchPage() {
             <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
               To
             </label>
-            <input
+            <CityAutocompleteInput
               value={toCity}
               onChange={(e) => setToCity(e.target.value)}
               placeholder="Destination city"
@@ -515,7 +516,7 @@ export default function SearchPage() {
                 <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
                   From
                 </label>
-                <input
+                <CityAutocompleteInput
                   value={fromCity}
                   onChange={(e) => setFromCity(e.target.value)}
                   placeholder="Source city"
@@ -526,7 +527,7 @@ export default function SearchPage() {
                 <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
                   To
                 </label>
-                <input
+                <CityAutocompleteInput
                   value={toCity}
                   onChange={(e) => setToCity(e.target.value)}
                   placeholder="Destination city"

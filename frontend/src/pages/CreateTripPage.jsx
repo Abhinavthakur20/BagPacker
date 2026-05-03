@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 import LoadingPanel from "../components/ui/LoadingPanel";
+import CityAutocompleteInput from "../components/ui/CityAutocompleteInput";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -711,13 +712,13 @@ export default function CreateTripPage() {
                     value={tripForm.title}
                     onChange={(event) => updateTripField("title", event.target.value)}
                   />
-                  <input
+                  <CityAutocompleteInput
                     className="rounded-xl bg-[#eeebe4] px-4 py-3"
                     placeholder="Source city"
                     value={tripForm.source}
                     onChange={(event) => updateTripField("source", event.target.value)}
                   />
-                  <input
+                  <CityAutocompleteInput
                     className="rounded-xl bg-[#eeebe4] px-4 py-3"
                     placeholder="Destination city"
                     value={tripForm.destination}
