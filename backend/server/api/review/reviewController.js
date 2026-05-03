@@ -16,11 +16,16 @@ const createReview = async (req, res) => {
     const booking = await Booking.findOne({
       _id: bookingId,
       travelerId: req.user._id,
-      status: "completed",
-    });
+      status: { $in: ["confirmed", "completed"] },
+    }).populate("tripId");
 
     if (!booking) {
-      return res.status(400).json({ message: "Only completed bookings can be reviewed" });
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    const tripEndDate = booking.tripId?.endDate;
+    if (booking.status !== "completed" && (!tripEndDate || new Date(tripEndDate) >= new Date())) {
+      return res.status(400).json({ message: "You can only review trips that have ended" });
     }
 
     // Verify revieweeId is the organizer of this trip

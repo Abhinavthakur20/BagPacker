@@ -35,6 +35,8 @@ export default function TripDetailPage() {
   const [pickupPointId, setPickupPointId] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [openDay, setOpenDay] = useState(1);
+  const [reviews, setReviews] = useState([]);
+  const [isReviewsLoading, setIsReviewsLoading] = useState(false);
 
   useEffect(() => {
     const loadTrip = async () => {
@@ -56,6 +58,23 @@ export default function TripDetailPage() {
 
     loadTrip();
   }, [id]);
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (!tripDetails?.organizerId?.userId?._id) return;
+      try {
+        setIsReviewsLoading(true);
+        const response = await api.get(`/reviews/user/${tripDetails.organizerId.userId._id}`);
+        setReviews(response.items || []);
+      } catch (err) {
+        console.error("Failed to load reviews:", err);
+      } finally {
+        setIsReviewsLoading(false);
+      }
+    };
+
+    loadReviews();
+  }, [tripDetails]);
 
   const trip = tripDetails;
   const tripImages = useMemo(() => {
@@ -255,10 +274,38 @@ export default function TripDetailPage() {
                 className="h-18 w-18 rounded-full border-4 border-surface-container-highest object-cover"
               />
               <div>
-                <h3 className="font-headline text-lg font-bold text-primary">
-                  {trip.organizerId?.businessName || "Verified Organizer"}
-                </h3>
-                <p className="text-sm text-outline">Trip Organizer</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-headline text-lg font-bold text-primary">
+                    {trip.organizerId?.businessName || "Verified Organizer"}
+                  </h3>
+                  {trip.organizerId?.trustScore >= 90 ? (
+                    <span className="flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-secondary border border-secondary/20">
+                      <span className="material-symbols-outlined text-[10px]">workspace_premium</span>
+                      Elite
+                    </span>
+                  ) : trip.organizerId?.trustScore >= 75 ? (
+                    <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary border border-primary/20">
+                      <span className="material-symbols-outlined text-[10px]">verified</span>
+                      Pro
+                    </span>
+                  ) : trip.organizerId?.trustScore >= 50 ? (
+                    <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-blue-500 border border-blue-500/20">
+                      Rising
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 rounded-full bg-outline-variant/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-outline border border-outline-variant/20">
+                      Newcomer
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex items-center gap-3">
+                  <p className="text-sm text-outline">Trip Organizer</p>
+                  <div className="h-1 w-1 rounded-full bg-outline-variant/40" />
+                  <p className="flex items-center gap-1 text-[11px] font-bold text-secondary">
+                    <span className="material-symbols-outlined text-xs">verified_user</span>
+                    {trip.organizerId?.trustScore}% Trust Score
+                  </p>
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -390,6 +437,77 @@ export default function TripDetailPage() {
                 : null}
             </div>
           </article>
+
+          {/* Reviews Section */}
+          <section className="mt-12">
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <h2 className="font-headline text-2xl font-extrabold text-primary">
+                  Traveler Reviews
+                </h2>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  Hear from the crew who traveled with this organizer before.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low px-4 py-3 text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
+                  Total Reviews
+                </p>
+                <p className="mt-1 font-headline text-lg font-black text-primary">
+                  {reviews.length}
+                </p>
+              </div>
+            </div>
+
+            {isReviewsLoading ? (
+              <div className="py-10 text-center text-outline">Loading reviews...</div>
+            ) : reviews.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                {reviews.map((review) => (
+                  <article
+                    key={review._id}
+                    className="rounded-3xl border border-outline-variant/10 bg-surface-container-low p-6 transition hover:bg-surface-container-highest"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
+                          {review.reviewerId?.name?.charAt(0) || "T"}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-primary">
+                            {review.reviewerId?.name || "Verified Traveler"}
+                          </p>
+                          <p className="text-[10px] text-outline">
+                            {new Date(review.createdAt).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-0.5 text-secondary">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className="material-symbols-outlined text-sm">
+                            {i < review.rating ? "star" : "star_outline"}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
+                        "{review.comment}"
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-outline-variant/50 p-12 text-center text-on-surface-variant">
+                No reviews yet for this organizer. Be the first to share your experience!
+              </div>
+            )}
+          </section>
         </div>
 
         <aside className="lg:col-span-4">

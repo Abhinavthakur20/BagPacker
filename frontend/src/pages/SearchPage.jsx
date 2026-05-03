@@ -9,7 +9,7 @@ import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 import { setSearchTripsCache } from "../store/cacheSlice";
 
-const TRIPS_PER_PAGE = 5;
+const TRIPS_PER_PAGE = 6;
 
 const getTripDuration = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -356,12 +356,12 @@ export default function SearchPage() {
             <LoadingPanel
               label="Loading trips..."
               variant="grid"
-              className="rounded-2xl !p-8"
+              className="rounded-2xl !p-4 md:!p-8"
             />
           ) : null}
 
           {!isLoading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {cards.map((trip, index) => {
                 const imageCount = trip.images?.length || 1;
                 const activeImageIndex =
@@ -370,9 +370,9 @@ export default function SearchPage() {
                 return (
                   <article
                     key={trip.id}
-                    className="group overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_24px_rgba(28,28,24,0.08)] transition hover:-translate-y-1"
+                    className="group overflow-hidden rounded-2xl md:rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_4px_12px_rgba(28,28,24,0.06)] md:shadow-[0_10px_24px_rgba(28,28,24,0.08)] transition hover:-translate-y-1"
                   >
-                    <div className="relative h-56 w-full overflow-hidden">
+                    <div className="relative h-32 sm:h-40 md:h-56 w-full overflow-hidden">
                       <img
                         src={trip.images[activeImageIndex] || campfireImage}
                         alt={trip.title}
@@ -397,35 +397,35 @@ export default function SearchPage() {
                       ) : null}
                     </div>
 
-                    <div className="space-y-3 p-4">
+                    <div className="space-y-1.5 md:space-y-3 p-2.5 md:p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <h2 className="line-clamp-2 break-words font-headline text-lg font-bold leading-tight text-primary">
+                        <h2 className="line-clamp-2 break-words font-headline text-xs sm:text-sm md:text-lg font-bold leading-tight text-primary">
                           {trip.title}
                         </h2>
-                        <span className="shrink-0 rounded-full bg-primary-fixed px-2 py-1 text-[11px] font-bold text-primary">
+                        <span className="shrink-0 rounded-full bg-primary-fixed px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[11px] font-bold text-primary">
                           {trip.duration}
                         </span>
                       </div>
 
-                      <p className="text-sm text-on-surface-variant">{trip.route}</p>
+                      <p className="hidden md:block text-sm text-on-surface-variant">{trip.route}</p>
 
-                      <div className="flex items-center justify-between text-sm">
-                        <p className="font-headline text-xl font-black text-primary">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-sm">
+                        <p className="font-headline text-sm sm:text-lg md:text-xl font-black text-primary">
                           {formatINR(trip.price)}
                         </p>
-                        <p className="text-on-surface-variant">{trip.seatsLeft} seats left</p>
+                        <p className="text-[10px] md:text-sm text-on-surface-variant">{trip.seatsLeft} left</p>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-outline-variant/20 pt-3">
-                        <p className="text-xs text-on-surface-variant">
+                      <div className="flex items-center justify-between border-t border-outline-variant/20 pt-2 md:pt-3">
+                        <p className="text-[9px] md:text-xs text-on-surface-variant">
                           by <span className="font-bold text-primary">{trip.organizer}</span>
                         </p>
                         <Link
                           to={`/trips/${trip.id}`}
-                          className="inline-flex items-center gap-1 text-sm font-bold text-secondary"
+                          className="inline-flex items-center gap-0.5 md:gap-1 text-[10px] md:text-sm font-bold text-secondary"
                         >
                           View
-                          <span className="material-symbols-outlined text-base">
+                          <span className="material-symbols-outlined text-[14px] md:text-base">
                             arrow_forward
                           </span>
                         </Link>

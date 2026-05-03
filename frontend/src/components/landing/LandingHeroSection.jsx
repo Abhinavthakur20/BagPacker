@@ -61,7 +61,7 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
+      <div className="mx-auto grid max-w-[1600px] min-h-[calc(100vh-4rem)] lg:max-h-[850px] lg:grid-cols-2">
         <div className="flex items-center px-5 py-10 sm:px-8 lg:px-14 xl:px-24">
           <div className="w-full max-w-2xl">
 
@@ -161,7 +161,8 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
           </div>
         </div>
 
-        <div className="relative min-h-[430px] overflow-hidden bg-primary lg:min-h-[calc(100vh-4rem)]">
+        <div className="relative min-h-[430px] lg:h-full lg:p-6">
+          <div className="relative h-full w-full overflow-hidden lg:rounded-[2.5rem] bg-primary shadow-2xl">
           {heroSlides.map((slide, index) => (
             <img
               key={slide.image}
@@ -253,6 +254,7 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
   );
 }

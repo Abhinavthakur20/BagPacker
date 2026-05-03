@@ -163,7 +163,31 @@ export default function PublicProfilePage() {
                   <div className="flex flex-wrap items-center gap-6 text-sm">
                     <p><span className="font-black text-primary">{postsCount}</span> posts</p>
                     <p><span className="font-black text-primary">{followersCount}</span> followers</p>
-                    <p><span className="font-black text-primary">{organizerProfile.userId?.trustScore ?? 0}</span> trust</p>
+                    <p className="flex items-center gap-1.5 font-black text-secondary">
+                      <span className="material-symbols-outlined text-sm">verified_user</span>
+                      {organizerProfile.userId?.trustScore ?? 0}% Trust
+                    </p>
+                  </div>
+                  <div className="mt-4 flex items-center gap-3">
+                    {organizerProfile.userId?.trustScore >= 90 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-secondary/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-secondary border border-secondary/20">
+                        <span className="material-symbols-outlined text-sm">workspace_premium</span>
+                        Elite Organizer
+                      </span>
+                    ) : organizerProfile.userId?.trustScore >= 75 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary border border-primary/20">
+                        <span className="material-symbols-outlined text-sm">verified</span>
+                        Pro Organizer
+                      </span>
+                    ) : organizerProfile.userId?.trustScore >= 50 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-500 border border-blue-500/20">
+                        Rising Star
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full bg-outline-variant/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-outline border border-outline-variant/20">
+                        Newcomer
+                      </span>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-primary">
@@ -255,22 +279,44 @@ export default function PublicProfilePage() {
                   </div>
                 )
               ) : (
-                <div className="space-y-3">
+                <div className="grid gap-4">
                   {reviews.length ? (
                     reviews.map((review) => (
-                      <div key={review._id} className="rounded-2xl bg-surface-container-low p-4">
+                      <div key={review._id} className="rounded-3xl border border-outline-variant/10 bg-surface-container-low p-6 transition hover:bg-surface-container-highest">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="font-bold text-primary">{review.reviewerId?.name || "Traveler"}</p>
-                          <p className="text-sm font-bold text-[#7fa11c]">{review.rating}/5</p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
+                              {review.reviewerId?.name?.charAt(0) || "T"}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-primary">{review.reviewerId?.name || "Verified Traveler"}</p>
+                              <p className="text-[10px] text-outline">
+                                {new Date(review.createdAt).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-0.5 text-secondary">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className="material-symbols-outlined text-xs">
+                                {i < review.rating ? "star" : "star_outline"}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <p className="mt-2 text-sm text-on-surface-variant">
-                          {review.comment || "No comment shared."}
-                        </p>
+                        {review.comment && (
+                          <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
+                            "{review.comment}"
+                          </p>
+                        )}
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-2xl bg-surface-container-low p-4 text-on-surface-variant">
-                      No public reviews yet.
+                    <div className="rounded-3xl border border-dashed border-outline-variant/50 p-12 text-center text-on-surface-variant">
+                      This organizer hasn't received any public reviews yet.
                     </div>
                   )}
                 </div>
@@ -349,4 +395,3 @@ export default function PublicProfilePage() {
     </MainLayout>
   );
 }
-

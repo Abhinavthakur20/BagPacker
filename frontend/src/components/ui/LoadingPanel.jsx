@@ -27,13 +27,13 @@ export default function LoadingPanel({
 
     if (variant === "grid") {
       return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((tile) => (
-            <div key={tile} className="overflow-hidden rounded-2xl bg-white/45 p-3">
-              <div className="skeleton-block h-28 w-full rounded-xl" />
-              <div className="mt-3 space-y-2">
-                <div className="skeleton-block h-3.5 w-4/5 rounded-full" />
-                <div className="skeleton-block h-3 w-1/2 rounded-full" />
+            <div key={tile} className="overflow-hidden rounded-xl md:rounded-2xl bg-white/45 p-2 md:p-3">
+              <div className="skeleton-block h-20 sm:h-28 w-full rounded-lg md:rounded-xl" />
+              <div className="mt-2 md:mt-3 space-y-1.5 md:space-y-2">
+                <div className="skeleton-block h-2.5 md:h-3.5 w-4/5 rounded-full" />
+                <div className="skeleton-block h-2 md:h-3 w-1/2 rounded-full" />
               </div>
             </div>
           ))}
