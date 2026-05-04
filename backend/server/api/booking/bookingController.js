@@ -57,6 +57,15 @@ const getTicketCode = (bookingDoc) => {
   return `BP-${sourceChunk || "TR"}${destinationChunk || "IP"}-${idChunk || "000000"}`;
 };
 
+const populateBookingForTraveler = (query) =>
+  query.populate({
+    path: "tripId",
+    populate: {
+      path: "organizerId",
+      select: "userId businessName",
+    },
+  }).populate("pickupPointId");
+
 const buildBookingEmail = ({ travelerName, booking }) => {
   const ticketCode = getTicketCode(booking);
   const tripTitle = booking?.tripId?.title || "Trip";
@@ -336,9 +345,7 @@ const verifyBookingPayment = async (req, res) => {
 
     emitSeatUpdate(updatedTrip._id, updatedTrip.availableSeats);
 
-    const populatedBooking = await Booking.findById(booking._id)
-      .populate("tripId")
-      .populate("pickupPointId");
+    const populatedBooking = await populateBookingForTraveler(Booking.findById(booking._id));
 
     const travelerEmail = String(req.user?.email || "").trim();
     const travelerName = String(req.user?.name || "Traveler").trim();
@@ -374,12 +381,9 @@ const getMyBookings = async (req, res) => {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
     const skip = (page - 1) * limit;
 
-    const bookings = await Booking.find({ travelerId: req.user._id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("tripId")
-      .populate("pickupPointId");
+    const bookings = await populateBookingForTraveler(
+      Booking.find({ travelerId: req.user._id }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    );
 
     const total = await Booking.countDocuments({ travelerId: req.user._id });
     return res.status(200).json({

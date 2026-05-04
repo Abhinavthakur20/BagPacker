@@ -2,22 +2,23 @@ const mongoose = require("mongoose");
 const Booking = require("../booking/bookingModel");
 const Notification = require("../notification/notificationModel");
 const Review = require("./reviewModel");
-const Trip = require("../trip/tripModel");
 const User = require("../user/userModel");
 
 const createReview = async (req, res) => {
   try {
     const { revieweeId, bookingId, rating, comment } = req.body;
 
-    if (String(revieweeId) === String(req.user._id)) {
-      return res.status(400).json({ message: "You cannot review yourself" });
-    }
-
     const booking = await Booking.findOne({
       _id: bookingId,
       travelerId: req.user._id,
       status: { $in: ["confirmed", "completed"] },
-    }).populate("tripId");
+    }).populate({
+      path: "tripId",
+      populate: {
+        path: "organizerId",
+        select: "userId",
+      },
+    });
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -28,10 +29,16 @@ const createReview = async (req, res) => {
       return res.status(400).json({ message: "You can only review trips that have ended" });
     }
 
-    // Verify revieweeId is the organizer of this trip
-    const trip = await Trip.findById(booking.tripId).populate("organizerId", "userId");
-    if (!trip || String(trip.organizerId?.userId) !== String(revieweeId)) {
+    // Reviews are stored against the organizer's User id, not the Organizer profile id.
+    const organizerProfileId = booking.tripId?.organizerId?._id || booking.tripId?.organizerId;
+    const organizerUserId = booking.tripId?.organizerId?.userId;
+    const isOrganizerUserId = String(organizerUserId) === String(revieweeId);
+    const isOrganizerProfileId = String(organizerProfileId) === String(revieweeId);
+    if (!organizerUserId || (!isOrganizerUserId && !isOrganizerProfileId)) {
       return res.status(400).json({ message: "Invalid reviewee for this booking" });
+    }
+    if (String(organizerUserId) === String(req.user._id)) {
+      return res.status(400).json({ message: "You cannot review yourself" });
     }
 
     const existingReview = await Review.findOne({
@@ -45,7 +52,7 @@ const createReview = async (req, res) => {
 
     const review = await Review.create({
       reviewerId: req.user._id,
-      revieweeId,
+      revieweeId: organizerUserId,
       bookingId,
       rating,
       comment: comment || null,
@@ -54,7 +61,7 @@ const createReview = async (req, res) => {
     const [reviewStats] = await Review.aggregate([
       {
         $match: {
-          revieweeId: new mongoose.Types.ObjectId(revieweeId),
+          revieweeId: new mongoose.Types.ObjectId(organizerUserId),
         },
       },
       {
@@ -67,10 +74,10 @@ const createReview = async (req, res) => {
 
     const trustScore = reviewStats ? Number(((reviewStats.averageRating / 5) * 100).toFixed(2)) : 0;
 
-    await User.findByIdAndUpdate(revieweeId, { trustScore });
+    await User.findByIdAndUpdate(organizerUserId, { trustScore });
 
     await Notification.create({
-      userId: revieweeId,
+      userId: organizerUserId,
       type: "review_received",
       message: `${req.user.name} left you a new review.`,
     });

@@ -5,6 +5,7 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import { api } from "../lib/api";
+import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { setUser } from "../store/authSlice";
 
 const formatDateLabel = (value) => {
@@ -34,6 +35,12 @@ const getTicketCode = (booking) => {
   ).slice(0, 2)}`.replace(/[^a-zA-Z0-9]/g, "");
   const datePart = formatDateLabel(booking?.tripId?.startDate).replace(/\s/g, "").toUpperCase();
   return `BP-${routeKey || "TRIP"}-${datePart || "DATE"}-${bookingKey.slice(-6) || "000000"}`;
+};
+
+const getOrganizerUserId = (booking) => {
+  const organizer = booking?.tripId?.organizerId;
+  const userId = organizer?.userId;
+  return userId?._id || userId || organizer?._id || organizer || null;
 };
 
 export default function TravelerDashboardPage() {
@@ -154,9 +161,13 @@ export default function TravelerDashboardPage() {
     if (!selectedBookingForReview) return;
     try {
       setIsReviewSubmitting(true);
+      const revieweeId = getOrganizerUserId(selectedBookingForReview);
+      if (!revieweeId) {
+        throw new Error("Organizer details are still loading. Please refresh and try again.");
+      }
       await api.post("/reviews", {
         bookingId: selectedBookingForReview._id,
-        revieweeId: selectedBookingForReview.tripId?.organizerId?.userId || selectedBookingForReview.tripId?.organizerId,
+        revieweeId,
         rating: reviewForm.rating,
         comment: reviewForm.comment,
       });
@@ -763,4 +774,3 @@ export default function TravelerDashboardPage() {
     </MainLayout>
   );
 }
-
