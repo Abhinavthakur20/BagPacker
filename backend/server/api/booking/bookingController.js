@@ -174,10 +174,13 @@ const getBookingTripAndPickup = async ({ tripId, pickupPointId }) => {
   }
 
   const trip = await Trip.findOne({ _id: tripId, status: "active" }).select(
-    "organizerId title pricePerPerson availableSeats status",
+    "organizerId title pricePerPerson availableSeats status paymentEnabled",
   );
   if (!trip) {
     throw new Error("Trip is unavailable");
+  }
+  if (!trip.paymentEnabled) {
+    throw new Error("Payments are disabled for this trip");
   }
 
   return { trip, pickupPoint };
@@ -267,6 +270,9 @@ const initiateBookingPayment = async (req, res) => {
       keyId: String(process.env.RAZORPAY_KEY_ID || "").trim(),
     });
   } catch (error) {
+    if (error.message === "Payments are disabled for this trip") {
+      return res.status(400).json({ message: error.message });
+    }
     return res.status(500).json({ message: error.message });
   }
 };

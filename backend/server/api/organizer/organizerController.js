@@ -105,7 +105,7 @@ const getMyOrganizerTrips = async (req, res) => {
 
     const trips = await Trip.find({ organizerId: organizer._id })
       .select(
-        "title source destination startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
+        "title source destination transportType paymentEnabled startedAt startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
       )
       .sort({ startDate: 1, createdAt: -1 })
       .skip((page - 1) * limit)

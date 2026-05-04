@@ -30,6 +30,12 @@ const tripSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    transportType: {
+      type: String,
+      enum: ["bus", "car", "tempo_traveller", "train", "flight", "other"],
+      default: "bus",
+      index: true,
+    },
     startDate: {
       type: Date,
       required: true,
@@ -59,6 +65,16 @@ const tripSchema = new mongoose.Schema(
       enum: ["active", "completed", "cancelled"],
       default: "active",
     },
+    paymentEnabled: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    startedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
     images: {
       type: [String],
       default: [],
@@ -69,6 +85,6 @@ const tripSchema = new mongoose.Schema(
 
 tripSchema.index({ status: 1, startDate: 1, createdAt: -1 });
 tripSchema.index({ organizerId: 1, status: 1, createdAt: -1 });
-tripSchema.index({ source: 1, destination: 1, startDate: 1, status: 1 });
+tripSchema.index({ source: 1, destination: 1, startDate: 1, status: 1, transportType: 1 });
 
 module.exports = mongoose.models.Trip || mongoose.model("Trip", tripSchema);

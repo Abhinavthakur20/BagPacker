@@ -16,10 +16,12 @@ const initialTripForm = {
   title: "",
   source: "",
   destination: "",
+  transportType: "bus",
   startDate: "",
   endDate: "",
   totalSeats: 1,
   pricePerPerson: 0,
+  paymentEnabled: true,
   description: "",
   status: "active",
 };
@@ -127,10 +129,12 @@ export default function CreateTripPage() {
             title: tripDetails?.title || "",
             source: tripDetails?.source || "",
             destination: tripDetails?.destination || "",
+            transportType: tripDetails?.transportType || "bus",
             startDate: formatDateInput(tripDetails?.startDate),
             endDate: formatDateInput(tripDetails?.endDate),
             totalSeats: Number(tripDetails?.totalSeats || 1),
             pricePerPerson: Number(tripDetails?.pricePerPerson || 0),
+            paymentEnabled: tripDetails?.paymentEnabled !== false,
             description: tripDetails?.description || "",
             status: tripDetails?.status || "active",
           });
@@ -552,10 +556,12 @@ export default function CreateTripPage() {
           title: tripForm.title,
           source: tripForm.source,
           destination: tripForm.destination,
+          transportType: tripForm.transportType,
           startDate: tripForm.startDate,
           endDate: tripForm.endDate,
           totalSeats: Number(tripForm.totalSeats),
           pricePerPerson: Number(tripForm.pricePerPerson),
+          paymentEnabled: Boolean(tripForm.paymentEnabled),
           description: tripForm.description,
           status: tripForm.status,
           itinerary: normalizedItinerary,
@@ -566,10 +572,12 @@ export default function CreateTripPage() {
         payload.append("title", tripForm.title);
         payload.append("source", tripForm.source);
         payload.append("destination", tripForm.destination);
+        payload.append("transportType", tripForm.transportType);
         payload.append("startDate", tripForm.startDate);
         payload.append("endDate", tripForm.endDate);
         payload.append("totalSeats", String(Number(tripForm.totalSeats)));
         payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
+        payload.append("paymentEnabled", String(Boolean(tripForm.paymentEnabled)));
         payload.append("description", tripForm.description);
         payload.append("itinerary", JSON.stringify(normalizedItinerary));
         payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
@@ -724,6 +732,27 @@ export default function CreateTripPage() {
                     value={tripForm.destination}
                     onChange={(event) => updateTripField("destination", event.target.value)}
                   />
+                  <select
+                    className="rounded-xl bg-[#eeebe4] px-4 py-3"
+                    value={tripForm.transportType}
+                    onChange={(event) => updateTripField("transportType", event.target.value)}
+                  >
+                    <option value="bus">Bus</option>
+                    <option value="car">Car</option>
+                    <option value="tempo_traveller">Tempo Traveller</option>
+                    <option value="train">Train</option>
+                    <option value="flight">Flight</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <label className="flex items-center justify-between rounded-xl bg-[#eeebe4] px-4 py-3 text-sm font-semibold text-on-surface">
+                    <span>Accept online payments</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(tripForm.paymentEnabled)}
+                      onChange={(event) => updateTripField("paymentEnabled", event.target.checked)}
+                      className="h-4 w-4 accent-[#124f38]"
+                    />
+                  </label>
                   {!isEditMode ? (
                     <button
                       type="button"
@@ -1004,6 +1033,8 @@ export default function CreateTripPage() {
                 <div className="mt-6 space-y-2 text-sm text-[#d3efe0]">
                   <p>Price: {Number(tripForm.pricePerPerson) > 0 ? `INR ${tripForm.pricePerPerson}` : "INR --"}</p>
                   <p>Seats: {tripForm.totalSeats || 0}</p>
+                  <p>Transport: {tripForm.transportType || "bus"}</p>
+                  <p>Payments: {tripForm.paymentEnabled ? "Enabled" : "Disabled"}</p>
                   <p>Status: {tripForm.status || "active"}</p>
                   <p>Itinerary days: {itinerary.length}</p>
                   <p>Pickup points: {pickupPoints.length}</p>

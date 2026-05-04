@@ -34,31 +34,37 @@ export default function OrganizerDashboardPage() {
   const [deletingPostId, setDeletingPostId] = useState("");
   const [selectedComposerPreviewIndex, setSelectedComposerPreviewIndex] = useState(0);
 
+  const loadDashboard = async () => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const [organizerProfile, organizerTrips, organizerPosts] = await Promise.all([
+        api.get("/organizers/me"),
+        api.get("/organizers/me/trips"),
+        api.get("/organizers/me/posts"),
+      ]);
+      setOrganizer(organizerProfile);
+      setTrips(
+        Array.isArray(organizerTrips?.items)
+          ? organizerTrips.items
+          : Array.isArray(organizerTrips)
+            ? organizerTrips
+            : [],
+      );
+      setPosts(Array.isArray(organizerPosts) ? organizerPosts : []);
+    } catch (fetchError) {
+      setError(fetchError.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadDashboard = async () => {
-      if (!isLoggedIn) {
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError("");
-
-        const [organizerProfile, organizerTrips, organizerPosts] = await Promise.all([
-          api.get("/organizers/me"),
-          api.get("/organizers/me/trips"),
-          api.get("/organizers/me/posts"),
-        ]);
-        setOrganizer(organizerProfile);
-        setTrips(Array.isArray(organizerTrips) ? organizerTrips : []);
-        setPosts(Array.isArray(organizerPosts) ? organizerPosts : []);
-      } catch (fetchError) {
-        setError(fetchError.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadDashboard();
   }, [isLoggedIn]);
 
@@ -518,6 +524,11 @@ export default function OrganizerDashboardPage() {
                               <p className="mt-1 text-xs text-outline">
                                 {formatINR(safeNumber(trip.pricePerPerson))}/seat
                               </p>
+                              <p className="mt-1 text-xs text-outline">
+                                {String(trip.transportType || "bus").replaceAll("_", " ")} • Payments{" "}
+                                {trip.paymentEnabled === false ? "off" : "on"} •{" "}
+                                {trip.startedAt ? "started" : "not started"}
+                              </p>
                             </div>
 
                             <div className="hidden min-w-0 md:block">
@@ -546,6 +557,23 @@ export default function OrganizerDashboardPage() {
                             </div>
 
                             <div className="flex justify-end gap-2">
+                              {statusLabel === "active" && !trip.startedAt ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      setError("");
+                                      await api.put(`/trips/${trip._id}/start`, {});
+                                      await loadDashboard();
+                                    } catch (requestError) {
+                                      setError(requestError.message);
+                                    }
+                                  }}
+                                  className="rounded-xl bg-[#7fa11c] px-3 py-2 text-xs font-black text-[#012d1d]"
+                                >
+                                  Start
+                                </button>
+                              ) : null}
                               <Link
                                 to={`/dashboard/organizer/trips/${trip._id}`}
                                 className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-white"

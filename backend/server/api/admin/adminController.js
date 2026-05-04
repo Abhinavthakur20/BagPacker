@@ -1,6 +1,10 @@
 const Notification = require("../notification/notificationModel");
 const Organizer = require("../organizer/organizerModel");
 const Report = require("../report/reportModel");
+const Trip = require("../trip/tripModel");
+const Booking = require("../booking/bookingModel");
+const CompanionRequest = require("../companion/companionRequestModel");
+const Review = require("../review/reviewModel");
 const User = require("../user/userModel");
 
 const getAllUsers = async (req, res) => {
@@ -134,6 +138,227 @@ const resolveReport = async (req, res) => {
   }
 };
 
+const getTripListings = async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const query = {};
+
+    if (req.query.status) {
+      query.status = String(req.query.status).trim();
+    }
+    if (req.query.paymentEnabled !== undefined) {
+      query.paymentEnabled = String(req.query.paymentEnabled).trim().toLowerCase() === "true";
+    }
+    if (req.query.transportType) {
+      query.transportType = String(req.query.transportType).trim();
+    }
+
+    const [items, total] = await Promise.all([
+      Trip.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+          path: "organizerId",
+          select: "businessName userId approvalStatus",
+          populate: { path: "userId", select: "name email" },
+        }),
+      Trip.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const updateTripLifecycle = async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    const action = String(req.body.action || "").trim();
+    if (action === "start") {
+      if (trip.status !== "active") {
+        return res.status(400).json({ message: "Only active trips can be started" });
+      }
+      if (!trip.startedAt) {
+        trip.startedAt = new Date();
+      }
+    } else if (action === "complete") {
+      trip.status = "completed";
+    } else if (action === "cancel") {
+      trip.status = "cancelled";
+    } else if (action === "activate") {
+      trip.status = "active";
+    }
+
+    await trip.save();
+    return res.status(200).json(trip);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getPaymentMonitor = async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+    const query = {};
+
+    if (req.query.paymentStatus) {
+      query.paymentStatus = String(req.query.paymentStatus).trim();
+    }
+    if (req.query.status) {
+      query.status = String(req.query.status).trim();
+    }
+
+    const [items, total, summaryRaw] = await Promise.all([
+      Booking.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+          path: "travelerId",
+          select: "name email phone",
+        })
+        .populate({
+          path: "tripId",
+          select: "title source destination startDate endDate status organizerId",
+          populate: { path: "organizerId", select: "businessName" },
+        })
+        .populate("pickupPointId", "location time"),
+      Booking.countDocuments(query),
+      Booking.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: "$paymentStatus",
+            totalAmount: { $sum: "$totalAmount" },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const summary = summaryRaw.reduce((acc, item) => {
+      acc[String(item._id || "unknown")] = {
+        count: Number(item.count || 0),
+        totalAmount: Number(item.totalAmount || 0),
+      };
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      items,
+      summary,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getJoinActivity = async (req, res) => {
+  try {
+    const [recentRequests, bookingSummary] = await Promise.all([
+      CompanionRequest.find()
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .populate("requesterId", "name email")
+        .populate("receiverId", "name email"),
+      Booking.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const bookingStatusSummary = bookingSummary.reduce((acc, item) => {
+      acc[String(item._id || "unknown")] = Number(item.count || 0);
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      companionRequests: recentRequests,
+      bookingStatusSummary,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getReviewsOverview = async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
+    const skip = (page - 1) * limit;
+
+    const [items, total, ratingSummary] = await Promise.all([
+      Review.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("reviewerId", "name email")
+        .populate("revieweeId", "name email")
+        .populate({
+          path: "bookingId",
+          select: "status tripId",
+          populate: { path: "tripId", select: "title source destination" },
+        }),
+      Review.countDocuments(),
+      Review.aggregate([
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    return res.status(200).json({
+      items,
+      summary: ratingSummary[0]
+        ? {
+            averageRating: Number(ratingSummary[0].averageRating || 0),
+            totalReviews: Number(ratingSummary[0].totalReviews || 0),
+          }
+        : { averageRating: 0, totalReviews: 0 },
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getPendingOrganizers,
@@ -142,4 +367,9 @@ module.exports = {
   updateVerificationStatus,
   getReports,
   resolveReport,
+  getTripListings,
+  updateTripLifecycle,
+  getPaymentMonitor,
+  getJoinActivity,
+  getReviewsOverview,
 };

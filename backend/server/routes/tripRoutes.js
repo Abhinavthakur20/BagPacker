@@ -6,6 +6,7 @@ const {
   getCitySuggestions,
   getTripById,
   getTrips,
+  startTrip,
   updateTrip,
 } = require("../api/trip/tripController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -58,6 +59,14 @@ router.get(
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage("limit must be between 1 and 100"),
+    query("transportType")
+      .optional()
+      .isIn(["bus", "car", "tempo_traveller", "train", "flight", "other"])
+      .withMessage("transportType is invalid"),
+    query("paymentEnabled")
+      .optional()
+      .isBoolean()
+      .withMessage("paymentEnabled must be true or false"),
     validateRequest,
   ],
   getTrips,
@@ -76,6 +85,14 @@ router.post(
     body("endDate").isISO8601().withMessage("Valid endDate is required"),
     body("pricePerPerson").isFloat({ min: 0 }).withMessage("Valid pricePerPerson is required"),
     body("totalSeats").isInt({ min: 1 }).withMessage("Valid totalSeats is required"),
+    body("transportType")
+      .optional()
+      .isIn(["bus", "car", "tempo_traveller", "train", "flight", "other"])
+      .withMessage("transportType is invalid"),
+    body("paymentEnabled")
+      .optional()
+      .isBoolean()
+      .withMessage("paymentEnabled must be true or false"),
     body("itinerary")
       .custom((value) => isNonEmptyArrayPayload(value))
       .withMessage("Itinerary must be a non-empty array"),
@@ -99,6 +116,14 @@ router.put(
     body("endDate").optional().isISO8601().withMessage("Valid endDate is required"),
     body("pricePerPerson").optional().isFloat({ min: 0 }).withMessage("Valid pricePerPerson is required"),
     body("totalSeats").optional().isInt({ min: 1 }).withMessage("Valid totalSeats is required"),
+    body("transportType")
+      .optional()
+      .isIn(["bus", "car", "tempo_traveller", "train", "flight", "other"])
+      .withMessage("transportType is invalid"),
+    body("paymentEnabled")
+      .optional()
+      .isBoolean()
+      .withMessage("paymentEnabled must be true or false"),
     body("status")
       .optional()
       .isIn(["active", "completed", "cancelled"])
@@ -114,6 +139,13 @@ router.put(
     validateRequest,
   ],
   updateTrip,
+);
+router.put(
+  "/:id/start",
+  authMiddleware,
+  roleMiddleware(["organizer"]),
+  [param("id").isMongoId().withMessage("Valid trip id is required"), validateRequest],
+  startTrip,
 );
 router.delete(
   "/:id",

@@ -4,6 +4,11 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
 import { formatINR } from "../data/mockData";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../lib/alerts";
 
 const safeNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -31,6 +36,7 @@ export default function OrganizerTripBuyersPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [completingBookingId, setCompletingBookingId] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -61,6 +67,36 @@ export default function OrganizerTripBuyersPage() {
   const filled = summary ? safeNumber(summary.seatsFilled) : 0;
   const totalSeats = summary ? safeNumber(summary.totalSeats) : 0;
   const occupancy = totalSeats ? Math.min(100, Math.round((filled / totalSeats) * 100)) : 0;
+
+  const completeBooking = async (bookingId) => {
+    const result = await showConfirmAlert({
+      title: "Mark booking as completed?",
+      text: "This will move this traveler's booking to completed.",
+      confirmButtonText: "Mark Completed",
+      icon: "warning",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      setCompletingBookingId(bookingId);
+      setError("");
+      await api.put(`/bookings/${bookingId}/complete`, {});
+      await showSuccessAlert("Booking completed", "Traveler booking is now marked as completed.");
+      const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+      const response = await api.get(`/organizers/me/trips/${tripId}/bookings${query}`, {
+        cacheTtlMs: 5000,
+        forceRefresh: true,
+      });
+      setPayload(response);
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Could not complete booking", requestError.message);
+    } finally {
+      setCompletingBookingId("");
+    }
+  };
 
   return (
     <MainLayout withFooter={false}>
@@ -233,6 +269,16 @@ export default function OrganizerTripBuyersPage() {
                           <p className="mt-1 text-xs text-outline">
                             {booking.paymentCapturedAt ? formatDateTime(booking.paymentCapturedAt) : "—"}
                           </p>
+                          {bookingStatus === "confirmed" ? (
+                            <button
+                              type="button"
+                              onClick={() => completeBooking(String(booking._id))}
+                              disabled={completingBookingId === String(booking._id)}
+                              className="mt-2 rounded-lg bg-primary px-3 py-2 text-[10px] font-black uppercase text-white disabled:opacity-60"
+                            >
+                              {completingBookingId === String(booking._id) ? "Updating..." : "Mark Completed"}
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     );

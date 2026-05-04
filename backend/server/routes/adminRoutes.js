@@ -4,9 +4,14 @@ const {
   getAllUsers,
   getPendingOrganizers,
   getPendingVerifications,
+  getPaymentMonitor,
+  getReviewsOverview,
+  getTripListings,
+  getJoinActivity,
   getReports,
   resolveReport,
   reviewOrganizerApproval,
+  updateTripLifecycle,
   updateVerificationStatus,
 } = require("../api/admin/adminController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -54,6 +59,74 @@ router.put(
   updateVerificationStatus,
 );
 router.get("/reports", getReports);
+router.get(
+  "/trip-listings",
+  [
+    query("page").optional().isInt({ min: 1 }).withMessage("page must be a positive integer"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("limit must be between 1 and 100"),
+    query("status")
+      .optional()
+      .isIn(["active", "completed", "cancelled"])
+      .withMessage("status is invalid"),
+    query("paymentEnabled")
+      .optional()
+      .isBoolean()
+      .withMessage("paymentEnabled must be true or false"),
+    query("transportType")
+      .optional()
+      .isIn(["bus", "car", "tempo_traveller", "train", "flight", "other"])
+      .withMessage("transportType is invalid"),
+    validateRequest,
+  ],
+  getTripListings,
+);
+router.put(
+  "/trip-listings/:id/lifecycle",
+  [
+    param("id").isMongoId().withMessage("Valid trip id is required"),
+    body("action")
+      .isIn(["start", "complete", "cancel", "activate"])
+      .withMessage("action is invalid"),
+    validateRequest,
+  ],
+  updateTripLifecycle,
+);
+router.get(
+  "/payments",
+  [
+    query("page").optional().isInt({ min: 1 }).withMessage("page must be a positive integer"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("limit must be between 1 and 100"),
+    query("paymentStatus")
+      .optional()
+      .isIn(["created", "paid", "failed", "refund_required", "refunded"])
+      .withMessage("paymentStatus is invalid"),
+    query("status")
+      .optional()
+      .isIn(["pending", "confirmed", "cancelled", "completed"])
+      .withMessage("status is invalid"),
+    validateRequest,
+  ],
+  getPaymentMonitor,
+);
+router.get("/join-activity", getJoinActivity);
+router.get(
+  "/reviews",
+  [
+    query("page").optional().isInt({ min: 1 }).withMessage("page must be a positive integer"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("limit must be between 1 and 100"),
+    validateRequest,
+  ],
+  getReviewsOverview,
+);
 router.put(
   "/reports/:id/resolve",
   [

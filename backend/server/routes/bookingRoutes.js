@@ -13,10 +13,11 @@ const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
 
-router.use(authMiddleware, roleMiddleware(["traveler"]));
+router.use(authMiddleware);
 
 router.post(
   "/initiate-payment",
+  roleMiddleware(["traveler"]),
   [
     body("tripId").isMongoId().withMessage("Valid tripId is required"),
     body("pickupPointId").isMongoId().withMessage("Valid pickupPointId is required"),
@@ -27,6 +28,7 @@ router.post(
 );
 router.post(
   "/verify-payment",
+  roleMiddleware(["traveler"]),
   [
     body("bookingId").isMongoId().withMessage("Valid bookingId is required"),
     body("razorpay_order_id").trim().notEmpty().withMessage("razorpay_order_id is required"),
@@ -38,6 +40,7 @@ router.post(
 );
 router.get(
   "/my",
+  roleMiddleware(["traveler"]),
   [
     query("page").optional().isInt({ min: 1 }).withMessage("page must be a positive integer"),
     query("limit")
@@ -50,12 +53,17 @@ router.get(
 );
 router.put(
   "/:id/cancel",
+  roleMiddleware(["traveler"]),
   [param("id").isMongoId().withMessage("Valid booking id is required"), validateRequest],
   cancelBooking,
 );
 router.put(
   "/:id/complete",
-  [authMiddleware, roleMiddleware(["organizer"]), param("id").isMongoId().withMessage("Valid booking id is required"), validateRequest],
+  [
+    roleMiddleware(["organizer"]),
+    param("id").isMongoId().withMessage("Valid booking id is required"),
+    validateRequest,
+  ],
   completeBooking,
 );
 

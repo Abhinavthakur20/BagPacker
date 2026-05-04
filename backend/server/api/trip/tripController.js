@@ -67,6 +67,18 @@ const parseJsonArray = (value) => {
   return null;
 };
 
+const parseBooleanInput = (value, fallback = false) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return fallback;
+};
+
 const normalizeCityName = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
 
 const getCitySuggestions = async (req, res) => {
@@ -213,6 +225,14 @@ const getTrips = async (req, res) => {
       filters.organizerId = req.query.organizerId.trim();
     }
 
+    if (req.query.transportType) {
+      filters.transportType = req.query.transportType.trim();
+    }
+
+    if (req.query.paymentEnabled !== undefined) {
+      filters.paymentEnabled = parseBooleanInput(req.query.paymentEnabled, true);
+    }
+
     if (req.query.source) {
       filters.source = { $regex: escapeRegex(req.query.source.trim()), $options: "i" };
     }
@@ -258,6 +278,7 @@ const getTrips = async (req, res) => {
               $project: {
                 title: 1, source: 1, destination: 1, startDate: 1, endDate: 1,
                 pricePerPerson: 1, totalSeats: 1, availableSeats: 1, status: 1,
+                transportType: 1, paymentEnabled: 1, startedAt: 1,
                 images: 1, organizerId: 1, createdAt: 1,
               },
             },
@@ -347,6 +368,8 @@ const createTrip = async (req, res) => {
       endDate,
       pricePerPerson,
       totalSeats,
+      transportType,
+      paymentEnabled,
       itinerary,
       pickupPoints,
     } = req.body;
@@ -380,11 +403,13 @@ const createTrip = async (req, res) => {
       description: description ? description.trim() : "",
       source: source.trim(),
       destination: destination.trim(),
+      transportType: String(transportType || "bus").trim(),
       startDate,
       endDate,
       pricePerPerson,
       totalSeats,
       availableSeats: totalSeats,
+      paymentEnabled: parseBooleanInput(paymentEnabled, true),
       images: tripImages,
     });
 
@@ -450,6 +475,7 @@ const updateTrip = async (req, res) => {
       "startDate",
       "endDate",
       "pricePerPerson",
+      "transportType",
       "status",
     ].forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -457,6 +483,10 @@ const updateTrip = async (req, res) => {
           typeof req.body[field] === "string" ? req.body[field].trim() : req.body[field];
       }
     });
+
+    if (req.body.paymentEnabled !== undefined) {
+      trip.paymentEnabled = parseBooleanInput(req.body.paymentEnabled, Boolean(trip.paymentEnabled));
+    }
 
     if (req.body.totalSeats !== undefined) {
       const bookedSeats = trip.totalSeats - trip.availableSeats;
@@ -551,6 +581,35 @@ const deleteTrip = async (req, res) => {
   }
 };
 
+const startTrip = async (req, res) => {
+  try {
+    const organizer = await Organizer.findOne({ userId: req.user._id, approvalStatus: "approved" });
+    if (!organizer) {
+      return res.status(403).json({ message: "Only approved organizers can start trips" });
+    }
+
+    const trip = await Trip.findOne({ _id: req.params.id, organizerId: organizer._id });
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    if (trip.status !== "active") {
+      return res.status(400).json({ message: "Only active trips can be started" });
+    }
+
+    if (trip.startedAt) {
+      return res.status(400).json({ message: "Trip has already been started" });
+    }
+
+    trip.startedAt = new Date();
+    await trip.save();
+
+    return res.status(200).json(trip);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getTrips,
   getCitySuggestions,
@@ -558,4 +617,5 @@ module.exports = {
   createTrip,
   updateTrip,
   deleteTrip,
+  startTrip,
 };

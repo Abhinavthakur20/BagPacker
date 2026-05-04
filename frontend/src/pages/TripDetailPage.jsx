@@ -164,7 +164,7 @@ export default function TripDetailPage() {
   const tax = Math.round(seats * trip.pricePerPerson * 0.05);
   const subtotal = seats * trip.pricePerPerson;
   const total = subtotal + tax;
-  const canBook = trip.availableSeats > 0 && pickupPointId;
+  const canBook = trip.availableSeats > 0 && pickupPointId && trip.paymentEnabled !== false;
   const bookingUrl = `/payment?tripId=${trip._id}&seats=${seats}&pickupPointId=${pickupPointId}`;
   const joinedCount = Math.max(0, Number(trip.totalSeats || 0) - Number(trip.availableSeats || 0));
   const occupancyPercent = trip.totalSeats
@@ -208,6 +208,10 @@ export default function TripDetailPage() {
                 location_on
               </span>
               {trip.destination}
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">directions_bus</span>
+              {String(trip.transportType || "bus").replaceAll("_", " ")}
             </p>
             <p className="flex items-center gap-2">
               <span className="material-symbols-outlined text-base">group</span>
@@ -643,7 +647,11 @@ export default function TripDetailPage() {
                         : "pointer-events-none bg-surface-container-high text-outline"
                     }`}
                   >
-                    {trip.availableSeats > 0 ? "BOOK YOUR SEAT" : "SOLD OUT"}
+                    {trip.paymentEnabled === false
+                      ? "PAYMENT DISABLED BY ORGANIZER"
+                      : trip.availableSeats > 0
+                        ? "BOOK YOUR SEAT"
+                        : "SOLD OUT"}
                   </Link>
                 ) : (
                   <Link

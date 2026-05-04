@@ -180,12 +180,13 @@ Backend health: `http://localhost:5000/api/health`
 
 ## Booking + Payment + E-ticket
 1. Traveler chooses trip and pickup point
-2. Backend creates Razorpay order (`/api/bookings/initiate-payment`)
-3. Frontend opens Razorpay Checkout
-4. Backend verifies signature (`/api/bookings/verify-payment`)
-5. Booking marked confirmed, seats reserved, notifications emitted
-6. Confirmation email with styled e-ticket sent via SMTP
-7. E-ticket appears in Traveler Dashboard
+2. Payment must be enabled on the trip by organizer/admin
+3. Backend creates Razorpay order (`/api/bookings/initiate-payment`)
+4. Frontend opens Razorpay Checkout
+5. Backend verifies signature (`/api/bookings/verify-payment`)
+6. Booking marked confirmed, seats reserved, notifications emitted
+7. Confirmation email with styled e-ticket sent via SMTP
+8. E-ticket appears in Traveler Dashboard
 
 ## Organizer AI Trip Autofill
 1. Organizer enters source and destination
@@ -213,6 +214,9 @@ Backend health: `http://localhost:5000/api/health`
 
 ### Organizer
 - Create and edit trips
+- Set transport type for each trip
+- Enable/disable online payment per trip
+- Start trip lifecycle
 - Upload trip images
 - Use AI trip autofill in trip creation
 - Manage organizer dashboard data
@@ -220,6 +224,10 @@ Backend health: `http://localhost:5000/api/health`
 ### Admin
 - Access admin dashboard routes
 - Manage platform-level moderation workflows
+- Monitor trip listings and lifecycle
+- Monitor payment records and statuses
+- Monitor companion join activity
+- Review platform feedback/reviews
 
 ---
 
@@ -252,6 +260,7 @@ Backend health: `http://localhost:5000/api/health`
 - `GET /api/trips/:id`
 - `POST /api/trips` (organizer)
 - `PUT /api/trips/:id` (organizer)
+- `PUT /api/trips/:id/start` (organizer)
 
 ### Bookings + Razorpay
 - `POST /api/bookings/initiate-payment`
@@ -267,6 +276,13 @@ Backend health: `http://localhost:5000/api/health`
 ### Notifications
 - `GET /api/notifications`
 - `PUT /api/notifications/:id/read`
+
+### Admin Monitoring
+- `GET /api/admin/trip-listings`
+- `PUT /api/admin/trip-listings/:id/lifecycle`
+- `GET /api/admin/payments`
+- `GET /api/admin/join-activity`
+- `GET /api/admin/reviews`
 
 ---
 

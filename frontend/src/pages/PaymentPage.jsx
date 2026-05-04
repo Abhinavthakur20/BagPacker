@@ -24,7 +24,6 @@ export default function PaymentPage() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [completingBookingId, setCompletingBookingId] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isRazorpayReady, setIsRazorpayReady] = useState(Boolean(window.Razorpay));
@@ -216,37 +215,6 @@ export default function PaymentPage() {
       await showErrorAlert("Booking failed", submitError.message);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const markBookingCompleted = async (booking) => {
-    const result = await showConfirmAlert({
-      title: "Mark booking as completed?",
-      text: "This enables review submission for this completed trip.",
-      confirmButtonText: "Mark Completed",
-      icon: "warning",
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    try {
-      setCompletingBookingId(booking._id);
-      setError("");
-      setSuccessMessage("");
-      await api.put(`/bookings/${booking._id}/complete`, {});
-      setSuccessMessage("Booking marked as completed.");
-      await showSuccessAlert(
-        "Booking completed",
-        "You can now submit a review for this booking.",
-      );
-      await loadBookings();
-    } catch (completeError) {
-      setError(completeError.message);
-      await showErrorAlert("Could not complete booking", completeError.message);
-    } finally {
-      setCompletingBookingId("");
     }
   };
 
@@ -444,15 +412,6 @@ export default function PaymentPage() {
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
                         {booking.status}
                       </p>
-                      {booking.status === "confirmed" ? (
-                        <button
-                          onClick={() => markBookingCompleted(booking)}
-                          disabled={completingBookingId === booking._id}
-                          className="mt-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white disabled:opacity-60"
-                        >
-                          {completingBookingId === booking._id ? "Updating..." : "Mark Completed"}
-                        </button>
-                      ) : null}
                     </div>
                   </div>
                 </article>
