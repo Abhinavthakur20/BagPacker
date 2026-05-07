@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
@@ -12,10 +12,28 @@ import PopularCategoriesSection from "../components/landing/PopularCategoriesSec
 import TopPicksSection from "../components/landing/TopPicksSection";
 import StatsBandSection from "../components/landing/StatsBandSection";
 import StorySection from "../components/landing/StorySection";
+import { api } from "../lib/api";
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ from: "", to: "", date: "" });
+  const [trips, setTrips] = useState([]);
+  const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+
+  useEffect(() => {
+    const loadTrips = async () => {
+      try {
+        setIsLoadingTrips(true);
+        const response = await api.get("/trips?page=1&limit=3", { cacheTtlMs: 60000 });
+        setTrips(Array.isArray(response?.items) ? response.items : []);
+      } catch (err) {
+        console.error("Failed to fetch top trips:", err);
+      } finally {
+        setIsLoadingTrips(false);
+      }
+    };
+    loadTrips();
+  }, []);
   const topPickTripTypes = [
     {
       title: "Mountain Treks",
@@ -60,7 +78,11 @@ export default function LandingPage() {
         tripTypes={topPickTripTypes}
         onExplore={() => navigate("/trips/search")}
       />
-      <TopPicksSection onExplore={() => navigate("/trips/search")} />
+      <TopPicksSection
+        trips={trips}
+        isLoading={isLoadingTrips}
+        onExplore={() => navigate("/trips/search")}
+      />
       <StatsBandSection />
       <StorySection campfireImage={campfireImage} />
     </MainLayout>

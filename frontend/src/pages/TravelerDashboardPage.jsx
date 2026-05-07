@@ -220,552 +220,418 @@ export default function TravelerDashboardPage() {
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
         {/* ── Sidebar ── */}
         <aside className="hidden w-72 flex-col border-r border-outline-variant/20 bg-surface-container-low md:flex">
-          {/* User Profile */}
           <div className="p-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-lg">
-              {profile?.name?.charAt(0) || "T"}
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <span className="material-symbols-outlined text-[1.6rem]">dashboard</span>
+              </div>
+              <div>
+                <h2 className="font-headline text-sm font-black uppercase tracking-[0.1em] text-primary">
+                  Traveler <span className="text-secondary">Hub</span>
+                </h2>
+                <p className="text-[10px] font-bold text-on-surface-variant/60">Manage your trips</p>
+              </div>
             </div>
-            <h2 className="mt-4 font-manrope text-xl font-extrabold text-primary">
-              {profile?.name || "Traveler"}
-            </h2>
-            <p className="text-xs font-bold uppercase tracking-widest text-outline">Traveler</p>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 space-y-1">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                activeTab === "overview"
-                  ? "bg-primary/10 text-primary"
-                  : "text-on-surface-variant hover:bg-surface-container-highest"
-              }`}
-            >
-              <span className="material-symbols-outlined text-lg">grid_view</span>
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("bookings")}
-              className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                activeTab === "bookings"
-                  ? "bg-primary/10 text-primary"
-                  : "text-on-surface-variant hover:bg-surface-container-highest"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-lg">event_note</span>
-                My Bookings
-              </div>
-              <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
-                {bookings.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("tickets")}
-              className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                activeTab === "tickets"
-                  ? "bg-primary/10 text-primary"
-                  : "text-on-surface-variant hover:bg-surface-container-highest"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-lg">confirmation_number</span>
-                E-Tickets
-              </div>
-              <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
-                {confirmedTickets.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("notifications")}
-              className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                activeTab === "notifications"
-                  ? "bg-primary/10 text-primary"
-                  : "text-on-surface-variant hover:bg-surface-container-highest"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-lg">notifications</span>
-                Notifications
-              </div>
-              <span className="rounded-full bg-error/10 px-2 py-0.5 text-[10px] font-bold text-error">
-                {notifications.filter((n) => !n.isRead).length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("recommendations")}
-              className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                activeTab === "recommendations"
-                  ? "bg-primary/10 text-primary"
-                  : "text-on-surface-variant hover:bg-surface-container-highest"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-lg">grade</span>
-                For You
-              </div>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                {recommendedTrips.length}
-              </span>
-            </button>
+          <nav className="flex-1 space-y-1 px-4 pt-4">
+            {[
+              ["overview", "Overview", "grid_view"],
+              ["bookings", "My Bookings", "event_note"],
+              ["tickets", "E-Tickets", "confirmation_number"],
+              ["notifications", "Notifications", "notifications"],
+              ["recommendations", "For You", "grade"],
+            ].map(([key, label, icon]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
+                  activeTab === key
+                    ? "bg-primary text-on-primary shadow-[0_8px_16px_rgba(1,45,29,0.15)]"
+                    : "text-on-surface-variant hover:bg-surface-container-highest"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="material-symbols-outlined text-[1.2rem]">{icon}</span>
+                  {label}
+                </div>
+                {key === "notifications" && notifications.filter((n) => !n.isRead).length > 0 && (
+                  <span className={`h-2 w-2 rounded-full ${activeTab === key ? "bg-on-primary" : "bg-error"}`} />
+                )}
+              </button>
+            ))}
           </nav>
 
-          {/* Bottom Stats */}
-          <div className="grid grid-cols-3 border-t border-outline-variant/20 py-6 text-center">
-            <div>
-              <p className="text-lg font-extrabold text-primary">{bookings.length}</p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-outline">Total</p>
+          <div className="mx-6 mb-8 rounded-2xl bg-surface-container-high/50 p-4 border border-outline-variant/30">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary font-bold">
+                {profile?.name?.charAt(0) || "T"}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-on-surface">{profile?.name || "Traveler"}</p>
+                <p className="text-[10px] text-on-surface-variant">Standard Account</p>
+              </div>
             </div>
-            <div className="border-x border-outline-variant/20">
-              <p className="text-lg font-extrabold text-primary">
-                {bookings.filter((b) => b.status === "confirmed").length}
-              </p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-outline">Upcoming</p>
-            </div>
-            <div>
-              <p className="text-lg font-extrabold text-primary">
-                {bookings.filter((b) => b.status !== "confirmed").length}
-              </p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-outline">Pending</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-outline-variant/10 pt-3">
+              <div className="text-center">
+                <p className="text-sm font-black text-primary">{bookings.length}</p>
+                <p className="text-[8px] font-bold uppercase text-on-surface-variant/50">Trips</p>
+              </div>
+              <div className="text-center border-l border-outline-variant/10">
+                <p className="text-sm font-black text-secondary">{profile?.trustScore || 0}</p>
+                <p className="text-[8px] font-bold uppercase text-on-surface-variant/50">Trust</p>
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* ── Main Content Area ── */}
-        <main className="flex-1 overflow-y-auto px-4 py-8 md:px-12">
-          {error ? (
-            <div className="mb-6 rounded-2xl bg-error-container p-4 font-semibold text-on-error-container">
-              {error}
-            </div>
-          ) : null}
-
-          {isLoading ? (
-            <LoadingPanel label="Loading dashboard..." variant="grid" />
-          ) : (
-            <div className="max-w-4xl space-y-12">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-outline-variant/20 pb-6">
-                <h1 className="font-manrope text-2xl font-extrabold capitalize tracking-tight text-primary">
-                  {activeTab.replace("_", " ")}
+        {/* ── Main Content ── */}
+        <main className="flex-1 overflow-y-auto px-4 py-10 md:px-12">
+          <div className="mx-auto max-w-5xl space-y-10">
+            {/* Header Section */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-headline text-3xl font-black tracking-tight text-on-surface capitalize">
+                  {activeTab.replace("_", " ")} <span className="text-secondary">Console</span>
                 </h1>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  {activeTab === "overview" && "Welcome back! Here's a snapshot of your travel activity."}
+                  {activeTab === "bookings" && "Manage your upcoming and past travel reservations."}
+                  {activeTab === "tickets" && "Quick access to your confirmed travel passes."}
+                  {activeTab === "notifications" && "Stay updated with recent alerts and messages."}
+                  {activeTab === "recommendations" && "Curated trips based on your interests."}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
                 <Link
                   to="/trips/search"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-2 text-sm font-bold text-primary hover:bg-surface-container-highest"
+                  className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-on-primary shadow-lg transition hover:scale-[1.02]"
                 >
-                  Explore Trips
+                  <span className="material-symbols-outlined text-sm">explore</span>
+                  Find Trips
                 </Link>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition hover:bg-surface-container-highest"
+                >
+                  <span className="material-symbols-outlined text-[1.2rem]">refresh</span>
+                </button>
               </div>
+            </div>
 
-              {/* View Rendering Logic */}
-              {activeTab === "overview" && (
-                <>
-                  {/* Upcoming Trips Section */}
-                  <section>
-                    <h3 className="mb-6 text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                      Upcoming trips
-                    </h3>
-                    <div className="space-y-4">
-                      {bookings.length > 0 ? (
-                        bookings.slice(0, 3).map((booking) => (
-                          <article
-                            key={booking._id}
-                            className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-5 transition hover:bg-surface-container-highest"
-                          >
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <div className="flex items-center gap-3">
-                                  <h4 className="font-bold text-primary">
-                                    {booking.tripId?.title}
-                                  </h4>
-                                  <span
-                                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                                      booking.status === "confirmed"
-                                        ? "bg-success-container text-on-success-container"
-                                        : "bg-warning-container text-on-warning-container"
-                                    }`}
-                                  >
-                                    {booking.status}
-                                  </span>
-                                </div>
-                                <div className="mt-1 flex items-center gap-2 text-sm text-on-surface-variant">
+            {error && (
+              <div className="flex items-center gap-3 rounded-2xl border border-error/20 bg-error-container p-4 text-sm font-bold text-error">
+                <span className="material-symbols-outlined">error</span>
+                {error}
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex h-96 flex-col items-center justify-center rounded-3xl border border-outline-variant/20 bg-surface">
+                <LoadingPanel label="Connecting to travel network..." variant="grid" />
+              </div>
+            ) : (
+              <div className="space-y-10">
+                {/* ── Overview Tab ── */}
+                {activeTab === "overview" && (
+                  <div className="space-y-8">
+                    {/* Stats Grid */}
+                    <div className="grid gap-6 sm:grid-cols-3">
+                      {stats.map(([label, value, icon]) => (
+                        <article
+                          key={label}
+                          className="relative overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
+                                {label}
+                              </p>
+                              <p className="mt-3 font-headline text-3xl font-black text-on-surface">
+                                {value}
+                              </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+                              <span className="material-symbols-outlined text-[1.4rem]">{icon}</span>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
+                      {/* Upcoming Bookings */}
+                      <section className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                        <div className="mb-6 flex items-center justify-between">
+                          <h3 className="flex items-center gap-2 font-headline text-lg font-black text-on-surface">
+                            <span className="material-symbols-outlined text-primary">event_available</span>
+                            Upcoming Trips
+                          </h3>
+                          <button onClick={() => setActiveTab("bookings")} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
+                            View All
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          {confirmedTickets.slice(0, 3).map((booking) => (
+                            <div key={booking._id} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 transition hover:bg-surface-container">
+                              <div className="min-w-0">
+                                <h4 className="truncate font-bold text-on-surface">{booking.tripId?.title}</h4>
+                                <div className="mt-1 flex items-center gap-2 text-xs text-on-surface-variant">
                                   <span>{booking.tripId?.source}</span>
-                                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                  <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
                                   <span>{booking.tripId?.destination}</span>
                                 </div>
-                                <p className="mt-2 text-xs font-medium text-outline">
-                                  {formatDateLabel(booking.tripId?.startDate)} -{" "}
-                                  {formatDateLabel(booking.tripId?.endDate)}
+                                <p className="mt-2 text-[10px] font-bold text-outline uppercase tracking-widest">
+                                  {formatDateLabel(booking.tripId?.startDate)}
                                 </p>
                               </div>
-                              <div className="text-right border-t border-outline-variant/20 pt-4 sm:border-none sm:pt-0">
-                                <p className="font-headline text-xl font-black text-primary">
-                                  {formatINR(booking.totalAmount)}
-                                </p>
+                              <div className="text-right">
+                                <p className="font-headline text-lg font-black text-primary">{formatINR(booking.totalAmount)}</p>
+                                <span className="rounded-full bg-success-container/50 px-2 py-0.5 text-[9px] font-black uppercase text-on-success-container">Confirmed</span>
                               </div>
                             </div>
-                          </article>
-                        ))
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-outline-variant/50 p-12 text-center text-on-surface-variant">
-                          No active bookings found.
+                          ))}
+                          {confirmedTickets.length === 0 && (
+                            <div className="py-12 text-center">
+                              <span className="material-symbols-outlined text-4xl text-outline-variant">explore_off</span>
+                              <p className="mt-2 text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">No upcoming trips</p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </section>
+                      </section>
 
-                  {/* Recent Notifications Section */}
-                  <section>
-                    <div className="mb-6 flex items-center justify-between">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                        Recent notifications
-                      </h3>
-                      <button
-                        onClick={markAllNotificationsRead}
-                        className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
-                      >
-                        Mark all read
-                      </button>
+                      {/* Recent Notifications */}
+                      <section className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                        <div className="mb-6 flex items-center justify-between">
+                          <h3 className="flex items-center gap-2 font-headline text-lg font-black text-on-surface">
+                            <span className="material-symbols-outlined text-primary">notifications_active</span>
+                            Alerts
+                          </h3>
+                          <button onClick={() => setActiveTab("notifications")} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
+                            View All
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          {groupedNotifications.slice(0, 4).map((notification) => (
+                            <div key={notification._id} className="flex items-start gap-3 rounded-2xl bg-surface-container-low/50 p-4 border border-outline-variant/5">
+                              <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${notification.isRead ? "bg-outline-variant" : "bg-secondary"}`} />
+                              <div className="min-w-0 flex-1">
+                                <p className={`text-xs leading-relaxed ${notification.isRead ? "text-on-surface-variant" : "font-bold text-on-surface"}`}>
+                                  {notification.message}
+                                </p>
+                                <p className="mt-1 text-[9px] font-bold text-outline-variant uppercase">{formatDateTimeLabel(notification.createdAt)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
                     </div>
-                    <div className="divide-y divide-outline-variant/10 rounded-2xl bg-surface-container-low px-5">
-                      {groupedNotifications.slice(0, 3).map((notification) => (
-                        <article key={notification._id} className="flex items-start gap-4 py-5">
-                          <div
-                            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                              notification.isRead ? "bg-outline-variant" : "bg-secondary"
-                            }`}
-                          />
-                          <div className="flex-1">
-                            <p
-                              className={`text-sm ${
-                                notification.isRead ? "text-on-surface-variant" : "font-bold text-primary"
-                              }`}
-                            >
-                              {notification.message}
-                              {notification.count > 1 && (
-                                <span className="ml-2 rounded-md bg-secondary/10 px-1.5 py-0.5 text-[10px] text-secondary">
-                                  {notification.count} similar
+                  </div>
+                )}
+
+                {/* ── My Bookings Tab ── */}
+                {activeTab === "bookings" && (
+                  <section className="space-y-6">
+                    <div className="grid gap-4">
+                      {bookings.map((booking) => (
+                        <article key={booking._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md">
+                          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-3">
+                                <h4 className="truncate font-headline text-xl font-black text-on-surface">{booking.tripId?.title}</h4>
+                                <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+                                  booking.status === "confirmed"
+                                    ? new Date(booking.tripId?.endDate) < new Date() ? "bg-primary/10 text-primary" : "bg-success-container text-on-success-container"
+                                    : "bg-warning-container text-on-warning-container"
+                                }`}>
+                                  {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? "Completed" : booking.status}
                                 </span>
+                              </div>
+                              <div className="mt-2 flex items-center gap-2 text-sm font-bold text-on-surface-variant">
+                                <span>{booking.tripId?.source}</span>
+                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                <span>{booking.tripId?.destination}</span>
+                              </div>
+                              <div className="mt-4 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-outline">
+                                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">calendar_today</span>{formatDateLabel(booking.tripId?.startDate)}</span>
+                                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">group</span>{booking.seatsBooked} Seats</span>
+                              </div>
+                            </div>
+                            <div className="text-right border-t border-outline-variant/10 pt-4 sm:border-none sm:pt-0">
+                              {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? (
+                                <button
+                                  onClick={() => setSelectedBookingForReview(booking)}
+                                  className="rounded-2xl bg-secondary px-6 py-3 text-[11px] font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
+                                >
+                                  Leave Review
+                                </button>
+                              ) : (
+                                <div>
+                                  <p className="font-headline text-2xl font-black text-primary">{formatINR(booking.totalAmount)}</p>
+                                  <p className="text-[10px] font-bold text-outline-variant uppercase mt-1">Transaction Total</p>
+                                </div>
                               )}
-                            </p>
-                            <p className="mt-1 text-[10px] text-outline">
-                              {formatDateTimeLabel(notification.createdAt)}
-                            </p>
+                            </div>
                           </div>
                         </article>
                       ))}
                     </div>
                   </section>
-                </>
-              )}
+                )}
 
-              {activeTab === "bookings" && (
-                <section className="space-y-4">
-                  <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                      All Bookings ({bookings.length})
-                    </h3>
-                  </div>
-                  <div className="grid gap-4">
-                    {bookings.map((booking) => (
-                      <article
-                        key={`all-bookings-${booking._id}`}
-                        className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-6 transition hover:bg-surface-container-highest"
-                      >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <h4 className="font-manrope text-lg font-extrabold text-primary">
-                                {booking.tripId?.title}
-                              </h4>
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                                  booking.status === "confirmed"
-                                    ? new Date(booking.tripId?.endDate) < new Date()
-                                      ? "bg-primary/20 text-primary border border-primary/30"
-                                      : "bg-success-container text-on-success-container"
-                                    : "bg-warning-container text-on-warning-container"
-                                }`}
-                              >
-                                {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date()
-                                  ? "Completed"
-                                  : booking.status}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 font-medium text-primary/80">
-                              <span>{booking.tripId?.source}</span>
-                              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                              <span>{booking.tripId?.destination}</span>
-                            </div>
-                            <p className="mt-2 text-xs font-medium text-outline">
-                              Trip Date: {formatDateLabel(booking.tripId?.startDate)} -{" "}
-                              {formatDateLabel(booking.tripId?.endDate)}
-                            </p>
-                            <p className="mt-1 text-[11px] text-on-surface-variant">
-                              Booked on: {formatDateLabel(booking.createdAt)}
-                            </p>
-                          </div>
-                          <div className="text-right border-t border-outline-variant/20 pt-4 sm:border-none sm:pt-0">
-                            {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? (
-                              <button
-                                onClick={() => setSelectedBookingForReview(booking)}
-                                className="rounded-xl bg-secondary px-6 py-2.5 text-sm font-bold text-white shadow-[0_4px_15px_rgba(127,161,28,0.3)] transition hover:brightness-110 active:scale-95"
-                              >
-                                Leave Review
-                              </button>
-                            ) : (
-                              <>
-                                <p className="font-headline text-2xl font-black text-primary">
-                                  {formatINR(booking.totalAmount)}
-                                </p>
-                                <p className="mt-1 text-xs font-bold text-outline">
-                                  {booking.seatsBooked} Seats
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                    {bookings.length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-outline-variant/50 p-20 text-center text-on-surface-variant">
-                        You haven't booked any trips yet.
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {activeTab === "tickets" && (
-                <section className="space-y-6">
-                  <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                      Your E-Tickets ({confirmedTickets.length})
-                    </h3>
-                  </div>
-                  <div className="grid gap-6 xl:grid-cols-2">
+                {/* ── E-Tickets Tab ── */}
+                {activeTab === "tickets" && (
+                  <section className="grid gap-8 lg:grid-cols-2">
                     {confirmedTickets.map((booking) => {
                       const ticketCode = getTicketCode(booking);
                       return (
-                        <article
-                          key={`tab-ticket-${booking._id}`}
-                          className="relative overflow-hidden rounded-2xl border border-surface-variant/30 bg-white p-6 shadow-sm"
-                        >
+                        <article key={booking._id} className="relative overflow-hidden rounded-[2.5rem] border border-outline-variant/20 bg-surface p-8 shadow-sm">
                           <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-manrope text-lg font-extrabold text-on-surface">
-                                {booking.tripId?.title}
-                              </h4>
-                              <div className="mt-1 flex items-center gap-1.5 text-sm font-bold text-primary">
-                                <span>{booking.tripId?.source}</span>
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                <span>{booking.tripId?.destination}</span>
-                              </div>
+                            <div className="min-w-0">
+                              <h4 className="truncate font-headline text-lg font-black text-on-surface">{booking.tripId?.title}</h4>
+                              <p className="text-xs font-bold text-primary uppercase tracking-widest mt-1">{booking.tripId?.source} → {booking.tripId?.destination}</p>
                             </div>
-                            <div className="rounded-full bg-success-container px-3 py-1 text-[10px] font-black uppercase tracking-wider text-on-success-container">
-                              Confirmed
+                            <div className="rounded-full bg-secondary px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-secondary">Ticket Active</div>
+                          </div>
+
+                          <div className="mt-8 grid grid-cols-2 gap-6 border-y border-outline-variant/10 py-6">
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-outline-variant">Traveler</p>
+                              <p className="text-sm font-bold text-on-surface mt-1">{profile?.name}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-outline-variant">Ticket ID</p>
+                              <p className="font-mono text-xs font-black text-on-surface mt-1">{ticketCode}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-outline-variant">Departure</p>
+                              <p className="text-sm font-bold text-on-surface mt-1">{formatDateLabel(booking.tripId?.startDate)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-outline-variant">Pickup</p>
+                              <p className="text-sm font-bold text-on-surface mt-1 truncate">{booking.pickupPointId?.location || "Main Terminal"}</p>
                             </div>
                           </div>
 
-                          <div className="mt-6 grid grid-cols-2 gap-4 border-y border-outline-variant/20 py-4">
-                            <div>
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-outline">
-                                Traveler
-                              </span>
-                              <p className="text-sm font-bold text-on-surface">{profile?.name}</p>
+                          <div className="mt-6 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-secondary">verified</span>
+                              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Digital Boarding Pass</p>
                             </div>
-                            <div className="text-right">
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-outline">
-                                Ticket ID
-                              </span>
-                              <p className="font-mono text-xs font-bold text-on-surface">{ticketCode}</p>
-                            </div>
-                            <div>
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-outline">
-                                Pickup
-                              </span>
-                              <p className="text-xs font-bold text-on-surface">
-                                {booking.pickupPointId?.location || "TBD"}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-outline">
-                                Paid
-                              </span>
-                              <p className="text-xs font-bold text-on-surface">
-                                {formatINR(booking.totalAmount)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 flex items-center justify-between">
-                            <p className="text-[10px] font-medium text-outline">
-                              Issued: {formatDateTimeLabel(booking.createdAt)}
-                            </p>
-                            <button className="text-xs font-bold text-primary hover:underline">
-                              Download PDF
-                            </button>
+                            <button className="rounded-xl bg-primary/5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition">Download PDF</button>
                           </div>
                         </article>
                       );
                     })}
-                    {confirmedTickets.length === 0 && (
-                      <div className="col-span-full rounded-2xl border border-dashed border-outline-variant/50 p-20 text-center text-on-surface-variant">
-                        No e-tickets available. Confirm a booking to see your tickets here.
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
+                  </section>
+                )}
 
-              {activeTab === "notifications" && (
-                <section className="space-y-4">
-                  <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                      All Notifications ({notifications.length})
-                    </h3>
-                    <button
-                      onClick={markAllNotificationsRead}
-                      className="text-xs font-bold text-primary hover:underline"
-                    >
-                      Mark all read
-                    </button>
-                  </div>
-                  <div className="divide-y divide-outline-variant/10 rounded-2xl bg-surface-container-low px-6">
-                    {notifications.map((notification) => (
-                      <article key={`all-notif-${notification._id}`} className="flex items-start gap-5 py-6">
-                        <div
-                          className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${
-                            notification.isRead ? "bg-outline-variant" : "bg-secondary shadow-[0_0_8px_rgba(var(--secondary-rgb),0.5)]"
-                          }`}
-                        />
-                        <div className="flex-1">
-                          <p className={`text-base ${notification.isRead ? "text-on-surface-variant" : "font-bold text-primary"}`}>
-                            {notification.message}
-                          </p>
-                          <p className="mt-1.5 text-xs text-outline">
-                            {formatDateTimeLabel(notification.createdAt)}
-                          </p>
-                        </div>
-                      </article>
-                    ))}
-                    {notifications.length === 0 && (
-                      <div className="p-20 text-center text-on-surface-variant">
-                        Your notification tray is empty.
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {activeTab === "recommendations" && (
-                <section className="space-y-6">
-                  <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                      Recommended Trips
-                    </h3>
-                  </div>
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    {recommendedTrips.map((trip) => (
-                      <article
-                        key={`rec-trip-${trip._id}`}
-                        className="overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-low transition hover:bg-surface-container-highest"
-                      >
-                        <div className="p-6">
-                          <h4 className="font-manrope text-lg font-extrabold text-primary">
-                            {trip.title}
-                          </h4>
-                          <div className="mt-1 flex items-center gap-1.5 text-sm font-bold text-on-surface-variant">
-                            <span>{trip.source}</span>
-                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                            <span>{trip.destination}</span>
-                          </div>
-                          <p className="mt-4 text-xs text-outline">
-                            {trip.availableSeats} seats left for this expedition
-                          </p>
-                          <div className="mt-6 flex items-center justify-between border-t border-outline-variant/20 pt-4">
-                            <p className="font-manrope text-xl font-black text-primary">
-                              {formatINR(trip.pricePerPerson)}
+                {/* ── Notifications Tab ── */}
+                {activeTab === "notifications" && (
+                  <section className="rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-outline-variant/10 px-6 py-4 bg-surface-container-low/50">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">Notification Inbox</p>
+                      <button onClick={markAllNotificationsRead} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Mark all read</button>
+                    </div>
+                    <div className="divide-y divide-outline-variant/5">
+                      {notifications.map((notification) => (
+                        <article key={notification._id} className="group flex items-start gap-5 px-6 py-6 transition hover:bg-surface-container-lowest">
+                          <div className={`mt-2 h-2 w-2 shrink-0 rounded-full ${notification.isRead ? "bg-outline-variant/40" : "bg-secondary shadow-[0_0_8px_rgba(79,111,22,0.4)]"}`} />
+                          <div className="flex-1">
+                            <p className={`text-sm leading-relaxed ${notification.isRead ? "text-on-surface-variant" : "font-bold text-on-surface"}`}>
+                              {notification.message}
                             </p>
-                            <Link
-                              to={`/trips/${trip._id}`}
-                              className="rounded-xl bg-primary px-5 py-2 text-sm font-bold text-white shadow-sm"
-                            >
-                              Explore
-                            </Link>
+                            <p className="mt-2 text-[10px] font-bold text-outline-variant uppercase">{formatDateTimeLabel(notification.createdAt)}</p>
+                          </div>
+                          {!notification.isRead && (
+                            <button onClick={() => markNotificationRead(notification._id)} className="rounded-lg bg-surface-container px-3 py-1.5 text-[9px] font-black uppercase text-on-surface-variant opacity-0 group-hover:opacity-100 transition">Mark read</button>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* ── Recommendations Tab ── */}
+                {activeTab === "recommendations" && (
+                  <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {recommendedTrips.map((trip) => (
+                      <article key={trip._id} className="group overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface transition hover:shadow-xl">
+                        <div className="aspect-[4/3] bg-surface-container-high overflow-hidden">
+                          {trip.media?.length > 0 ? (
+                            <img src={trip.media[0]} alt={trip.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-outline-variant">
+                              <span className="material-symbols-outlined text-5xl">image</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-6">
+                          <h4 className="truncate font-headline text-lg font-black text-on-surface">{trip.title}</h4>
+                          <p className="mt-1 text-xs font-bold text-on-surface-variant uppercase tracking-widest">{trip.destination}</p>
+                          <div className="mt-6 flex items-center justify-between">
+                            <p className="font-headline text-xl font-black text-primary">{formatINR(trip.pricePerPerson)}</p>
+                            <Link to={`/trips/${trip._id}`} className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-on-primary">Details</Link>
                           </div>
                         </div>
                       </article>
                     ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          )}
+                  </section>
+                )}
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
       {/* Review Modal */}
       {selectedBookingForReview && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-surface p-6 shadow-2xl md:p-8">
-            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
-              <h2 className="font-manrope text-xl font-extrabold text-primary">
-                Rate the Organizer: {selectedBookingForReview.tripId?.organizerId?.businessName || "Service Provider"}
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-[2.5rem] bg-surface p-8 shadow-2xl border border-outline-variant/20">
+            <div className="flex items-center justify-between border-b border-outline-variant/10 pb-6">
+              <h2 className="font-headline text-xl font-black text-on-surface">
+                Post <span className="text-secondary">Review</span>
               </h2>
-              <button
-                onClick={() => setSelectedBookingForReview(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-highest text-primary"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
+              <button onClick={() => setSelectedBookingForReview(null)} className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+                <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <div className="mt-6 space-y-6">
-              <p className="text-sm text-on-surface-variant">
-                Your feedback helps the community choose trusted organizers and helps this provider grow.
-              </p>
+            <div className="mt-8 space-y-8">
               <div>
-                <p className="mb-3 text-sm font-bold uppercase tracking-widest text-outline">
-                  Organizer Rating
-                </p>
-                <div className="flex gap-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-outline-variant mb-4">Organizer Experience</p>
+                <div className="flex gap-3">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       onClick={() => setReviewForm((p) => ({ ...p, rating: star }))}
-                      className={`flex h-12 w-12 items-center justify-center rounded-xl transition ${
-                        star <= reviewForm.rating
-                          ? "bg-secondary text-white shadow-lg"
-                          : "bg-surface-container-highest text-outline hover:bg-surface-container-high"
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
+                        star <= reviewForm.rating ? "bg-secondary text-on-secondary shadow-lg" : "bg-surface-container-low text-outline-variant hover:bg-surface-container"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-2xl">
-                        {star <= reviewForm.rating ? "star" : "star_outline"}
-                      </span>
+                      <span className="material-symbols-outlined text-[1.4rem]">{star <= reviewForm.rating ? "star" : "star_outline"}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <p className="mb-3 text-sm font-bold uppercase tracking-widest text-outline">
-                  Your Comment
-                </p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-outline-variant mb-4">Share Your Thoughts</p>
                 <textarea
                   value={reviewForm.comment}
                   onChange={(e) => setReviewForm((p) => ({ ...p, comment: e.target.value }))}
                   rows={4}
-                  placeholder="Share your experience with the group and the organizer..."
-                  className="w-full rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 text-sm font-medium text-primary outline-none focus:border-primary"
+                  placeholder="How was the coordination, safety, and overall vibe?"
+                  className="w-full rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 text-sm text-on-surface outline-none focus:border-primary/40 transition"
                 />
               </div>
 
               <button
                 onClick={submitReview}
                 disabled={isReviewSubmitting}
-                className="w-full rounded-2xl bg-primary py-4 font-manrope text-lg font-black text-white shadow-xl transition hover:brightness-110 active:scale-95 disabled:opacity-50"
+                className="w-full rounded-2xl bg-primary py-4 text-xs font-black uppercase tracking-widest text-on-primary shadow-xl transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
               >
-                {isReviewSubmitting ? "Submitting..." : "Post Review"}
+                {isReviewSubmitting ? "Submitting Audit..." : "Post Review"}
               </button>
             </div>
           </div>

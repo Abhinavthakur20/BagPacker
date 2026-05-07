@@ -359,6 +359,25 @@ const getReviewsOverview = async (req, res) => {
   }
 };
 
+const toggleUserBan = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isBanned = !user.isBanned;
+    await user.save();
+
+    return res.status(200).json({
+      message: `User ${user.isBanned ? "banned" : "unbanned"} successfully`,
+      isBanned: user.isBanned,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getPendingOrganizers,
@@ -372,4 +391,5 @@ module.exports = {
   getPaymentMonitor,
   getJoinActivity,
   getReviewsOverview,
+  toggleUserBan,
 };

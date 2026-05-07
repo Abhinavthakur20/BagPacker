@@ -238,6 +238,26 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleToggleBan = async (id, currentStatus) => {
+    const result = await showConfirmAlert({
+      title: `${currentStatus ? "Unban" : "Ban"} user?`,
+      text: `Are you sure you want to ${currentStatus ? "restore access for" : "suspend"} this user?`,
+      confirmButtonText: currentStatus ? "Unban" : "Ban",
+      confirmButtonColor: currentStatus ? "#124f38" : "#d32f2f",
+      icon: "warning",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await api.put(`/admin/users/${id}/toggle-ban`);
+      setSuccessMessage(`User access updated successfully.`);
+      await showSuccessAlert("Status Updated", `User has been ${currentStatus ? "unbanned" : "banned"}.`);
+      await loadAdminData();
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Action failed", requestError.message);
+    }
+  };
+
   const loadOperationsData = useCallback(async () => {
     if (!isLoggedIn) return;
     try {
@@ -481,730 +501,593 @@ export default function AdminDashboardPage() {
   return (
     <MainLayout>
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
+        {/* ── Sidebar ── */}
         <aside className="hidden w-72 flex-col border-r border-outline-variant/20 bg-surface-container-low md:flex">
           <div className="p-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-              {user?.name?.charAt(0) || "A"}
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <span className="material-symbols-outlined text-[1.6rem]">admin_panel_settings</span>
+              </div>
+              <div>
+                <h2 className="font-headline text-sm font-black uppercase tracking-[0.1em] text-primary">
+                  Admin <span className="text-secondary">Portal</span>
+                </h2>
+                <p className="text-[10px] font-bold text-on-surface-variant/60">BagPacker Control</p>
+              </div>
             </div>
-            <h2 className="mt-4 font-manrope text-xl font-extrabold text-primary">
-              {user?.name || "Admin"}
-            </h2>
-            <p className="text-xs font-bold uppercase tracking-widest text-outline">Admin</p>
           </div>
 
-          <nav className="flex-1 space-y-1 px-4">
+          <nav className="flex-1 space-y-1 px-4 pt-4">
             {[
-              ["overview", "Overview", "grid_view"],
+              ["overview", "Dashboard", "grid_view"],
               ["moderation", "Moderation", "gavel"],
               ["operations", "Operations", "monitoring"],
             ].map(([key, label, icon]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+                className={`flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
                   activeTab === key
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary text-on-primary shadow-[0_8px_16px_rgba(1,45,29,0.15)]"
                     : "text-on-surface-variant hover:bg-surface-container-highest"
                 }`}
               >
-                <span className="material-symbols-outlined text-lg">{icon}</span>
+                <span className="material-symbols-outlined text-[1.2rem]">{icon}</span>
                 {label}
               </button>
             ))}
           </nav>
 
-          <div className="grid grid-cols-3 border-t border-outline-variant/20 py-6 text-center">
-            <div>
-              <p className="text-lg font-extrabold text-primary">{userPagination.total}</p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-outline">Users</p>
+          <div className="mx-6 mb-8 rounded-2xl bg-surface-container-high/50 p-4 border border-outline-variant/30">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary font-bold">
+                {user?.name?.charAt(0) || "A"}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-on-surface">{user?.name || "Admin"}</p>
+                <p className="text-[10px] text-on-surface-variant">Administrator</p>
+              </div>
             </div>
-            <div className="border-x border-outline-variant/20">
-              <p className="text-lg font-extrabold text-primary">{pendingOrganizers.length}</p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-outline">Pending</p>
-            </div>
-            <div>
-              <p className="text-lg font-extrabold text-primary">
-                {reports.filter((item) => item.status !== "resolved").length}
-              </p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-outline">Reports</p>
-            </div>
+            <button
+              onClick={() => {
+                /* Logout handled by top nav usually */
+              }}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-highest py-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant transition hover:bg-error-container hover:text-error"
+            >
+              <span className="material-symbols-outlined text-sm">logout</span>
+              Log Out
+            </button>
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto px-4 py-8 md:px-12">
-          {error ? (
-            <div className="mb-6 rounded-2xl bg-error-container p-4 font-semibold text-on-error-container">
-              {error}
-            </div>
-          ) : null}
-          {successMessage ? (
-            <div className="mb-6 rounded-2xl bg-[#012d1d] p-4 font-semibold text-[#7fa11c]">
-              {successMessage}
-            </div>
-          ) : null}
-
-          {isLoading ? (
-            <LoadingPanel label="Loading admin dashboard..." variant="grid" />
-          ) : (
-            <div className="max-w-5xl space-y-10">
-              <div className="flex items-center justify-between border-b border-outline-variant/20 pb-6">
-                <h1 className="font-manrope text-2xl font-extrabold capitalize tracking-tight text-primary">
-                  {activeTab}
+        {/* ── Main Content ── */}
+        <main className="flex-1 overflow-y-auto px-4 py-10 md:px-12">
+          <div className="mx-auto max-w-6xl space-y-10">
+            {/* Header Section */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-headline text-3xl font-black tracking-tight text-on-surface capitalize">
+                  {activeTab} <span className="text-secondary">Terminal</span>
                 </h1>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase text-primary">
-                  Live
-                </span>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  Real-time platform oversight and administrative management.
+                </p>
               </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 rounded-full bg-surface-container px-4 py-2 border border-outline-variant/30">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+                  <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant">System Live</span>
+                </div>
+                <button
+                  onClick={loadAdminData}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition hover:bg-surface-container-highest"
+                  title="Refresh Data"
+                >
+                  <span className="material-symbols-outlined text-[1.2rem]">refresh</span>
+                </button>
+              </div>
+            </div>
 
-              {activeTab === "overview" ? (
-                <section className="space-y-6">
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {stats.map(([label, value, icon]) => (
-                      <article key={label} className="rounded-2xl bg-surface-container-low p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                              {label}
-                            </p>
-                            <p className="mt-2 font-manrope text-2xl font-black text-primary">{value}</p>
-                          </div>
-                          <span className="material-symbols-outlined rounded-2xl bg-primary/10 p-3 text-primary">
-                            {icon}
-                          </span>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+            {error && (
+              <div className="flex items-center gap-3 rounded-2xl border border-error/20 bg-error-container p-4 text-sm font-bold text-error">
+                <span className="material-symbols-outlined">error</span>
+                {error}
+              </div>
+            )}
+            {successMessage && (
+              <div className="flex items-center gap-3 rounded-2xl border border-secondary/20 bg-secondary/10 p-4 text-sm font-bold text-secondary">
+                <span className="material-symbols-outlined">check_circle</span>
+                {successMessage}
+              </div>
+            )}
 
-                  <div className="grid gap-6 xl:grid-cols-2">
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                        Payment summary
-                      </h3>
-                      <div className="mt-4 space-y-3">
-                        {paymentMonitor.items.slice(0, 6).map((item) => (
-                          <div key={item._id} className="rounded-xl bg-surface p-3">
-                            <p className="text-sm font-bold text-primary">
-                              {item.tripId?.title || "Trip"} • {item.travelerId?.name || "Traveler"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {item.paymentStatus} • {item.status} • INR {safeNumber(item.totalAmount)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                        Reviews snapshot
-                      </h3>
-                      <p className="mt-2 text-sm text-on-surface-variant">
-                        Avg rating: {Number(reviewsOverview.summary?.averageRating || 0).toFixed(2)} • Total:{" "}
-                        {reviewsOverview.summary?.totalReviews || 0}
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        {reviewsOverview.items.slice(0, 6).map((review) => (
-                          <div key={review._id} className="rounded-xl bg-surface p-3">
-                            <p className="text-sm font-bold text-primary">
-                              {review.reviewerId?.name || "Traveler"} → {review.revieweeId?.name || "Organizer"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {review.rating}/5 • {review.bookingId?.tripId?.title || "Trip"}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-                  </div>
-                </section>
-              ) : null}
-
-              {activeTab === "moderation" ? (
-                <section className="space-y-6">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {[
-                      ["users", "User directory", userPagination.total],
-                      ["organizers", "Organizer approvals", organizerSlice.total],
-                      ["verifications", "Verification requests", verificationSlice.total],
-                      ["reports", "Reports", reportSlice.total],
-                    ].map(([key, label, count]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setModerationSection(key)}
-                        className={`rounded-xl border p-4 text-left transition ${
-                          moderationSection === key
-                            ? "border-primary bg-primary/10"
-                            : "border-outline-variant/30 bg-surface-container-low hover:bg-surface-container"
-                        }`}
-                      >
-                        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-outline">{label}</p>
-                        <p className="mt-2 text-2xl font-black text-primary">{count}</p>
-                      </button>
-                    ))}
-                  </div>
-
-                  {moderationSection === "users" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                          User directory
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold uppercase text-outline">Per page</label>
-                          <select
-                            value={userLimit}
-                            onChange={(event) => {
-                              const nextLimit = Number(event.target.value || 50);
-                              setUserLimit(nextLimit);
-                              setUserPage(1);
-                            }}
-                            className="rounded-lg bg-surface px-2 py-1 text-xs font-bold text-primary"
-                          >
-                            <option value={25}>25</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                          </select>
-                        </div>
-                      </div>
-                      <p className="text-xs text-on-surface-variant">
-                        Showing page {userPagination.page} of {userPagination.totalPages} • {userPagination.total} users total
-                      </p>
-                      <div className="mt-4 space-y-2">
-                        {users.map((account) => (
-                          <div key={account._id} className="rounded-xl bg-surface p-3">
-                            <p className="text-sm font-bold text-primary">
-                              {account.name || "Unknown"} • {account.role || "traveler"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {account.email || "N/A"} • {account.phone || "N/A"}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setUserPage((current) => Math.max(1, current - 1))}
-                          disabled={userPagination.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
+            {isLoading ? (
+              <div className="flex h-96 flex-col items-center justify-center rounded-3xl border border-outline-variant/20 bg-surface">
+                <LoadingPanel label="Connecting to secure database..." variant="grid" />
+              </div>
+            ) : (
+              <div className="space-y-10">
+                {/* ── Dashboard Tab ── */}
+                {activeTab === "overview" && (
+                  <div className="space-y-8">
+                    {/* Stats Grid */}
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                      {stats.map(([label, value, icon]) => (
+                        <article
+                          key={label}
+                          className="relative overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md"
                         >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {userPagination.page}/{userPagination.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setUserPage((current) => Math.min(userPagination.totalPages, current + 1))
-                          }
-                          disabled={userPagination.page >= userPagination.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
-
-                  {moderationSection === "organizers" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                        Pending organizer approvals
-                      </h3>
-                      <p className="mt-2 text-xs text-on-surface-variant">
-                        Showing page {organizerSlice.page} of {organizerSlice.totalPages} • {organizerSlice.total} requests
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        {organizerSlice.items.map((organizer) => (
-                          <div key={organizer._id} className="rounded-xl bg-surface p-3">
-                            <p className="font-bold text-primary">{organizer.businessName}</p>
-                            <p className="text-xs text-on-surface-variant">
-                              {organizer.userId?.name || "N/A"} • {organizer.userId?.email || "N/A"}
-                            </p>
-                            <div className="mt-3 flex gap-2">
-                              <button onClick={() => updateOrganizerStatus(organizer._id, "approved")} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">Approve</button>
-                              <button onClick={() => updateOrganizerStatus(organizer._id, "rejected")} className="rounded-lg bg-error-container px-3 py-2 text-xs font-bold text-on-error-container">Reject</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setOrganizerPage((current) => Math.max(1, current - 1))}
-                          disabled={organizerSlice.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {organizerSlice.page}/{organizerSlice.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setOrganizerPage((current) =>
-                              Math.min(organizerSlice.totalPages, current + 1),
-                            )
-                          }
-                          disabled={organizerSlice.page >= organizerSlice.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
-
-                  {moderationSection === "verifications" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                        Pending user verifications
-                      </h3>
-                      <p className="mt-2 text-xs text-on-surface-variant">
-                        Showing page {verificationSlice.page} of {verificationSlice.totalPages} • {verificationSlice.total} requests
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        {verificationSlice.items.map((verification) => (
-                          <div key={verification._id} className="rounded-xl bg-surface p-3">
-                            <p className="font-bold text-primary">{verification.name}</p>
-                            <p className="text-xs text-on-surface-variant">{verification.email}</p>
-                            {verification.governmentIdUrl ? (
-                              <a href={resolveMediaUrl(verification.governmentIdUrl)} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-bold text-secondary underline">
-                                View document
-                              </a>
-                            ) : null}
-                            <div className="mt-3 flex gap-2">
-                              <button onClick={() => updateVerificationStatus(verification._id, "verified")} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">Verify</button>
-                              <button onClick={() => updateVerificationStatus(verification._id, "rejected")} className="rounded-lg bg-error-container px-3 py-2 text-xs font-bold text-on-error-container">Reject</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setVerificationPage((current) => Math.max(1, current - 1))}
-                          disabled={verificationSlice.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {verificationSlice.page}/{verificationSlice.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setVerificationPage((current) =>
-                              Math.min(verificationSlice.totalPages, current + 1),
-                            )
-                          }
-                          disabled={verificationSlice.page >= verificationSlice.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
-
-                  {moderationSection === "reports" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                        Reports
-                      </h3>
-                      <p className="mt-2 text-xs text-on-surface-variant">
-                        Showing page {reportSlice.page} of {reportSlice.totalPages} • {reportSlice.total} reports
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        {reportSlice.items.map((report) => (
-                          <div key={report._id} className="rounded-xl bg-surface p-3">
-                            <p className="text-sm font-bold text-primary">
-                              {report.reportedBy?.name || "Unknown"} reported {report.reportedUserId?.name || "Unknown"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">{report.reason}</p>
-                            {report.status !== "resolved" ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {["warning", "suspension", "ban", "dismissed"].map((action) => (
-                                  <button key={action} onClick={() => resolveReport(report._id, action)} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold uppercase text-white">
-                                    {action}
-                                  </button>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="mt-2 text-xs font-bold uppercase text-[#7fa11c]">
-                                {report.adminAction || "resolved"}
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
+                                {label}
                               </p>
-                            )}
+                              <p className="mt-3 font-headline text-3xl font-black text-on-surface">
+                                {typeof value === "number" ? value.toLocaleString() : value}
+                              </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+                              <span className="material-symbols-outlined text-[1.4rem]">{icon}</span>
+                            </div>
                           </div>
+                          <div className="mt-6 flex items-center gap-2 text-[10px] font-bold text-secondary">
+                            <span className="material-symbols-outlined text-sm">trending_up</span>
+                            <span>Growth monitored</span>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-8 lg:grid-cols-2">
+                      {/* Recent Activity / Payments */}
+                      <section className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                        <div className="mb-6 flex items-center justify-between">
+                          <h3 className="flex items-center gap-2 font-headline text-lg font-black text-on-surface">
+                            <span className="material-symbols-outlined text-primary">payments</span>
+                            Recent Transactions
+                          </h3>
+                          <button onClick={() => { setActiveTab("operations"); setOperationsSection("payments"); }} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
+                            View All
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          {paymentMonitor.items.slice(0, 5).map((item) => (
+                            <div key={item._id} className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 transition hover:bg-surface-container">
+                              <div className="flex items-center gap-4 min-w-0">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/5 text-primary">
+                                  <span className="material-symbols-outlined text-sm">receipt_long</span>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-bold text-on-surface">{item.tripId?.title || "Unknown Trip"}</p>
+                                  <p className="truncate text-[10px] text-on-surface-variant">{item.travelerId?.name} • {item.paymentStatus}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-headline text-sm font-black text-primary">INR {safeNumber(item.totalAmount)}</p>
+                                <p className="text-[9px] font-bold uppercase text-on-surface-variant/50">{new Date(item.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      {/* Pending Queue */}
+                      <section className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                        <div className="mb-6 flex items-center justify-between">
+                          <h3 className="flex items-center gap-2 font-headline text-lg font-black text-on-surface">
+                            <span className="material-symbols-outlined text-primary">assignment_late</span>
+                            Action Queue
+                          </h3>
+                          <button onClick={() => setActiveTab("moderation")} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
+                            Open Queue
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          {pendingOrganizers.slice(0, 3).map((org) => (
+                            <div key={org._id} className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4">
+                              <div className="flex items-center gap-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/10 text-orange-600">
+                                  <span className="material-symbols-outlined text-sm">business</span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-on-surface">{org.businessName}</p>
+                                  <p className="text-[10px] text-on-surface-variant">New Organizer Request</p>
+                                </div>
+                              </div>
+                              <button onClick={() => { setActiveTab("moderation"); setModerationSection("organizers"); }} className="rounded-lg bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase text-primary hover:bg-primary/20 transition">
+                                Review
+                              </button>
+                            </div>
+                          ))}
+                          {pendingVerifications.slice(0, 2).map((v) => (
+                            <div key={v._id} className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4">
+                              <div className="flex items-center gap-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
+                                  <span className="material-symbols-outlined text-sm">shield_person</span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-on-surface">{v.name}</p>
+                                  <p className="text-[10px] text-on-surface-variant">Identity Document Check</p>
+                                </div>
+                              </div>
+                              <button onClick={() => { setActiveTab("moderation"); setModerationSection("verifications"); }} className="rounded-lg bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase text-primary hover:bg-primary/20 transition">
+                                Review
+                              </button>
+                            </div>
+                          ))}
+                          {pendingOrganizers.length === 0 && pendingVerifications.length === 0 && (
+                            <div className="py-10 text-center">
+                              <span className="material-symbols-outlined text-4xl text-outline-variant">verified</span>
+                              <p className="mt-2 text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Everything Processed</p>
+                            </div>
+                          )}
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Moderation Tab ── */}
+                {activeTab === "moderation" && (
+                  <div className="space-y-8">
+                    {/* Sub-Tabs */}
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        ["users", "User Directory", "groups"],
+                        ["organizers", "Organizers", "business_center"],
+                        ["verifications", "ID Verification", "fact_check"],
+                        ["reports", "Reports", "flag"],
+                      ].map(([key, label, icon]) => (
+                        <button
+                          key={key}
+                          onClick={() => setModerationSection(key)}
+                          className={`flex items-center gap-2 rounded-2xl border px-5 py-3 text-xs font-bold transition-all duration-300 ${
+                            moderationSection === key
+                              ? "border-primary bg-primary text-on-primary shadow-lg"
+                              : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-base">{icon}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Section: Users */}
+                    {moderationSection === "users" && (
+                      <section className="rounded-3xl border border-outline-variant/20 bg-surface shadow-sm">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left">
+                            <thead>
+                              <tr className="border-b border-outline-variant/10">
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">User Profile</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Level</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Access Status</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant/5">
+                              {users.map((u) => (
+                                <tr key={u._id} className="group transition hover:bg-surface-container-lowest">
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-10 w-10 flex shrink-0 items-center justify-center rounded-full bg-primary/5 text-primary font-black">
+                                        {u.name?.charAt(0)}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-bold text-on-surface">{u.name}</p>
+                                        <p className="truncate text-[10px] text-on-surface-variant/60">{u.email}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+                                      u.role === "admin" ? "bg-purple-500/10 text-purple-700" :
+                                      u.role === "organizer" ? "bg-blue-500/10 text-blue-700" :
+                                      "bg-slate-500/10 text-slate-700"
+                                    }`}>
+                                      {u.role}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold ${u.isBanned ? "text-error" : "text-secondary"}`}>
+                                      <span className={`h-2 w-2 rounded-full ${u.isBanned ? "bg-error" : "bg-secondary"}`} />
+                                      {u.isBanned ? "Suspended" : "Active Access"}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-right">
+                                    <button
+                                      onClick={() => handleToggleBan(u._id, u.isBanned)}
+                                      className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition shadow-sm ${
+                                        u.isBanned
+                                          ? "bg-secondary text-on-secondary hover:shadow-md"
+                                          : "bg-error/10 text-error hover:bg-error/20"
+                                      }`}
+                                    >
+                                      {u.isBanned ? "Restore" : "Suspend"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-outline-variant/10 px-6 py-4 bg-surface-container-low/50">
+                          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                            Page {userPagination.page} of {userPagination.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                              disabled={userPage === 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-on-surface-variant font-bold text-[10px] disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() => setUserPage((p) => Math.min(userPagination.totalPages, p + 1))}
+                              disabled={userPage >= userPagination.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-on-surface-variant font-bold text-[10px] disabled:opacity-30"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Section: Organizers */}
+                    {moderationSection === "organizers" && (
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        {pendingOrganizers.map((org) => (
+                          <article key={org._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                            <div className="flex gap-4">
+                              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+                                <span className="material-symbols-outlined text-[2rem]">store</span>
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="truncate text-lg font-black text-on-surface">{org.businessName}</h4>
+                                <p className="text-xs text-on-surface-variant">{org.userId?.name}</p>
+                                <p className="text-[10px] text-on-surface-variant/50">{org.userId?.email}</p>
+                              </div>
+                            </div>
+                            <div className="mt-8 flex gap-3">
+                              <button
+                                onClick={() => updateOrganizerStatus(org._id, "approved")}
+                                className="flex-1 rounded-2xl bg-primary py-3.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-lg transition hover:scale-[1.02]"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => updateOrganizerStatus(org._id, "rejected")}
+                                className="rounded-2xl border border-error/20 bg-error-container/20 px-6 py-3.5 text-xs font-black uppercase tracking-widest text-error hover:bg-error-container/40 transition"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                        {pendingOrganizers.length === 0 && (
+                          <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-outline-variant/40">
+                            <span className="material-symbols-outlined text-5xl text-outline-variant">inventory_2</span>
+                            <p className="mt-4 text-sm font-bold text-on-surface-variant/50 uppercase tracking-widest">No Pending Approvals</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Section: Verifications */}
+                    {moderationSection === "verifications" && (
+                      <div className="grid gap-6 lg:grid-cols-2">
+                        {pendingVerifications.map((v) => (
+                          <article key={v._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                            <div className="flex items-start justify-between">
+                              <div className="min-w-0">
+                                <h4 className="truncate text-lg font-black text-on-surface">{v.name}</h4>
+                                <p className="text-xs text-on-surface-variant">{v.email}</p>
+                              </div>
+                              <span className="rounded-full bg-blue-100 px-3 py-1 text-[9px] font-black uppercase text-blue-700">Identity Audit</span>
+                            </div>
+
+                            <div className="mt-6 overflow-hidden rounded-2xl bg-surface-container border border-outline-variant/10">
+                              {v.governmentIdUrl ? (
+                                <div className="relative group aspect-video">
+                                  <img
+                                    src={resolveMediaUrl(v.governmentIdUrl)}
+                                    alt="User ID"
+                                    className="h-full w-full object-cover transition duration-500 blur-sm group-hover:blur-0"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-on-surface/40 opacity-100 transition group-hover:opacity-0">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-white">Click to inspect document</p>
+                                  </div>
+                                  <a
+                                    href={resolveMediaUrl(v.governmentIdUrl)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="absolute bottom-4 right-4 rounded-xl bg-surface/90 p-2 text-primary shadow-xl hover:bg-white"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="flex h-48 items-center justify-center">
+                                  <p className="text-xs font-bold text-on-surface-variant/40 italic">No document image provided</p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="mt-6 flex gap-3">
+                              <button
+                                onClick={() => updateVerificationStatus(v._id, "verified")}
+                                className="flex-1 rounded-2xl bg-secondary py-3.5 text-xs font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
+                              >
+                                Confirm Verification
+                              </button>
+                              <button
+                                onClick={() => updateVerificationStatus(v._id, "rejected")}
+                                className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-6 py-3.5 text-xs font-black uppercase tracking-widest text-on-surface hover:bg-surface-container-high transition"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </article>
                         ))}
                       </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setReportPage((current) => Math.max(1, current - 1))}
-                          disabled={reportSlice.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {reportSlice.page}/{reportSlice.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setReportPage((current) => Math.min(reportSlice.totalPages, current + 1))
-                          }
-                          disabled={reportSlice.page >= reportSlice.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
-                </section>
-              ) : null}
-
-              {activeTab === "operations" ? (
-                <section className="space-y-6">
-                  <article className="rounded-2xl bg-surface-container-low p-5">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <input
-                        type="text"
-                        value={operationsSearch}
-                        onChange={(event) => setOperationsSearch(event.target.value)}
-                        placeholder="Search trips, users, routes..."
-                        className="min-w-[220px] flex-1 rounded-lg bg-surface px-3 py-2 text-sm text-primary outline-none"
-                      />
-                      <input
-                        type="date"
-                        value={operationsFrom}
-                        onChange={(event) => setOperationsFrom(event.target.value)}
-                        className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary"
-                      />
-                      <input
-                        type="date"
-                        value={operationsTo}
-                        onChange={(event) => setOperationsTo(event.target.value)}
-                        className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOperationsSearch("");
-                          setOperationsFrom("");
-                          setOperationsTo("");
-                          setTripStatusFilter("all");
-                          setTripPaymentFilter("all");
-                          setJoinStatusFilter("all");
-                          setPaymentStatusFilter("all");
-                        }}
-                        className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </article>
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      ["trips", "Trip listings monitor", filteredTrips.length],
-                      ["join", "Join activity", filteredJoinRequests.length],
-                      ["payments", "Payment monitor", filteredPayments.length],
-                    ].map(([key, label, count]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setOperationsSection(key)}
-                        className={`rounded-xl border p-4 text-left transition ${
-                          operationsSection === key
-                            ? "border-primary bg-primary/10"
-                            : "border-outline-variant/30 bg-surface-container-low hover:bg-surface-container"
-                        }`}
-                      >
-                        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-outline">{label}</p>
-                        <p className="mt-2 text-2xl font-black text-primary">{count}</p>
-                      </button>
-                    ))}
+                    )}
                   </div>
+                )}
 
-                  {opsLoading ? (
-                    <LoadingPanel label="Loading operations..." variant="list" />
-                  ) : null}
+                {/* ── Operations Tab ── */}
+                {activeTab === "operations" && (
+                  <div className="space-y-8">
+                    {/* Secondary Navigation */}
+                    <div className="flex border-b border-outline-variant/10">
+                      {[
+                        ["trips", "Lifecycle Monitor", "rocket_launch"],
+                        ["join", "Community Activity", "hub"],
+                        ["payments", "Payment Ledger", "account_balance"],
+                      ].map(([key, label, icon]) => (
+                        <button
+                          key={key}
+                          onClick={() => setOperationsSection(key)}
+                          className={`flex items-center gap-2.5 px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${
+                            operationsSection === key
+                              ? "text-primary border-b-4 border-primary"
+                              : "text-on-surface-variant/60 hover:text-primary"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-base">{icon}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
 
-                  {operationsSection === "trips" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                          Trip listings monitor
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2">
+                    {/* Section: Trip Lifecycle */}
+                    {operationsSection === "trips" && (
+                      <div className="space-y-6">
+                        <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-surface-container-low/50 p-6 border border-outline-variant/10">
+                          <div className="relative flex-1 min-w-[240px]">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">search</span>
+                            <input
+                              type="text"
+                              value={operationsSearch}
+                              onChange={(e) => setOperationsSearch(e.target.value)}
+                              placeholder="Search by trip code, title, or destination..."
+                              className="w-full rounded-2xl bg-surface py-3 pl-12 pr-6 text-sm text-on-surface outline-none border border-outline-variant/20 focus:border-primary/40 shadow-sm transition"
+                            />
+                          </div>
                           <select
                             value={tripStatusFilter}
-                            onChange={(event) => setTripStatusFilter(event.target.value)}
-                            className="rounded-lg bg-surface px-2 py-1 text-xs font-bold text-primary"
+                            onChange={(e) => setTripStatusFilter(e.target.value)}
+                            className="rounded-2xl bg-surface px-5 py-3 text-xs font-black uppercase text-on-surface-variant outline-none border border-outline-variant/20 shadow-sm"
                           >
-                            <option value="all">All statuses</option>
-                            {tripStatusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
+                            <option value="all">Every State</option>
+                            {tripStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           </select>
-                          <select
-                            value={tripPaymentFilter}
-                            onChange={(event) => setTripPaymentFilter(event.target.value)}
-                            className="rounded-lg bg-surface px-2 py-1 text-xs font-bold text-primary"
-                          >
-                            <option value="all">All payments</option>
-                            <option value="enabled">Payment enabled</option>
-                            <option value="disabled">Payment disabled</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              exportRows(
-                                "trip-listings.csv",
-                                ["Trip", "Route", "Status", "Payment", "Started", "Created"],
-                                filteredTrips.map((trip) => [
-                                  trip?.title || "",
-                                  `${trip?.source || ""} to ${trip?.destination || ""}`,
-                                  trip?.status || "",
-                                  trip?.paymentEnabled === false ? "disabled" : "enabled",
-                                  trip?.startedAt || "",
-                                  trip?.createdAt || "",
-                                ]),
-                              )
-                            }
-                            className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary"
-                          >
-                            Export CSV
-                          </button>
                         </div>
-                      </div>
-                      <p className="mt-2 text-xs text-on-surface-variant">
-                        Showing page {tripSlice.page} of {tripSlice.totalPages} • {tripSlice.total} trips
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        {tripSlice.items.map((trip) => (
-                          <div key={trip._id} className="rounded-xl bg-surface p-3">
-                            <p className="font-bold text-primary">{trip.title}</p>
-                            <p className="text-xs text-on-surface-variant">
-                              {trip.source} to {trip.destination} • {trip.transportType || "bus"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {trip.status} • payments {trip.paymentEnabled === false ? "off" : "on"} • {trip.startedAt ? "started" : "not started"}
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <button onClick={() => updateTripLifecycle(trip._id, "start")} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">Start</button>
-                              <button onClick={() => updateTripLifecycle(trip._id, "complete")} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">Complete</button>
-                              <button onClick={() => updateTripLifecycle(trip._id, "cancel")} className="rounded-lg bg-error-container px-3 py-2 text-xs font-bold text-on-error-container">Cancel</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setTripPage((current) => Math.max(1, current - 1))}
-                          disabled={tripSlice.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {tripSlice.page}/{tripSlice.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setTripPage((current) => Math.min(tripSlice.totalPages, current + 1))}
-                          disabled={tripSlice.page >= tripSlice.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
 
-                  {operationsSection === "join" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                          Join activity
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <select
-                            value={joinStatusFilter}
-                            onChange={(event) => setJoinStatusFilter(event.target.value)}
-                            className="rounded-lg bg-surface px-2 py-1 text-xs font-bold text-primary"
-                          >
-                            <option value="all">All statuses</option>
-                            {joinStatusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              exportRows(
-                                "join-activity.csv",
-                                ["Requester", "Receiver", "Route", "Status", "Created"],
-                                filteredJoinRequests.map((request) => [
-                                  request?.requesterId?.name || "",
-                                  request?.receiverId?.name || "",
-                                  `${request?.source || ""} to ${request?.destination || ""}`,
-                                  request?.status || "",
-                                  request?.createdAt || "",
-                                ]),
-                              )
-                            }
-                            className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary"
-                          >
-                            Export CSV
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold uppercase">
-                        {Object.entries(joinActivity.bookingStatusSummary || {}).map(([status, count]) => (
-                          <span key={status} className="rounded-full bg-surface px-3 py-1 text-primary">
-                            {status}: {count}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="mt-2 text-xs text-on-surface-variant">
-                        Showing page {joinSlice.page} of {joinSlice.totalPages} • {joinSlice.total} requests
-                      </p>
-                      <div className="mt-4 space-y-2">
-                        {joinSlice.items.map((request) => (
-                          <div key={request._id} className="rounded-xl bg-surface p-3">
-                            <p className="text-sm font-semibold text-primary">
-                              {request.requesterId?.name || "Traveler"} to {request.receiverId?.name || "Traveler"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {request.source} to {request.destination} • {request.status}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setJoinPage((current) => Math.max(1, current - 1))}
-                          disabled={joinSlice.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {joinSlice.page}/{joinSlice.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setJoinPage((current) => Math.min(joinSlice.totalPages, current + 1))}
-                          disabled={joinSlice.page >= joinSlice.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
+                        <div className="grid gap-6 lg:grid-cols-2">
+                          {tripSlice.items.map((trip) => (
+                            <article key={trip._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md">
+                              <div className="flex items-start justify-between">
+                                <div className="min-w-0">
+                                  <h4 className="truncate text-lg font-black text-on-surface">{trip.title}</h4>
+                                  <p className="mt-1 flex items-center gap-2 text-xs text-on-surface-variant">
+                                    <span className="material-symbols-outlined text-sm text-primary">route</span>
+                                    {trip.source} → {trip.destination}
+                                  </p>
+                                </div>
+                                <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
+                                  trip.status === "active" ? "bg-green-100 text-green-700" :
+                                  trip.status === "completed" ? "bg-blue-100 text-blue-700" :
+                                  "bg-red-100 text-red-700"
+                                }`}>
+                                  {trip.status}
+                                </span>
+                              </div>
 
-                  {operationsSection === "payments" ? (
-                    <article className="rounded-2xl bg-surface-container-low p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-outline">
-                          Payment monitor
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <select
-                            value={paymentStatusFilter}
-                            onChange={(event) => setPaymentStatusFilter(event.target.value)}
-                            className="rounded-lg bg-surface px-2 py-1 text-xs font-bold text-primary"
-                          >
-                            <option value="all">All payment statuses</option>
-                            {paymentStatusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              exportRows(
-                                "payments.csv",
-                                ["Trip", "Traveler", "Payment Status", "Booking Status", "Amount", "Currency", "Created"],
-                                filteredPayments.map((item) => [
-                                  item?.tripId?.title || "",
-                                  item?.travelerId?.name || "",
-                                  item?.paymentStatus || "",
-                                  item?.status || "",
-                                  safeNumber(item?.totalAmount),
-                                  item?.currency || "",
-                                  item?.createdAt || "",
-                                ]),
-                              )
-                            }
-                            className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary"
-                          >
-                            Export CSV
-                          </button>
+                              <div className="mt-6 grid grid-cols-2 gap-4">
+                                <div className="rounded-2xl bg-surface-container-low p-4">
+                                  <p className="text-[10px] font-black uppercase text-on-surface-variant/40">Organizer</p>
+                                  <p className="mt-1 truncate text-xs font-bold text-on-surface">{trip.organizerId?.businessName}</p>
+                                </div>
+                                <div className="rounded-2xl bg-surface-container-low p-4">
+                                  <p className="text-[10px] font-black uppercase text-on-surface-variant/40">Status</p>
+                                  <p className="mt-1 text-xs font-bold text-on-surface">{trip.startedAt ? "Live Session" : "Awaiting Start"}</p>
+                                </div>
+                              </div>
+
+                              <div className="mt-8 flex gap-2">
+                                <button
+                                  onClick={() => updateTripLifecycle(trip._id, "start")}
+                                  disabled={trip.status !== "active" || trip.startedAt}
+                                  className="flex-1 rounded-xl bg-primary py-3 text-[10px] font-black uppercase tracking-widest text-on-primary transition hover:opacity-90 disabled:opacity-30"
+                                >
+                                  Deploy Start
+                                </button>
+                                <button
+                                  onClick={() => updateTripLifecycle(trip._id, "complete")}
+                                  disabled={trip.status === "completed"}
+                                  className="flex-1 rounded-xl border border-outline-variant/30 bg-surface-container px-4 py-3 text-[10px] font-black uppercase tracking-widest text-on-surface transition hover:bg-surface-container-high disabled:opacity-30"
+                                >
+                                  Complete
+                                </button>
+                              </div>
+                            </article>
+                          ))}
                         </div>
                       </div>
-                      <p className="mt-2 text-xs text-on-surface-variant">
-                        Showing page {paymentSlice.page} of {paymentSlice.totalPages} • {paymentSlice.total} payments
-                      </p>
-                      <div className="mt-4 space-y-2">
-                        {paymentSlice.items.map((item) => (
-                          <div key={item._id} className="rounded-xl bg-surface p-3">
-                            <p className="text-sm font-bold text-primary">
-                              {item.tripId?.title || "Trip"} • {item.travelerId?.name || "Traveler"}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {item.paymentStatus} • {item.status} • {safeNumber(item.totalAmount)} {item.currency}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentPage((current) => Math.max(1, current - 1))}
-                          disabled={paymentSlice.page <= 1}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-outline">
-                          Page {paymentSlice.page}/{paymentSlice.totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPaymentPage((current) => Math.min(paymentSlice.totalPages, current + 1))
-                          }
-                          disabled={paymentSlice.page >= paymentSlice.totalPages}
-                          className="rounded-lg bg-surface px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
-                </section>
-              ) : null}
-            </div>
-          )}
+                    )}
+
+                    {/* Section: Payments Ledger */}
+                    {operationsSection === "payments" && (
+                      <section className="rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left">
+                            <thead className="bg-surface-container-low/50">
+                              <tr>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Client</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Service Item</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50 text-right">Value</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Ledger Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant/5">
+                              {paymentSlice.items.map((p) => (
+                                <tr key={p._id} className="transition hover:bg-surface-container-lowest">
+                                  <td className="px-6 py-5">
+                                    <p className="text-sm font-bold text-on-surface">{p.travelerId?.name}</p>
+                                    <p className="text-[10px] text-on-surface-variant/60 uppercase">{p.travelerId?.email}</p>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <p className="text-sm font-bold text-on-surface-variant">{p.tripId?.title}</p>
+                                    <p className="text-[10px] text-on-surface-variant/40">{p.tripId?.source} → {p.tripId?.destination}</p>
+                                  </td>
+                                  <td className="px-6 py-5 text-right">
+                                    <p className="font-headline text-sm font-black text-primary">INR {safeNumber(p.totalAmount)}</p>
+                                    <p className="text-[10px] font-black text-on-surface-variant/30 uppercase">{p.currency}</p>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${
+                                      p.paymentStatus === "paid" ? "bg-green-100 text-green-700" :
+                                      p.paymentStatus === "failed" ? "bg-red-100 text-red-700" :
+                                      "bg-orange-100 text-orange-700"
+                                    }`}>
+                                      {p.paymentStatus}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </MainLayout>

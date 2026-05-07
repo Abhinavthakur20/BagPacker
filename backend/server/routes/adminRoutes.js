@@ -13,6 +13,7 @@ const {
   reviewOrganizerApproval,
   updateTripLifecycle,
   updateVerificationStatus,
+  toggleUserBan,
 } = require("../api/admin/adminController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
@@ -33,6 +34,11 @@ router.get(
     validateRequest,
   ],
   getAllUsers,
+);
+router.put(
+  "/users/:id/toggle-ban",
+  [param("id").isMongoId().withMessage("Valid user id is required"), validateRequest],
+  toggleUserBan,
 );
 router.get("/organizers/pending", getPendingOrganizers);
 router.put(

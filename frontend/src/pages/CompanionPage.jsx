@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import CityAutocompleteInput from "../components/ui/CityAutocompleteInput";
-import TravelCopilotPanel from "../components/TravelCopilotPanel";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 
@@ -26,44 +25,33 @@ const formatTravelDate = (value) =>
 const formatDateTime = (value) =>
   value ? new Date(value).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "";
 
-const getScoreBadge = (score) => `${Math.round(Number(score || 0))}% fit`;
-
-const getAvailabilityLabel = (item) => {
-  if (item.requestStatus === "accepted") {
-    return "Matched";
-  }
-  if (item.requestStatus === "pending" && item.requestDirection === "incoming") {
-    return "Incoming Request";
-  }
-  if (item.requestStatus === "pending" && item.requestDirection === "outgoing") {
-    return "Request Sent";
-  }
-  return "Available";
-};
+const getScoreBadge = (score) => `${Math.round(Number(score || 0))}% Fit`;
 
 const getRequestPriority = (item) => {
-  if (item.direction === "incoming" && item.status === "pending") {
-    return 0;
-  }
-  if (item.status === "accepted") {
-    return 1;
-  }
-  if (item.direction === "outgoing" && item.status === "pending") {
-    return 2;
-  }
+  if (item.direction === "incoming" && item.status === "pending") return 0;
+  if (item.status === "accepted") return 1;
+  if (item.direction === "outgoing" && item.status === "pending") return 2;
   return 3;
 };
 
 export default function CompanionPage() {
   const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
   const loggedIn = Boolean(token);
   const navigate = useNavigate();
+
+  // Active Tab Logic (Dashboard style)
+  const [activeTab, setActiveTab] = useState("discover");
+
+  // Search State
   const [source, setSource] = useState(DEFAULT_SOURCE);
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
   const [travelDate, setTravelDate] = useState(tomorrowISO);
   const [requestedSeats, setRequestedSeats] = useState(1);
   const [searchGenderPreference, setSearchGenderPreference] = useState("Any");
   const [searchVehicleType, setSearchVehicleType] = useState("");
+
+  // Post State
   const [postSource, setPostSource] = useState(DEFAULT_SOURCE);
   const [postDestination, setPostDestination] = useState(DEFAULT_DESTINATION);
   const [postTravelDate, setPostTravelDate] = useState(tomorrowISO);
@@ -71,19 +59,16 @@ export default function CompanionPage() {
   const [postGenderPreference, setPostGenderPreference] = useState("Any");
   const [postVehicleType, setPostVehicleType] = useState("");
   const [postNote, setPostNote] = useState("");
+
+  // Data State
   const [matches, setMatches] = useState([]);
   const [personalPosts, setPersonalPosts] = useState([]);
   const [myPersonalPosts, setMyPersonalPosts] = useState([]);
   const [myRequests, setMyRequests] = useState({ sent: [], received: [] });
   const [notifications, setNotifications] = useState([]);
-  const [index, setIndex] = useState(0);
-  const [accepted, setAccepted] = useState(0);
-  const [declined, setDeclined] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [pageError, setPageError] = useState("");
-  const [isInboxOpen, setIsInboxOpen] = useState(false);
-  const [inboxTab, setInboxTab] = useState("requests");
 
   const buildSearchQuery = (overrides = {}) => {
     const params = new URLSearchParams({
@@ -96,22 +81,16 @@ export default function CompanionPage() {
     });
 
     const genderPreference = overrides.searchGenderPreference ?? searchGenderPreference;
-    if (genderPreference && genderPreference !== "Any") {
-      params.set("genderPreference", genderPreference);
-    }
+    if (genderPreference && genderPreference !== "Any") params.set("genderPreference", genderPreference);
 
     const vehicleType = overrides.searchVehicleType ?? searchVehicleType;
-    if (vehicleType) {
-      params.set("vehicleType", vehicleType);
-    }
+    if (vehicleType) params.set("vehicleType", vehicleType);
 
     return params.toString();
   };
 
   const loadCompanionData = async (overrides = {}) => {
-    if (!loggedIn) {
-      return;
-    }
+    if (!loggedIn) return;
 
     try {
       setIsLoading(true);
@@ -134,37 +113,13 @@ export default function CompanionPage() {
         api.get("/notifications?page=1&limit=25", { cacheTtlMs: 10000 }),
       ]);
 
-      setMatches(
-        Array.isArray(foundMatches?.items)
-          ? foundMatches.items
-          : Array.isArray(foundMatches)
-            ? foundMatches
-            : [],
-      );
-      setPersonalPosts(
-        Array.isArray(foundPosts?.items)
-          ? foundPosts.items
-          : Array.isArray(foundPosts?.data)
-            ? foundPosts.data
-            : [],
-      );
-      setMyPersonalPosts(
-        Array.isArray(minePosts?.items)
-          ? minePosts.items
-          : Array.isArray(minePosts)
-            ? minePosts
-            : [],
-      );
+      setMatches(Array.isArray(foundMatches?.items) ? foundMatches.items : Array.isArray(foundMatches) ? foundMatches : []);
+      setPersonalPosts(Array.isArray(foundPosts?.items) ? foundPosts.items : Array.isArray(foundPosts?.data) ? foundPosts.data : []);
+      setMyPersonalPosts(Array.isArray(minePosts?.items) ? minePosts.items : Array.isArray(minePosts) ? minePosts : []);
       setMyRequests(requests || { sent: [], received: [] });
       setNotifications(Array.isArray(userNotifications?.items) ? userNotifications.items : []);
-      setIndex(0);
     } catch (fetchError) {
       setPageError(fetchError.message);
-      setMatches([]);
-      setPersonalPosts([]);
-      setMyPersonalPosts([]);
-      setMyRequests({ sent: [], received: [] });
-      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -172,21 +127,7 @@ export default function CompanionPage() {
 
   useEffect(() => {
     loadCompanionData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn]);
-
-  useEffect(() => {
-    if (!isInboxOpen) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isInboxOpen]);
 
   const resetSearchFilters = async () => {
     setSource(DEFAULT_SOURCE);
@@ -214,9 +155,9 @@ export default function CompanionPage() {
       requestStatus: item.request?.status || null,
       requestDirection: item.request?.direction || null,
       name: item.name || "Traveler",
-      route: `${item.source} -> ${item.destination}`,
+      route: `${item.source} ➔ ${item.destination}`,
       dates: formatTravelDate(item.travelDate),
-      matchLabel: item.matchLabel || "Route match",
+      matchLabel: item.matchLabel || "Route Match",
       score: Number(item.score || 0),
       trust: item.trustScore || 0,
       verificationStatus: item.verificationStatus || "unverified",
@@ -228,8 +169,9 @@ export default function CompanionPage() {
       seatsCapacity: null,
       genderPreference: item.request?.genderPreference || "Any",
       vehicleType: item.request?.vehicleType || null,
-      note: "Matched from an existing BagPacker booking.",
+      note: "Matched via active BagPacker booking.",
       postId: null,
+      image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80"
     }));
 
     const postItems = (personalPosts || []).map((item) => ({
@@ -240,9 +182,9 @@ export default function CompanionPage() {
       requestStatus: item.request?.status || null,
       requestDirection: item.request?.direction || null,
       name: item.ownerName || "Traveler",
-      route: `${item.source} -> ${item.destination}`,
+      route: `${item.source} ➔ ${item.destination}`,
       dates: formatTravelDate(item.travelDate),
-      matchLabel: item.matchLabel || "Route match",
+      matchLabel: item.matchLabel || "Route Match",
       score: Number(item.score || 0),
       trust: item.trustScore || 0,
       verificationStatus: item.verificationStatus || "unverified",
@@ -254,42 +196,25 @@ export default function CompanionPage() {
       seatsCapacity: item.maxCompanions,
       genderPreference: item.genderPreference || "Any",
       vehicleType: item.vehicleType || null,
-      note: item.note || "Open personal trip post.",
+      note: item.note || "Open personal expedition post.",
       postId: item.postId,
+      image: "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?auto=format&fit=crop&w=400&q=80"
     }));
 
     return [...postItems, ...bookingItems].sort((first, second) => {
-      const firstPriority =
-        first.requestStatus === "pending" && first.requestDirection === "incoming" ? 0 : 1;
-      const secondPriority =
-        second.requestStatus === "pending" && second.requestDirection === "incoming" ? 0 : 1;
-
-      if (firstPriority !== secondPriority) {
-        return firstPriority - secondPriority;
-      }
-
+      const p1 = first.requestStatus === "pending" && first.requestDirection === "incoming" ? 0 : 1;
+      const p2 = second.requestStatus === "pending" && second.requestDirection === "incoming" ? 0 : 1;
+      if (p1 !== p2) return p1 - p2;
       return Number(second.score || 0) - Number(first.score || 0);
     });
   }, [matches, personalPosts]);
-
-  const current = useMemo(() => {
-    if (!discoverItems.length) {
-      return null;
-    }
-
-    return {
-      ...discoverItems[index % discoverItems.length],
-      image:
-        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
-    };
-  }, [discoverItems, index]);
 
   const requestRows = useMemo(() => {
     const sentRows = (myRequests.sent || []).map((item) => ({
       key: `sent-${item._id}`,
       requestId: item._id,
       name: item.receiverId?.name || "Traveler",
-      route: `${item.source} -> ${item.destination}`,
+      route: `${item.source} ➔ ${item.destination}`,
       dateLabel: formatTravelDate(item.travelDate),
       createdLabel: formatDateTime(item.createdAt),
       status: item.status,
@@ -306,7 +231,7 @@ export default function CompanionPage() {
       key: `received-${item._id}`,
       requestId: item._id,
       name: item.requesterId?.name || "Traveler",
-      route: `${item.source} -> ${item.destination}`,
+      route: `${item.source} ➔ ${item.destination}`,
       dateLabel: formatTravelDate(item.travelDate),
       createdLabel: formatDateTime(item.createdAt),
       status: item.status,
@@ -321,151 +246,68 @@ export default function CompanionPage() {
 
     return [...receivedRows, ...sentRows].sort((first, second) => {
       const priorityDelta = getRequestPriority(first) - getRequestPriority(second);
-      if (priorityDelta !== 0) {
-        return priorityDelta;
-      }
-
+      if (priorityDelta !== 0) return priorityDelta;
       return second.createdLabel.localeCompare(first.createdLabel);
     });
   }, [myRequests]);
 
-  const pendingIncomingCount = requestRows.filter(
-    (item) => item.direction === "incoming" && item.status === "pending",
-  ).length;
-  const unreadNotificationCount = notifications.filter((item) => !item.isRead).length;
-  const inboxCount = pendingIncomingCount + unreadNotificationCount;
-  const copilotContext = useMemo(
-    () => ({
-      source: current?.source || source,
-      destination: current?.destination || destination,
-      travelDate: current?.travelDate || travelDate,
-      seatsRequested: requestedSeats,
-      genderPreference: searchGenderPreference,
-      vehicleType: searchVehicleType || current?.vehicleType || "",
-      companionName: current?.name || "",
-      note: current?.note || "",
-    }),
-    [
-      current,
-      destination,
-      requestedSeats,
-      searchGenderPreference,
-      searchVehicleType,
-      source,
-      travelDate,
-    ],
-  );
+  const unreadNotificationCount = notifications.filter(i => !i.isRead).length;
 
   const markNotificationRead = async (notificationId) => {
     try {
       await api.put(`/notifications/${notificationId}/read`, {});
-      setNotifications((currentItems) =>
-        currentItems.map((item) =>
-          item._id === notificationId
-            ? {
-                ...item,
-                isRead: true,
-              }
-            : item,
-        ),
-      );
-    } catch (requestError) {
-      await showErrorAlert("Could not update notification", requestError.message);
-    }
+      setNotifications(prev => prev.map(i => i._id === notificationId ? { ...i, isRead: true } : i));
+    } catch (err) { showErrorAlert("Update failed", err.message); }
   };
 
-  const onDecision = async (type) => {
-    if (!current) {
-      return;
-    }
-
+  const onDecision = async (item, type) => {
     try {
-      const isPost = current.kind === "post";
-      const isIncomingPending =
-        current.requestStatus === "pending" && current.requestDirection === "incoming";
-      const isOutgoingPending =
-        current.requestStatus === "pending" && current.requestDirection === "outgoing";
-      const isAccepted = current.requestStatus === "accepted";
+      const isPost = item.kind === "post";
+      const isIncomingPending = item.requestStatus === "pending" && item.requestDirection === "incoming";
+      const isAccepted = item.requestStatus === "accepted";
 
       if (type === "accept") {
         if (isAccepted) {
-          navigate(
-            current.chatRoomId ? `/chat?roomId=${encodeURIComponent(current.chatRoomId)}` : "/chat",
-          );
+          navigate(item.chatRoomId ? `/chat?roomId=${encodeURIComponent(item.chatRoomId)}` : "/chat");
           return;
         }
-
         if (isIncomingPending) {
-          await api.patch(`/companions/${current.requestId}/accept`, {});
-          setAccepted((value) => value + 1);
+          await api.patch(`/companions/${item.requestId}/accept`, {});
           await loadCompanionData();
-          await showSuccessAlert(
-            "Companion accepted",
-            "Your chat room is now available in the inbox and chat page.",
-          );
+          await showSuccessAlert("Matched!", "Your chat is now available in your inbox.");
           return;
         }
 
-        if (isOutgoingPending) {
-          await showSuccessAlert(
-            "Request already sent",
-            "This companion request is pending their response.",
-          );
-          return;
-        }
-
-        if (isPost && Number(current.seatsAvailable || 0) < Number(requestedSeats)) {
-          await showErrorAlert(
-            "Post full",
-            "This personal trip post does not have enough seats left.",
-          );
-          return;
-        }
-
-        await api.post(
-          "/companions",
-          isPost
-            ? {
-                personalTripPostId: current.postId,
-                seatsRequested: Number(requestedSeats),
-                genderPreference: searchGenderPreference,
-                ...(searchVehicleType ? { vehicleType: searchVehicleType } : {}),
-              }
-            : {
-                receiverId: current.userId,
-                source: current.source,
-                destination: current.destination,
-                travelDate,
-                seatsRequested: Number(requestedSeats),
-                genderPreference: searchGenderPreference,
-                ...(searchVehicleType ? { vehicleType: searchVehicleType } : {}),
-              },
-        );
+        await api.post("/companions", isPost ? {
+          personalTripPostId: item.postId,
+          seatsRequested: Number(requestedSeats),
+          genderPreference: searchGenderPreference,
+          ...(searchVehicleType ? { vehicleType: searchVehicleType } : {}),
+        } : {
+          receiverId: item.userId,
+          source: item.source,
+          destination: item.destination,
+          travelDate,
+          seatsRequested: Number(requestedSeats),
+          genderPreference: searchGenderPreference,
+          ...(searchVehicleType ? { vehicleType: searchVehicleType } : {}),
+        });
 
         await loadCompanionData();
-        await showSuccessAlert("Request sent", "Open the inbox anytime to track responses.");
+        await showSuccessAlert("Request Sent", "We'll notify you once they respond.");
         return;
       }
 
       if (isIncomingPending) {
-        await api.patch(`/companions/${current.requestId}/decline`, {});
-        setDeclined((value) => value + 1);
+        await api.patch(`/companions/${item.requestId}/decline`, {});
         await loadCompanionData();
-        await showSuccessAlert("Companion declined", "The request was moved out of your pending inbox.");
         return;
       }
-
-      setIndex((value) => value + 1);
-    } catch (requestError) {
-      await showErrorAlert("Request update failed", requestError.message);
-    }
+    } catch (err) { showErrorAlert("Action failed", err.message); }
   };
 
   const createPersonalTripPost = async () => {
-    if (!loggedIn) {
-      return;
-    }
-
+    if (!loggedIn) return;
     try {
       setIsPosting(true);
       await api.post("/companions/posts", {
@@ -479,713 +321,336 @@ export default function CompanionPage() {
       });
       setPostNote("");
       await loadCompanionData();
-      await showSuccessAlert("Post created", "Your personal trip post is now live.");
-    } catch (requestError) {
-      await showErrorAlert("Post creation failed", requestError.message);
-    } finally {
-      setIsPosting(false);
-    }
+      await showSuccessAlert("Post Live", "Your expedition is now visible to others.");
+      setActiveTab("my_posts");
+    } catch (err) { showErrorAlert("Failed to post", err.message); } finally { setIsPosting(false); }
   };
 
   const respondFromInbox = async (requestId, status) => {
     try {
-      await api.patch(
-        `/companions/${requestId}/${status === "accepted" ? "accept" : "decline"}`,
-        {},
-      );
-      if (status === "accepted") {
-        setAccepted((value) => value + 1);
-        await showSuccessAlert("Companion accepted", "Your chat room is ready.");
-      } else {
-        setDeclined((value) => value + 1);
-        await showSuccessAlert("Companion declined", "The request has been removed from pending.");
-      }
+      await api.patch(`/companions/${requestId}/${status === "accepted" ? "accept" : "decline"}`, {});
+      await showSuccessAlert(status === "accepted" ? "Accepted" : "Declined", "Updated successfully.");
       await loadCompanionData();
-    } catch (requestError) {
-      await showErrorAlert("Request update failed", requestError.message);
-    }
+    } catch (err) { showErrorAlert("Update failed", err.message); }
   };
 
   return (
     <MainLayout>
-      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-10">
-        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7fa11c]">
-              Companion Finder
-            </p>
-            <h1 className="mt-1 font-manrope text-xl font-extrabold text-on-surface sm:text-2xl">
-              Find your travel companion
-            </h1>
-            <p className="mt-1 text-sm text-on-surface-variant">
-              Search by route, date, seats, and preferences, then compare how close each match is.
-            </p>
-          </div>
-
-          {loggedIn ? (
-            <button
-              type="button"
-              onClick={() => {
-                setInboxTab("requests");
-                setIsInboxOpen(true);
-              }}
-              className="inline-flex items-center gap-3 self-start rounded-2xl border border-outline-variant/20 bg-surface-container px-4 py-3 shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[#7fa11c]">notifications</span>
-              <span className="text-left">
-                <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
-                  Companion Inbox
-                </span>
-                <span className="block text-sm font-semibold text-on-surface">
-                  {pendingIncomingCount} pending, {unreadNotificationCount} unread
-                </span>
-              </span>
-            </button>
-          ) : null}
-        </div>
-
-        {!loggedIn ? (
-          <div className="mb-6 rounded-2xl bg-error-container p-4 text-center font-semibold text-on-error-container">
-            Please login to find and manage companion requests.
-          </div>
-        ) : null}
-
-        {pageError ? (
-          <div className="mb-6 rounded-2xl bg-error-container p-4 text-center font-semibold text-on-error-container">
-            {pageError}
-          </div>
-        ) : null}
-
-        <div className="mb-6 rounded-2xl bg-surface-container-low p-4 shadow-sm">
-          <div className="mb-3">
-            <p className="text-sm font-bold text-on-surface">Find Travel Companions</p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="relative block">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
-                trip_origin
-              </span>
-              <CityAutocompleteInput
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-                className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
-                placeholder="From"
-              />
-            </label>
-            <label className="relative block">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
-                near_me
-              </span>
-              <CityAutocompleteInput
-                value={destination}
-                onChange={(event) => setDestination(event.target.value)}
-                className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
-                placeholder="To"
-              />
-            </label>
-            <label className="relative block">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-outline">
-                calendar_month
-              </span>
-              <input
-                type="date"
-                value={travelDate}
-                onChange={(event) => setTravelDate(event.target.value)}
-                className="w-full rounded-xl bg-surface-container px-10 py-3 text-sm"
-              />
-            </label>
-          </div>
-          <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <select
-              value={requestedSeats}
-              onChange={(event) => setRequestedSeats(Number(event.target.value))}
-              className="rounded-xl bg-surface-container px-4 py-3 text-sm"
-            >
-              <option value={1}>1 seat</option>
-              <option value={2}>2 seats</option>
-              <option value={3}>3 seats</option>
-              <option value={4}>4 seats</option>
-            </select>
-            <select
-              value={searchGenderPreference}
-              onChange={(event) => setSearchGenderPreference(event.target.value)}
-              className="rounded-xl bg-surface-container px-4 py-3 text-sm"
-            >
-              <option value="Any">Any gender</option>
-              <option value="F">Female only</option>
-              <option value="M">Male only</option>
-            </select>
-            <select
-              value={searchVehicleType}
-              onChange={(event) => setSearchVehicleType(event.target.value)}
-              className="rounded-xl bg-surface-container px-4 py-3 text-sm"
-            >
-              <option value="">Any vehicle</option>
-              <option value="car">Car</option>
-              <option value="bike">Bike</option>
-            </select>
-            <button
-              onClick={() => loadCompanionData()}
-              disabled={!loggedIn || isLoading}
-              className="rounded-xl bg-linear-to-r from-[#012d1d] to-[#3d4466] px-4 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoading ? "Loading..." : "Find Matches"}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-          <aside className="space-y-5">
-            <article className="rounded-2xl bg-linear-to-br from-[#012d1d] to-[#3d4466] p-4 text-white shadow-lg">
-              <div className="flex items-end justify-between gap-2">
-                <p className="font-manrope text-3xl font-extrabold leading-none">
-                  {discoverItems.length}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/80">
-                  Live
-                </p>
+      <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
+        {/* ── Dashboard Sidebar ── */}
+        <aside className="hidden w-72 flex-col border-r border-outline-variant/10 bg-surface-container-low lg:flex">
+          <div className="p-8 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg shadow-primary/20">
+                <span className="material-symbols-outlined text-[1.2rem]">groups</span>
               </div>
-              <p className="mt-2 text-lg font-semibold leading-tight">
-                Compatible companions
-              </p>
-              <p className="mt-1 text-sm text-white/75">
-                Ranked by route, date closeness, and trust.
-              </p>
-            </article>
-
-            <article className="rounded-2xl bg-surface-container-low p-4 shadow-sm">
-              <p className="text-sm font-bold text-on-surface">Search Snapshot</p>
-              <div className="mt-3 space-y-2 text-sm text-on-surface-variant">
-                <p>{`${source} -> ${destination}`}</p>
-                <p>{formatTravelDate(travelDate)}</p>
-                <p>{requestedSeats} seat{requestedSeats > 1 ? "s" : ""} requested</p>
-                <p>
-                  {searchGenderPreference === "Any"
-                    ? "Any gender"
-                    : `${searchGenderPreference} preference`}
-                  {" | "}
-                  {searchVehicleType || "Any vehicle"}
-                </p>
-              </div>
-            </article>
-
-            <article className="rounded-2xl bg-surface-container-low p-4 shadow-sm">
-              <p className="text-sm font-bold text-on-surface">Decision Stats</p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-full bg-[#012d1d] px-3 py-2 text-xs font-semibold text-[#012d1d]">
-                  Accepted <span className="font-black">{accepted}</span>
-                </div>
-                <div className="rounded-full bg-[#f2f9d8] px-3 py-2 text-xs font-semibold text-error">
-                  Declined <span className="font-black">{declined}</span>
-                </div>
-              </div>
-            </article>
-
-            <article className="rounded-2xl bg-surface-container-low p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-on-surface">Inbox Summary</p>
-                  <p className="mt-1 text-sm text-on-surface-variant">
-                    {pendingIncomingCount} requests need action
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInboxTab("requests");
-                    setIsInboxOpen(true);
-                  }}
-                  className="rounded-xl bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white"
-                >
-                  Open Inbox
-                </button>
-              </div>
-            </article>
-
-            <TravelCopilotPanel context={copilotContext} />
-          </aside>
-
-          <section>
-            {current ? (
-              <>
-                <article className="relative overflow-hidden rounded-xl shadow-[0_18px_50px_rgba(17,48,35,0.2)]">
-                  <img
-                    src={current.image}
-                    alt={current.name}
-                    className="h-[430px] w-full object-cover object-top sm:h-[530px]"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-[#012d1d] via-[#012d1d]/35 to-transparent" />
-
-                  <div className="absolute left-5 top-5 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#f2f9d8] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#012d1d]">
-                      {current.verificationStatus === "verified" ? "Verified" : "Unverified"}
-                    </span>
-                    <span className="rounded-full bg-[#ffcdd2] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#012d1d]">
-                      {current.trust} Trust
-                    </span>
-                    <span className="rounded-full bg-[#fff0d6] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#8f6f71]">
-                      {getScoreBadge(current.score)}
-                    </span>
-                  </div>
-
-                  <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8">
-                    <h1 className="break-words font-manrope text-xl font-extrabold leading-tight sm:text-3xl">
-                      {current.name}
-                    </h1>
-                    <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold uppercase tracking-[0.12em] text-white/90">
-                      <span>{current.route}</span>
-                      <span>{current.dates}</span>
-                      <span>{current.matchLabel}</span>
-                      {current.kind === "post" ? (
-                        <span>
-                          {current.seatsAvailable}/{current.seatsCapacity} seats left
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.12em]">
-                      <span className="rounded-full bg-white/15 px-3 py-1">
-                        {current.genderPreference === "Any"
-                          ? "Any gender"
-                          : `${current.genderPreference} preference`}
-                      </span>
-                      <span className="rounded-full bg-white/15 px-3 py-1">
-                        {current.vehicleType || "Any vehicle"}
-                      </span>
-                      <span className="rounded-full bg-white/15 px-3 py-1">
-                        Requesting {requestedSeats} seat{requestedSeats > 1 ? "s" : ""}
-                      </span>
-                      <span className="rounded-full bg-white/15 px-3 py-1">
-                        {getAvailabilityLabel(current)}
-                      </span>
-                    </div>
-                    <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/90">
-                      {current.note}
-                    </p>
-                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-white/70">
-                      {current.kind === "post" ? "Personal Trip Post" : "Booking Match"}
-                    </p>
-                  </div>
-                </article>
-
-                <div className="mt-7 flex items-center justify-center gap-8">
-                  <button
-                    onClick={() => onDecision("decline")}
-                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-error/30 bg-[#fff0f2] text-[#7fa11c] transition hover:scale-105"
-                    aria-label="Decline or skip companion"
-                  >
-                    <span className="material-symbols-outlined text-[30px]">close</span>
-                  </button>
-                  <button
-                    onClick={() => onDecision("accept")}
-                    disabled={
-                      current.kind === "post" &&
-                      !current.requestId &&
-                      Number(current.seatsAvailable || 0) < Number(requestedSeats)
-                    }
-                    className="flex h-20 w-20 items-center justify-center rounded-full bg-[#7fa11c] text-[#2e2200] shadow-[0_14px_30px_rgba(127,161,28,0.35)] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Primary companion action"
-                  >
-                    <span className="material-symbols-outlined text-[34px]">
-                      {current.requestStatus === "accepted"
-                        ? "chat"
-                        : current.requestStatus === "pending" &&
-                            current.requestDirection === "outgoing"
-                          ? "schedule"
-                          : "done"}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setIndex((value) => value + 1)}
-                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-surface-variant/30 bg-surface-container-low text-[#575d77] transition hover:scale-105"
-                    aria-label="Skip companion"
-                  >
-                    <span className="material-symbols-outlined text-[30px]">
-                      arrow_forward
-                    </span>
-                  </button>
-                </div>
-              </>
-            ) : isLoading ? (
-              <LoadingPanel
-                label="Searching companions..."
-                variant="list"
-                className="rounded-2xl"
-              />
-            ) : (
-              <div className="rounded-2xl bg-surface-container-low p-8 text-center">
-                <span className="material-symbols-outlined text-2xl text-[#6f736b]">
-                  travel_explore
-                </span>
-                <p className="mt-3 font-semibold text-on-surface">
-                  No companions found for this route
-                </p>
-                <p className="mt-1 text-sm text-[#6f736b]">
-                  Try a broader date range, fewer seats, or remove a preference filter.
-                </p>
-                <button
-                  type="button"
-                  onClick={resetSearchFilters}
-                  className="mt-4 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white"
-                >
-                  Reset filters
-                </button>
-              </div>
-            )}
-          </section>
-
-          <aside className="space-y-5">
-            <article className="rounded-2xl bg-surface-container-low p-5 shadow-sm">
-              <h2 className="font-manrope text-lg font-bold text-[#202925]">
-                Create Personal Trip Post
-              </h2>
-              <div className="mt-3 space-y-2">
-                <CityAutocompleteInput
-                  value={postSource}
-                  onChange={(event) => setPostSource(event.target.value)}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                  placeholder="Source city"
-                />
-                <CityAutocompleteInput
-                  value={postDestination}
-                  onChange={(event) => setPostDestination(event.target.value)}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                  placeholder="Destination city"
-                />
-                <input
-                  type="date"
-                  value={postTravelDate}
-                  onChange={(event) => setPostTravelDate(event.target.value)}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                />
-                <select
-                  value={postSeatsAvailable}
-                  onChange={(event) => setPostSeatsAvailable(Number(event.target.value))}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                >
-                  <option value={1}>1 seat available</option>
-                  <option value={2}>2 seats available</option>
-                  <option value={3}>3 seats available</option>
-                  <option value={4}>4 seats available</option>
-                </select>
-                <select
-                  value={postGenderPreference}
-                  onChange={(event) => setPostGenderPreference(event.target.value)}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                >
-                  <option value="Any">Any gender</option>
-                  <option value="F">Female only</option>
-                  <option value="M">Male only</option>
-                </select>
-                <select
-                  value={postVehicleType}
-                  onChange={(event) => setPostVehicleType(event.target.value)}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                >
-                  <option value="">Any vehicle</option>
-                  <option value="car">Car</option>
-                  <option value="bike">Bike</option>
-                </select>
-                <textarea
-                  value={postNote}
-                  onChange={(event) => setPostNote(event.target.value)}
-                  className="w-full rounded-lg bg-surface-container px-3 py-2 text-sm"
-                  placeholder="Optional note for your post"
-                  rows={3}
-                />
-                <button
-                  onClick={createPersonalTripPost}
-                  disabled={!loggedIn || isPosting}
-                  className="w-full rounded-lg bg-[#275f49] px-3 py-2 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-60"
-                >
-                  {isPosting ? "Posting..." : "Create Post"}
-                </button>
-              </div>
-            </article>
-
-            <article className="rounded-2xl bg-surface-container-low p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 font-manrope text-lg font-bold text-[#202925]">
-                My Personal Posts
-                <span className="rounded-full bg-[#275f49] px-2 py-0.5 text-[11px] font-bold text-white">
-                  {myPersonalPosts.length}
-                </span>
-              </h2>
-              <div className="mt-4 space-y-3">
-                {myPersonalPosts.length ? (
-                  myPersonalPosts.map((item) => (
-                    <div key={item._id} className="rounded-xl border-l-3 border-primary bg-surface-container p-3">
-                      <p className="font-semibold text-[#262e2a]">
-                        {item.source} -&gt; {item.destination}
-                      </p>
-                      <p className="mt-0.5 text-xs text-[#7b7f77]">
-                        {formatTravelDate(item.travelDate)}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5e665f]">
-                        <span className="rounded-full bg-[#f5f1e9] px-2 py-1">
-                          {Number(item.seatsAvailable || 0)}/{Number(item.maxCompanions || 0)} seats left
-                        </span>
-                        <span className="rounded-full bg-[#f5f1e9] px-2 py-1">
-                          {item.genderPreference === "Any"
-                            ? "Any gender"
-                            : `${item.genderPreference} preference`}
-                        </span>
-                        <span className="rounded-full bg-[#f5f1e9] px-2 py-1">
-                          {item.vehicleType || "Any vehicle"}
-                        </span>
-                      </div>
-                      {item.note ? (
-                        <p className="mt-2 text-xs text-[#6e736a]">{item.note}</p>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-xl bg-surface-container p-3 text-sm text-on-surface-variant">
-                    No personal posts yet.
-                  </div>
-                )}
-              </div>
-            </article>
-          </aside>
-        </div>
-      </div>
-
-      {loggedIn ? (
-        <button
-          type="button"
-          onClick={() => {
-            setInboxTab("requests");
-            setIsInboxOpen(true);
-          }}
-          className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-3 rounded-full bg-[#103f2f] px-5 py-3 text-white shadow-[0_18px_40px_rgba(16,63,47,0.28)]"
-        >
-          <span className="material-symbols-outlined">notifications</span>
-          <span className="text-sm font-bold">Inbox</span>
-          <span className="rounded-full bg-[#7fa11c] px-2 py-0.5 text-xs font-black text-[#2b2100]">
-            {inboxCount}
-          </span>
-        </button>
-      ) : null}
-
-      {isInboxOpen ? (
-        <div className="fixed inset-0 z-40">
-          <button
-            type="button"
-            aria-label="Close inbox"
-            onClick={() => setIsInboxOpen(false)}
-            className="absolute inset-0 bg-[#101816]/45 backdrop-blur-[1px]"
-          />
-
-          <aside className="absolute right-0 top-0 h-full w-full max-w-[420px] overflow-hidden bg-[#f7f4ed] shadow-[0_24px_60px_rgba(16,24,22,0.22)]">
-            <div className="flex h-full flex-col">
-              <div className="border-b border-outline-variant/20 bg-surface-container px-5 py-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7fa11c]">
-                      Requests & Updates
-                    </p>
-                    <h2 className="mt-1 font-manrope text-xl font-extrabold text-[#173228]">
-                      Companion Inbox
-                    </h2>
-                    <p className="mt-1 text-sm text-on-surface-variant">
-                      Handle requests without scrolling through the whole page.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsInboxOpen(false)}
-                    className="rounded-full bg-surface-container-low p-2 text-[#173228]"
-                  >
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setInboxTab("requests")}
-                    className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] ${
-                      inboxTab === "requests"
-                        ? "bg-[#173f31] text-white"
-                        : "bg-[#ece7dd] text-[#516059]"
-                    }`}
-                  >
-                    Requests {requestRows.length}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInboxTab("notifications")}
-                    className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] ${
-                      inboxTab === "notifications"
-                        ? "bg-[#173f31] text-white"
-                        : "bg-[#ece7dd] text-[#516059]"
-                    }`}
-                  >
-                    Notifications {unreadNotificationCount}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-4 py-4">
-                {inboxTab === "requests" ? (
-                  <div className="space-y-3">
-                    {requestRows.length ? (
-                      requestRows.map((item) => (
-                        <article
-                          key={item.key}
-                          className={`rounded-[24px] border bg-surface-container p-4 shadow-sm ${
-                            item.direction === "incoming" && item.status === "pending"
-                              ? "border-[#ffb24a]"
-                              : "border-outline-variant/20"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-manrope text-lg font-bold text-[#20322b]">
-                                {item.name}
-                              </p>
-                              <p className="mt-1 text-sm text-[#798078]">{item.route}</p>
-                              <p className="text-sm text-[#798078]">{item.dateLabel}</p>
-                            </div>
-
-                            <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${
-                                item.status === "accepted"
-                                  ? "bg-[#ffe7b7] text-[#a66900]"
-                                  : item.status === "pending"
-                                    ? "bg-[#fff1d6] text-[#9d6700]"
-                                    : "bg-[#f8d6db] text-[#b44f59]"
-                              }`}
-                            >
-                              {item.status}
-                            </span>
-                          </div>
-
-                          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a8f87]">
-                            {item.requestType === "personal_trip_post"
-                              ? "Personal Trip Post"
-                              : "Booking Match"}
-                          </p>
-
-                          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5e665f]">
-                            <span className="rounded-full bg-[#f5f1e9] px-3 py-1">
-                              {item.seatsRequested} seat{item.seatsRequested > 1 ? "s" : ""}
-                            </span>
-                            <span className="rounded-full bg-[#f5f1e9] px-3 py-1">
-                              {item.genderPreference === "Any"
-                                ? "Any gender"
-                                : `${item.genderPreference} preference`}
-                            </span>
-                            <span className="rounded-full bg-[#f5f1e9] px-3 py-1">
-                              {item.vehicleType || "Any vehicle"}
-                            </span>
-                          </div>
-
-                          <p className="mt-3 text-xs text-[#7a7f79]">{item.createdLabel}</p>
-
-                          {item.direction === "incoming" && item.status === "pending" ? (
-                            <div className="mt-4 grid grid-cols-2 gap-2">
-                              <button
-                                onClick={() => respondFromInbox(item.requestId, "accepted")}
-                                className="rounded-xl bg-[#275f49] py-3 text-xs font-bold uppercase tracking-[0.12em] text-white"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => respondFromInbox(item.requestId, "declined")}
-                                className="rounded-xl bg-[#c14f5f] py-3 text-xs font-bold uppercase tracking-[0.12em] text-white"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          ) : null}
-
-                          {item.isChatEnabled ? (
-                            <Link
-                              to={
-                                item.chatRoomId
-                                  ? `/chat?roomId=${encodeURIComponent(item.chatRoomId)}`
-                                  : "/chat"
-                              }
-                              className="mt-4 block rounded-xl bg-[#275f49] py-3 text-center text-xs font-bold uppercase tracking-[0.12em] text-white"
-                            >
-                              Start Chat
-                            </Link>
-                          ) : null}
-                        </article>
-                      ))
-                    ) : (
-                      <div className="rounded-[24px] bg-surface-container p-8 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-2xl text-[#71766e]">
-                          notifications_none
-                        </span>
-                        <p className="mt-3 font-semibold text-on-surface">
-                          No requests right now
-                        </p>
-                        <p className="mt-1 text-sm text-[#6f736b]">
-                          New companion activity will appear here.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {notifications.length ? (
-                      notifications.map((notification) => (
-                        <article
-                          key={notification._id}
-                          className={`rounded-[24px] border p-4 shadow-sm ${
-                            notification.isRead
-                              ? "border-outline-variant/20 bg-surface-container"
-                              : "border-[#c9e5d8] bg-[#edf9f1]"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-[#20322b]">
-                                {notification.message}
-                              </p>
-                              <p className="mt-2 text-xs text-[#6f736b]">
-                                {formatDateTime(notification.createdAt)}
-                              </p>
-                            </div>
-
-                            {!notification.isRead ? (
-                              <button
-                                type="button"
-                                onClick={() => markNotificationRead(notification._id)}
-                                className="rounded-full bg-[#173f31] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white"
-                              >
-                                Mark read
-                              </button>
-                            ) : (
-                              <span className="rounded-full bg-[#ece7dd] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#768078]">
-                                Read
-                              </span>
-                            )}
-                          </div>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="rounded-[24px] bg-surface-container p-8 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-2xl text-[#71766e]">
-                          inbox
-                        </span>
-                        <p className="mt-3 font-semibold text-on-surface">
-                          No notifications yet
-                        </p>
-                        <p className="mt-1 text-sm text-[#6f736b]">
-                          Accepted, declined, and companion updates will show here.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="min-w-0">
+                <h2 className="truncate font-headline text-[13px] font-black uppercase tracking-[0.15em] text-on-surface">
+                  Explorer <span className="text-primary">Hub</span>
+                </h2>
+                <p className="truncate text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">BagPacker Network</p>
               </div>
             </div>
-          </aside>
-        </div>
-      ) : null}
+          </div>
+
+          <nav className="flex-1 space-y-1 px-4 pt-4">
+            {[
+              ["discover", "Discover", "explore"],
+              ["requests", "Requests", "group"],
+              ["my_posts", "My Posts", "rocket_launch"],
+              ["notifications", "Updates", "notifications"],
+              ["create", "Launch Expedition", "add_circle"],
+            ].map(([key, label, icon]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
+                  activeTab === key
+                    ? "bg-primary text-on-primary shadow-[0_8px_16px_rgba(1,45,29,0.15)]"
+                    : "text-on-surface-variant hover:bg-surface-container-highest"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="material-symbols-outlined text-[1.2rem]">{icon}</span>
+                  {label}
+                </div>
+                {key === "notifications" && unreadNotificationCount > 0 && (
+                  <span className="h-4 w-4 rounded-full bg-secondary text-[8px] flex items-center justify-center text-on-secondary">{unreadNotificationCount}</span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <div className="mx-6 mb-8 rounded-2xl bg-surface-container-high/50 p-4 border border-outline-variant/30 text-center">
+             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40 mb-3">Your Trust Score</p>
+             <p className="font-headline text-3xl font-black text-secondary">{user?.trustScore || 0}</p>
+             <div className="mt-3 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                <div className="h-full bg-secondary transition-all" style={{ width: `${Math.min(100, user?.trustScore || 0)}%` }} />
+             </div>
+          </div>
+        </aside>
+
+        {/* ── Main content area ── */}
+        <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-12">
+          <div className="mx-auto max-w-6xl space-y-10">
+            {/* Context Header */}
+            <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-headline text-3xl font-black tracking-tighter text-on-surface capitalize">
+                  {activeTab.replace("_", " ")} <span className="text-secondary">Console</span>
+                </h1>
+                <p className="mt-1 text-sm font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">
+                  {activeTab === 'discover' && "Find travel companions near your route"}
+                  {activeTab === 'requests' && "Manage incoming and outgoing requests"}
+                  {activeTab === 'my_posts' && "Track your personal travel expeditions"}
+                  {activeTab === 'notifications' && "Recent activity in your network"}
+                  {activeTab === 'create' && "Invite others to join your journey"}
+                </p>
+              </div>
+
+              {activeTab === 'discover' && (
+                <div className="flex flex-wrap items-center gap-2">
+                   <div className="flex items-center gap-2 rounded-xl bg-surface-container-low px-3 py-2 border border-outline-variant/20">
+                      <span className="material-symbols-outlined text-xs text-primary">trip_origin</span>
+                      <CityAutocompleteInput value={source} onChange={(e) => setSource(e.target.value)} className="bg-transparent text-[11px] font-black outline-none w-24 uppercase" placeholder="Source" />
+                   </div>
+                   <div className="flex items-center gap-2 rounded-xl bg-surface-container-low px-3 py-2 border border-outline-variant/20">
+                      <span className="material-symbols-outlined text-xs text-secondary">near_me</span>
+                      <CityAutocompleteInput value={destination} onChange={(e) => setDestination(e.target.value)} className="bg-transparent text-[11px] font-black outline-none w-24 uppercase" placeholder="Dest" />
+                   </div>
+                   <button onClick={() => loadCompanionData()} className="h-9 w-9 flex items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg shadow-primary/10">
+                      <span className="material-symbols-outlined text-sm">refresh</span>
+                   </button>
+                </div>
+              )}
+            </header>
+
+            {!loggedIn && (
+               <div className="rounded-3xl bg-error-container p-10 text-center border border-error/10">
+                  <span className="material-symbols-outlined text-4xl text-error mb-4">lock_person</span>
+                  <h3 className="text-xl font-black text-error">Authentication Required</h3>
+                  <p className="mt-2 text-sm font-medium text-error/60">Please login to access the companion discovery network.</p>
+                  <Link to="/auth" className="mt-8 inline-block rounded-full bg-error px-10 py-3 text-[10px] font-black uppercase tracking-widest text-on-error">Authenticate Now</Link>
+               </div>
+            )}
+
+            {loggedIn && (
+              <div className="space-y-10">
+                {/* ── Discover Tab ── */}
+                {activeTab === 'discover' && (
+                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                    {discoverItems.map((item) => (
+                      <article key={item.id} className="group overflow-hidden rounded-[2.5rem] border border-outline-variant/10 bg-surface transition-all hover:shadow-xl hover:-translate-y-1">
+                        <div className="relative aspect-[5/4] overflow-hidden bg-surface-container-high">
+                           <img src={item.image} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" alt={item.name} />
+                           <div className="absolute inset-0 bg-linear-to-t from-on-surface/60 to-transparent" />
+                           <div className="absolute left-4 top-4 flex gap-2">
+                              <span className="rounded-lg bg-white/20 px-3 py-1 text-[8px] font-black uppercase tracking-widest text-white backdrop-blur-md">{getScoreBadge(item.score)}</span>
+                              <span className={`rounded-lg px-3 py-1 text-[8px] font-black uppercase tracking-widest backdrop-blur-md ${item.verificationStatus === 'verified' ? 'bg-primary/20 text-white' : 'bg-surface-container/20 text-white/60'}`}>{item.verificationStatus}</span>
+                           </div>
+                        </div>
+                        <div className="p-6">
+                           <div className="flex items-center justify-between">
+                              <h4 className="font-headline text-lg font-black text-on-surface">{item.name}</h4>
+                              <div className="flex items-center gap-1 text-secondary">
+                                 <span className="material-symbols-outlined text-xs">verified</span>
+                                 <span className="text-[10px] font-black">{item.trust}</span>
+                              </div>
+                           </div>
+                           <p className="mt-1 text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">{item.route}</p>
+                           <div className="mt-4 flex gap-2">
+                              <span className="rounded-lg bg-surface-container px-2 py-1 text-[9px] font-bold text-on-surface-variant">{item.dates}</span>
+                              <span className={`rounded-lg px-2 py-1 text-[9px] font-bold text-on-surface-variant ${item.kind === 'post' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>{item.kind === 'post' ? 'Trip Post' : 'Booking Match'}</span>
+                           </div>
+                           <p className="mt-4 text-xs font-medium text-on-surface-variant line-clamp-2 italic leading-relaxed">"{item.note}"</p>
+                           <div className="mt-8 flex gap-3">
+                              <button onClick={() => onDecision(item, "accept")} className="flex-1 rounded-xl bg-primary py-3 text-[9px] font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/10 transition active:scale-95">Connect</button>
+                              <button onClick={() => onDecision(item, "decline")} className="flex h-9 w-9 flex items-center justify-center rounded-xl bg-surface-container text-on-surface-variant hover:text-error transition"><span className="material-symbols-outlined text-sm">close</span></button>
+                           </div>
+                        </div>
+                      </article>
+                    ))}
+                    {discoverItems.length === 0 && !isLoading && (
+                       <div className="col-span-full flex h-64 flex-col items-center justify-center rounded-[2.5rem] border border-dashed border-outline-variant/30 bg-surface-container-low/30 text-center">
+                          <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">No active travelers on this route</p>
+                       </div>
+                    )}
+                    {isLoading && <div className="col-span-full"><LoadingPanel label="Scanning Network..." variant="list" /></div>}
+                  </div>
+                )}
+
+                {/* ── Requests Tab ── */}
+                {activeTab === 'requests' && (
+                  <div className="space-y-6">
+                    <div className="grid gap-4">
+                       {requestRows.map((item) => (
+                         <article key={item.key} className="rounded-3xl border border-outline-variant/10 bg-surface p-8 transition hover:shadow-md">
+                           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="flex-1">
+                                 <div className="flex items-center gap-4">
+                                    <h4 className="font-headline text-xl font-black text-on-surface">{item.name}</h4>
+                                    <span className={`rounded-lg px-3 py-1 text-[9px] font-black uppercase tracking-widest ${item.status === 'accepted' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>{item.status}</span>
+                                 </div>
+                                 <p className="mt-1 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">{item.route}</p>
+                                 <div className="mt-4 flex flex-wrap gap-4 text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                                    <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[0.8rem]">calendar_today</span>{item.dateLabel}</span>
+                                    <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[0.8rem]">group</span>{item.seatsRequested} Seat{item.seatsRequested>1?'s':''}</span>
+                                 </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                 {item.direction === 'incoming' && item.status === 'pending' ? (
+                                    <>
+                                       <button onClick={() => respondFromInbox(item.requestId, "accepted")} className="rounded-xl bg-primary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-on-primary">Approve</button>
+                                       <button onClick={() => respondFromInbox(item.requestId, "declined")} className="rounded-xl bg-surface-container-high px-8 py-3 text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Ignore</button>
+                                    </>
+                                 ) : item.isChatEnabled ? (
+                                    <Link to={item.chatRoomId ? `/chat?roomId=${encodeURIComponent(item.chatRoomId)}` : "/chat"} className="flex items-center gap-2 rounded-xl bg-secondary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-on-secondary">
+                                       <span className="material-symbols-outlined text-sm">chat</span> Message
+                                    </Link>
+                                 ) : (
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40 italic">Waiting for response</p>
+                                 )}
+                              </div>
+                           </div>
+                         </article>
+                       ))}
+                       {requestRows.length === 0 && (
+                          <div className="py-20 text-center rounded-[2.5rem] bg-surface-container-low/30">
+                             <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">No active requests</p>
+                          </div>
+                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── My Posts Tab ── */}
+                {activeTab === 'my_posts' && (
+                   <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                      {myPersonalPosts.map((item) => (
+                         <article key={item._id} className="rounded-[2.5rem] border border-outline-variant/10 bg-surface p-8 shadow-sm transition hover:shadow-xl">
+                            <div className="flex items-center justify-between mb-8">
+                               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
+                                  <span className="material-symbols-outlined text-xl">rocket</span>
+                               </div>
+                               <div className="text-right">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40">Status</p>
+                                  <p className="text-sm font-black text-on-surface">{item.seatsAvailable} Free</p>
+                               </div>
+                            </div>
+                            <h4 className="font-headline text-lg font-black text-on-surface">{item.source} ➔ {item.destination}</h4>
+                            <p className="mt-2 text-[10px] font-bold text-secondary uppercase tracking-widest">{formatTravelDate(item.travelDate)}</p>
+                            <div className="mt-8 pt-8 border-t border-outline-variant/5">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 mb-3">Preferences</p>
+                               <div className="flex flex-wrap gap-2">
+                                  <span className="rounded-lg bg-surface-container-low px-3 py-1.5 text-[9px] font-black text-on-surface-variant/80 uppercase">{item.genderPreference} Only</span>
+                                  <span className="rounded-lg bg-surface-container-low px-3 py-1.5 text-[9px] font-black text-on-surface-variant/80 uppercase">{item.vehicleType || "Open"}</span>
+                               </div>
+                            </div>
+                         </article>
+                      ))}
+                      {myPersonalPosts.length === 0 && (
+                         <div className="col-span-full py-20 text-center rounded-[2.5rem] bg-surface-container-low/30 border border-dashed border-outline-variant/30">
+                            <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">You haven't launched any expeditions yet</p>
+                            <button onClick={() => setActiveTab('create')} className="mt-6 text-[10px] font-black uppercase tracking-widest text-primary border-b border-primary pb-0.5">Start Now</button>
+                         </div>
+                      )}
+                   </div>
+                )}
+
+                {/* ── Notifications Tab ── */}
+                {activeTab === 'notifications' && (
+                   <section className="rounded-3xl border border-outline-variant/10 bg-surface overflow-hidden shadow-sm">
+                      <div className="divide-y divide-outline-variant/5">
+                         {notifications.map((n) => (
+                            <article key={n._id} className={`flex items-center gap-6 px-8 py-6 transition hover:bg-surface-container-lowest ${n.isRead ? 'opacity-60' : 'bg-primary/5'}`}>
+                               <div className={`h-2 w-2 rounded-full shrink-0 ${n.isRead ? 'bg-outline-variant' : 'bg-secondary animate-pulse'}`} />
+                               <p className="flex-1 text-sm font-bold text-on-surface">{n.message}</p>
+                               <div className="flex items-center gap-6">
+                                  <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase whitespace-nowrap">{formatDateTime(n.createdAt)}</p>
+                                  {!n.isRead && <button onClick={() => markNotificationRead(n._id)} className="text-[9px] font-black uppercase tracking-widest text-primary border-b border-primary">Clear</button>}
+                               </div>
+                            </article>
+                         ))}
+                         {notifications.length === 0 && (
+                            <div className="py-20 text-center">
+                               <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">Everything is up to date</p>
+                            </div>
+                         )}
+                      </div>
+                   </section>
+                )}
+
+                {/* ── Create Tab ── */}
+                {activeTab === 'create' && (
+                   <div className="max-w-2xl mx-auto rounded-[3rem] bg-surface p-12 shadow-2xl border border-outline-variant/10">
+                      <div className="mb-10 text-center">
+                         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+                            <span className="material-symbols-outlined text-3xl">add_location_alt</span>
+                         </div>
+                         <h3 className="font-headline text-2xl font-black text-on-surface">Launch New Expedition</h3>
+                         <p className="mt-2 text-sm font-bold text-on-surface-variant/60 uppercase tracking-widest">Recruit companions for your journey</p>
+                      </div>
+
+                      <div className="space-y-6">
+                         <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Departure</p>
+                               <CityAutocompleteInput value={postSource} onChange={(e) => setPostSource(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10 focus:border-primary/40 transition" placeholder="Source City" />
+                            </div>
+                            <div className="space-y-2">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Arrival</p>
+                               <CityAutocompleteInput value={postDestination} onChange={(e) => setPostDestination(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10 focus:border-primary/40 transition" placeholder="Destination City" />
+                            </div>
+                         </div>
+
+                         <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Timeline</p>
+                               <input type="date" value={postTravelDate} onChange={(e) => setPostTravelDate(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10" />
+                            </div>
+                            <div className="space-y-2">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Capacity</p>
+                               <select value={postSeatsAvailable} onChange={(e) => setPostSeatsAvailable(Number(e.target.value))} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10">
+                                  {[1,2,3,4,5,6].map(v => <option key={v} value={v}>{v} Travelers</option>)}
+                               </select>
+                            </div>
+                         </div>
+
+                         <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Inclusion</p>
+                               <select value={postGenderPreference} onChange={(e) => setPostGenderPreference(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10">
+                                  <option value="Any">Any Gender</option>
+                                  <option value="F">Female Only</option>
+                                  <option value="M">Male Only</option>
+                               </select>
+                            </div>
+                            <div className="space-y-2">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Transit Mode</p>
+                               <select value={postVehicleType} onChange={(e) => setPostVehicleType(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10">
+                                  <option value="">Any Vehicle</option>
+                                  <option value="car">Car</option>
+                                  <option value="bike">Bike</option>
+                               </select>
+                            </div>
+                         </div>
+
+                         <div className="space-y-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Briefing</p>
+                            <textarea value={postNote} onChange={(e) => setPostNote(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10 h-32 resize-none" placeholder="Expedition details, route perks, or vibes..." />
+                         </div>
+
+                         <button onClick={createPersonalTripPost} disabled={isPosting || !loggedIn} className="w-full rounded-2xl bg-primary py-5 text-[11px] font-black uppercase tracking-widest text-on-primary shadow-2xl shadow-primary/20 transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30">
+                            {isPosting ? "Synchronizing Expedition..." : "Launch Discovery Mission"}
+                         </button>
+                      </div>
+                   </div>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </MainLayout>
   );
 }
-

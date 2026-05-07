@@ -5,10 +5,10 @@ import { BsSuitcase } from "react-icons/bs";
 
 const getDesktopLinkClass = ({ isActive }) =>
   [
-    "nav-link relative inline-flex items-center px-3 py-2 text-sm font-headline font-semibold tracking-tight text-white transition-all duration-300",
+    "nav-link relative inline-flex items-center px-4 py-2 text-sm font-headline font-bold tracking-tight transition-all duration-300 rounded-xl",
     isActive
-      ? "nav-link-active text-white"
-      : "text-white/90 hover:text-white",
+      ? "bg-primary/10 text-primary"
+      : "text-on-surface-variant/80 hover:bg-surface-container-high hover:text-on-surface",
   ].join(" ");
 
 export default function TopNav() {
@@ -28,14 +28,14 @@ export default function TopNav() {
     if (!isLoggedIn) {
       return [
         { label: "Home", to: "/" },
-        { label: "Search Trips", to: "/trips/search" },
+        { label: "Expeditions", to: "/trips/search" },
       ];
     }
 
     if (role === "admin") {
       return [
         { label: "Home", to: "/" },
-        { label: "Admin Panel", to: "/admin" },
+        { label: "Admin Hub", to: "/admin" },
       ];
     }
 
@@ -43,38 +43,38 @@ export default function TopNav() {
       return [
         { label: "Home", to: "/" },
         { label: "Dashboard", to: "/dashboard/organizer" },
-        { label: "Create Trip", to: "/trips/new" },
-        { label: "Chat", to: "/chat" },
+        { label: "Launch Trip", to: "/trips/new" },
+        { label: "Inbox", to: "/chat" },
       ];
     }
 
     return [
       { label: "Home", to: "/" },
-      { label: "Search Trips", to: "/trips/search" },
+      { label: "Explore", to: "/trips/search" },
       { label: "Companion", to: "/companion" },
-      { label: "My Bookings", to: "/dashboard/traveler" },
-      { label: "Chat", to: "/chat" },
+      { label: "Bookings", to: "/dashboard/traveler" },
+      { label: "Messages", to: "/chat" },
     ];
   })();
 
   return (
-    <nav className="fixed top-0 z-[100] w-full border-b border-white/15 bg-[#1f2430] shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
+    <nav className="fixed top-0 z-[100] w-full border-b border-outline-variant/10 bg-surface/80 backdrop-blur-xl shadow-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 md:px-10">
         {/* ── Logo ── */}
         <NavLink to="/" className="group inline-flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary-container/20 transition-all duration-300 group-hover:bg-secondary-container/30 group-hover:scale-105">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-105">
             <BsSuitcase
-              className="text-lg text-secondary-container"
+              className="text-xl text-primary"
               aria-hidden="true"
             />
-          </span>
-          <span className="font-headline text-lg font-extrabold tracking-tight text-white">
-            Bag <span className="text-secondary-container">Packer</span>
+          </div>
+          <span className="font-headline text-xl font-black tracking-tight text-on-surface">
+            Bag<span className="text-secondary">Packer</span>
           </span>
         </NavLink>
 
         {/* ── Desktop nav links ── */}
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           {resolvedNavLinks.map((item) => (
             <NavLink
               key={item.to}
@@ -87,14 +87,14 @@ export default function TopNav() {
         </div>
 
         {/* ── Desktop right section ── */}
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           {isLoggedIn ? (
             <NavLink
               to="/profile"
               aria-label="Open profile"
-              className="group flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 transition-all duration-300 hover:bg-white/20"
+              className="group flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-low transition-all duration-300 hover:bg-surface-container-high"
             >
-              <span className="material-symbols-outlined text-[1.5rem] text-white/80 transition-colors group-hover:text-secondary-container">
+              <span className="material-symbols-outlined text-[1.4rem] text-on-surface-variant transition-colors group-hover:text-primary">
                 account_circle
               </span>
             </NavLink>
@@ -102,15 +102,15 @@ export default function TopNav() {
             <>
               <NavLink
                 to="/auth?mode=login"
-                className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:text-white active:scale-[0.97]"
+                className="rounded-xl px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-all duration-300 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.97]"
               >
                 Login
               </NavLink>
               <NavLink
                 to="/auth?mode=signup"
-                className="rounded-lg bg-secondary-container px-4 py-2 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(127,161,28,0.3)] transition-all duration-300 hover:shadow-[0_4px_20px_rgba(127,161,28,0.45)] hover:brightness-110 active:scale-[0.97]"
+                className="rounded-xl bg-primary px-6 py-2.5 text-sm font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/20 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.97]"
               >
-                Sign Up
+                Join
               </NavLink>
             </>
           )}
@@ -124,7 +124,7 @@ export default function TopNav() {
           }
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-white/80 transition-all duration-300 hover:bg-white/20 hover:text-white md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-low text-on-surface-variant transition-all duration-300 hover:bg-surface-container-high hover:text-on-surface md:hidden"
         >
           <span className="material-symbols-outlined text-[1.35rem]">
             {isMobileMenuOpen ? "close" : "menu"}
@@ -134,22 +134,22 @@ export default function TopNav() {
 
       {/* ── Mobile drawer ── */}
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${
-          isMobileMenuOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+        className={`overflow-hidden transition-all duration-500 ease-in-out md:hidden ${
+          isMobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t border-white/15 bg-[#252b38] px-4 pb-5 pt-3">
-          <div className="grid gap-1">
+        <div className="border-t border-outline-variant/10 bg-surface px-6 pb-10 pt-4">
+          <div className="grid gap-2">
             {resolvedNavLinks.map((item) => (
               <NavLink
                 key={`mobile-${item.to}`}
                 to={item.to}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                  `rounded-xl px-5 py-4 text-sm font-bold transition-all duration-200 ${
                     isActive
-                      ? "bg-secondary-container text-on-secondary-container"
-                      : "text-white/80 hover:bg-white/5 hover:text-white"
+                      ? "bg-primary text-on-primary shadow-lg shadow-primary/10"
+                      : "text-on-surface-variant hover:bg-surface-container-high"
                   }`
                 }
               >
@@ -158,33 +158,33 @@ export default function TopNav() {
             ))}
           </div>
 
-          <div className="mt-3 border-t border-white/10 pt-3">
+          <div className="mt-6 border-t border-outline-variant/10 pt-6">
             {isLoggedIn ? (
               <NavLink
                 to="/profile"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-secondary-container px-4 py-2.5 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(127,161,28,0.25)] transition-all duration-300 hover:brightness-110"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-surface-container-high px-5 text-sm font-bold text-on-surface shadow-sm"
               >
-                <span className="material-symbols-outlined text-[1.1rem]">
+                <span className="material-symbols-outlined text-[1.2rem]">
                   account_circle
                 </span>
-                Profile
+                View Profile
               </NavLink>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <NavLink
                   to="/auth?mode=login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold text-white/90 transition-all duration-200 hover:bg-white/10"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-outline-variant/20 px-4 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high"
                 >
                   Login
                 </NavLink>
                 <NavLink
                   to="/auth?mode=signup"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-secondary-container px-3 py-2 text-sm font-bold text-on-secondary-container shadow-[0_2px_12px_rgba(127,161,28,0.25)]"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-xs font-black uppercase tracking-widest text-on-primary"
                 >
-                  Sign Up
+                  Join
                 </NavLink>
               </div>
             )}
