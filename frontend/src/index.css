@@ -330,3 +330,77 @@ body {
       rgba(1, 45, 29, 0.42),
       rgba(26, 81, 61, 0.62));
 }
+
+/* ── Hero Particle Animation ── */
+@keyframes hero-float {
+  0% {
+    transform: translateY(100vh) scale(0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translateY(-20vh) scale(1);
+    opacity: 0;
+  }
+}
+
+.hero-particle {
+  animation: hero-float 12s ease-in-out infinite;
+}
+
+/* ── Hero Progress Bar (fills over 6s to match slide interval) ── */
+@keyframes hero-progress-fill {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+.hero-progress {
+  animation: hero-progress-fill 6s linear;
+}
+
+/* ── Search Bar Glow ── */
+.hero-search:focus-within {
+  border-color: rgba(127, 161, 28, 0.4);
+  box-shadow: 0 0 40px rgba(127, 161, 28, 0.12),
+    0 30px 80px rgba(0, 0, 0, 0.3);
+}
+
+/* ── CTA Pulse ── */
+.hero-cta {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-cta::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, transparent, rgba(127, 161, 28, 0.3), transparent);
+  animation: hero-cta-spin 3s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.hero-cta:hover::after {
+  opacity: 1;
+}
+
+@keyframes hero-cta-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

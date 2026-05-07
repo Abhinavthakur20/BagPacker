@@ -61,7 +61,7 @@ export default function OrganizerTripsPage() {
       <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f94a4a]">
               Organizer
             </p>
             <h1 className="font-manrope text-2xl font-extrabold text-primary">
@@ -127,7 +127,7 @@ export default function OrganizerTripsPage() {
                       <p className="mt-1 text-sm text-on-surface-variant md:hidden">
                         {trip.source} → {trip.destination}
                       </p>
-                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
+                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#f94a4a]">
                         {String(trip.status || "active")}
                       </p>
                     </div>
@@ -147,7 +147,7 @@ export default function OrganizerTripsPage() {
                       </p>
                       <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
                         <div
-                          className="h-full rounded-full bg-[#7fa11c]"
+                          className="h-full rounded-full bg-[#f94a4a]"
                           style={{ width: `${Math.min(100, Math.max(0, occupancy))}%` }}
                         />
                       </div>
@@ -176,7 +176,7 @@ export default function OrganizerTripsPage() {
                 <div className="mt-5">
                   <Link
                     to="/trips/new"
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#7fa11c] px-5 py-3 text-sm font-black text-white"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#f94a4a] px-5 py-3 text-sm font-black text-white"
                   >
                     <span className="material-symbols-outlined text-base">add_circle</span>
                     Create Trip

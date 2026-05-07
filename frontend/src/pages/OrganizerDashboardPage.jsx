@@ -12,9 +12,9 @@ const safeNumber = (value, fallback = 0) => {
 };
 
 const badgeStylesByStatus = {
-  active: "bg-[#012d1d] text-[#7fa11c]",
+  active: "bg-[#858585] text-[#f94a4a]",
   draft: "bg-surface-container-high text-on-surface-variant",
-  completed: "bg-[#e2e8fb] text-[#012d1d]",
+  completed: "bg-[#e2e8fb] text-[#858585]",
   cancelled: "bg-error-container text-error",
 };
 
@@ -141,10 +141,10 @@ export default function OrganizerDashboardPage() {
 
   const approvalTone =
     organizer?.approvalStatus === "approved"
-      ? "bg-[#012d1d] text-[#7fa11c]"
+      ? "bg-[#858585] text-[#f94a4a]"
       : organizer?.approvalStatus === "rejected"
         ? "bg-error-container text-error"
-        : "bg-[#3d4466] text-[#7fa11c]";
+        : "bg-[#3d4466] text-[#f94a4a]";
   const canCreateTrips = organizer?.approvalStatus === "approved";
 
   const sortedTrips = useMemo(

@@ -23,10 +23,10 @@ const formatDateTime = (value) => {
 
 const statusTone = (status) => {
   const s = String(status || "").toLowerCase();
-  if (s === "confirmed") return "bg-[#012d1d] text-[#7fa11c]";
-  if (s === "pending") return "bg-[#3d4466] text-[#7fa11c]";
+  if (s === "confirmed") return "bg-[#858585] text-[#f94a4a]";
+  if (s === "pending") return "bg-[#3d4466] text-[#f94a4a]";
   if (s === "cancelled") return "bg-error-container text-error";
-  if (s === "completed") return "bg-[#e2e8fb] text-[#012d1d]";
+  if (s === "completed") return "bg-[#e2e8fb] text-[#858585]";
   return "bg-surface-container-high text-on-surface-variant";
 };
 
@@ -103,7 +103,7 @@ export default function OrganizerTripBuyersPage() {
       <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f94a4a]">
               Trip Buyers
             </p>
             <h1 className="mt-1 font-manrope text-2xl font-extrabold text-primary">
@@ -263,7 +263,7 @@ export default function OrganizerTripBuyersPage() {
                           <p className="text-sm font-black text-primary">
                             {formatINR(safeNumber(booking.totalAmount))}
                           </p>
-                          <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-[#7fa11c]">
+                          <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-[#f94a4a]">
                             {paymentLabel}
                           </p>
                           <p className="mt-1 text-xs text-outline">

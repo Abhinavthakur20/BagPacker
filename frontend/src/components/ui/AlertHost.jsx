@@ -25,7 +25,7 @@ const toneMap = {
     badge: "bg-[#ffe9cd] text-[#9b5600]",
     panel: "border-[#f0d4a5]",
     icon: "campaign",
-    button: "bg-[#7fa11c] text-on-secondary-container",
+    button: "bg-[#f94a4a] text-on-secondary-container",
   },
 };
 
@@ -80,7 +80,7 @@ export default function AlertHost() {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#012d1d]/45 px-4 backdrop-blur-[3px]">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#858585]/45 px-4 backdrop-blur-[3px]">
       <div
         className={`w-full max-w-md overflow-hidden rounded-[28px] border bg-surface shadow-[0_24px_80px_rgba(1,45,29,0.24)] ${styles.panel}`}
       >
@@ -93,7 +93,7 @@ export default function AlertHost() {
                 {styles.icon}
               </span>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f94a4a]">
                   BagPacker Notice
                 </p>
                 <h2 className="mt-1 font-manrope text-lg font-extrabold">

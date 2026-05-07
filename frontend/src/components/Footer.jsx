@@ -36,9 +36,14 @@ export default function Footer() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 md:py-12">
         <div className="grid gap-8 md:gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="font-headline text-2xl font-extrabold text-secondary-container">
-              BagPacker
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white/5 p-1.5">
+                <img src="/logo.png" alt="" className="h-full w-full object-contain" />
+              </div>
+              <p className="font-headline text-3xl font-extrabold tracking-tighter text-secondary-container">
+                BagPacker
+              </p>
+            </div>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-surface/85">
               Discover trusted expeditions, verified organizers, and compatible
               travel companions across India. Plan smarter, travel safer.

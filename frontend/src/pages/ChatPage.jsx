@@ -539,7 +539,7 @@ export default function ChatPage() {
                     >
                       <span className="font-semibold">{memberName}</span>
                       {member.role === "admin" ? (
-                        <span className="rounded-full bg-[#f2f9d8] px-2 py-0.5 text-[10px] font-bold uppercase text-[#012d1d]">
+                        <span className="rounded-full bg-[#f2f9d8] px-2 py-0.5 text-[10px] font-bold uppercase text-[#858585]">
                           admin
                         </span>
                       ) : null}
@@ -650,7 +650,7 @@ export default function ChatPage() {
               <button
                 onClick={send}
                 disabled={!selectedRoomId}
-                className="rounded-xl bg-[#7fa11c] px-4 py-2 text-[#2e2200] disabled:opacity-60"
+                className="rounded-xl bg-[#f94a4a] px-4 py-2 text-[#2e2200] disabled:opacity-60"
               >
                 <span className="material-symbols-outlined">send</span>
               </button>

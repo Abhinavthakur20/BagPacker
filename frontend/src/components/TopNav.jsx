@@ -61,14 +61,15 @@ export default function TopNav() {
     <nav className="fixed top-0 z-[100] w-full border-b border-outline-variant/10 bg-surface/80 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 md:px-10">
         {/* ── Logo ── */}
-        <NavLink to="/" className="group inline-flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-105">
-            <BsSuitcase
-              className="text-xl text-primary"
-              aria-hidden="true"
+        <NavLink to="/" className="group inline-flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-primary/5 transition-all duration-300 group-hover:bg-primary/10 group-hover:scale-105">
+            <img 
+              src="/logo.png" 
+              alt="BagPacker Logo" 
+              className="h-full w-full object-contain p-1"
             />
           </div>
-          <span className="font-headline text-xl font-black tracking-tight text-on-surface">
+          <span className="font-headline text-2xl font-black tracking-tighter text-on-surface">
             Bag<span className="text-secondary">Packer</span>
           </span>
         </NavLink>

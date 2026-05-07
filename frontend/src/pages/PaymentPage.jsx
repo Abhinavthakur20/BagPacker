@@ -168,7 +168,7 @@ export default function PaymentPage() {
             tripId: trip._id,
           },
           theme: {
-            color: "#012d1d",
+            color: "#858585",
           },
           handler: async (response) => {
             try {
@@ -235,7 +235,7 @@ export default function PaymentPage() {
       <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:py-12">
         <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f94a4a]">
               Booking Center
             </p>
             <h1 className="font-manrope text-xl font-extrabold text-primary sm:text-2xl">
@@ -257,7 +257,7 @@ export default function PaymentPage() {
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-2xl bg-[#012d1d] p-4 text-sm font-semibold text-[#7fa11c]">
+          <div className="rounded-2xl bg-[#858585] p-4 text-sm font-semibold text-[#f94a4a]">
             {successMessage}
           </div>
         ) : null}
@@ -329,7 +329,7 @@ export default function PaymentPage() {
             </section>
 
             <aside className="rounded-xl bg-primary p-5 text-white shadow-xl sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7fa11c]">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#f94a4a]">
                 Booking Summary
               </p>
               <div className="mt-6 space-y-4 border-b border-white/10 pb-6 text-sm">
@@ -409,7 +409,7 @@ export default function PaymentPage() {
                       <p className="font-manrope text-lg font-black text-primary">
                         {formatINR(booking.totalAmount)}
                       </p>
-                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7fa11c]">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#f94a4a]">
                         {booking.status}
                       </p>
                     </div>
