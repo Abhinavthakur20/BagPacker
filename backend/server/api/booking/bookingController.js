@@ -367,8 +367,12 @@ const verifyBookingPayment = async (req, res) => {
           to: travelerEmail,
           ...emailPayload,
         });
-      } catch (_mailError) {
-        mailStatus = { delivered: false, skipped: false, reason: "Email delivery failed" };
+      } catch (mailError) {
+        mailStatus = {
+          delivered: false,
+          skipped: false,
+          reason: String(mailError?.message || "Email delivery failed"),
+        };
       }
     }
 

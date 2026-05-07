@@ -182,7 +182,7 @@ export default function PaymentPage() {
               postPaymentNotice =
                 emailDelivery?.delivered
                   ? "Booking confirmed and e-ticket sent to your email."
-                  : "Booking confirmed. Email delivery is not configured yet.";
+                  : `Booking confirmed. E-ticket email not sent${emailDelivery?.reason ? `: ${emailDelivery.reason}` : "."}`;
               setSuccessMessage(postPaymentNotice);
               resolve();
             } catch (verifyError) {

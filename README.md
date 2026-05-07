@@ -370,6 +370,7 @@ Content-Type: application/json
 - Check SMTP env values.
 - Verify sender account/app password.
 - Check spam/promotions folder.
+- Check `/api/bookings/verify-payment` response `emailDelivery.reason` for exact failure reason.
 
 ### CORS or socket connection issues
 - Ensure `CLIENT_URL` exactly matches frontend origin (protocol + port).
@@ -401,6 +402,17 @@ Content-Type: application/json
 `render.yaml` includes:
 - Web service: **bagpacker-backend**
 - Cron service: **bagpacker-trip-maintenance** (every 10 minutes)
+
+For backend email + payment to work on Render, set these web service env vars:
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM_EMAIL`
+- `SMTP_FROM_NAME`
 
 Set required environment variables in Render dashboard before deployment.
 

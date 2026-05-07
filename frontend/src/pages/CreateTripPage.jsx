@@ -59,6 +59,8 @@ export default function CreateTripPage() {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [pendingCropFiles, setPendingCropFiles] = useState([]);
   const [activeCropFile, setActiveCropFile] = useState(null);
+  const [onlineImageUrl, setOnlineImageUrl] = useState("");
+  const [isAddingImageUrl, setIsAddingImageUrl] = useState(false);
   const [cropArea, setCropArea] = useState({ width: 0, height: 0 });
   const [cropBox, setCropBox] = useState({ x: 0, y: 0, size: 0 });
   const [isCropDragging, setIsCropDragging] = useState(false);
@@ -211,11 +213,11 @@ export default function CreateTripPage() {
     ]);
   };
 
-  const onSelectTripImages = (event) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) {
-      return;
+  const queueTripImagesForCrop = (files) => {
+    if (!Array.isArray(files) || !files.length) {
+      return 0;
     }
+
     const knownFiles = new Set([
       ...tripImages.map((file) => fileSignature(file)),
       ...pendingCropFiles.map((file) => fileSignature(file)),
@@ -244,7 +246,84 @@ export default function CreateTripPage() {
       setPendingCropFiles((previous) => [...previous, ...filesToQueue]);
     }
 
+    return filesToQueue.length;
+  };
+
+  const onSelectTripImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) {
+      return;
+    }
+
+    queueTripImagesForCrop(files);
+
     event.target.value = "";
+  };
+
+  const addTripImageByUrl = async () => {
+    const trimmedUrl = String(onlineImageUrl || "").trim();
+    if (!trimmedUrl) {
+      const message = "Paste an image URL first.";
+      setError(message);
+      await showErrorAlert("Image URL missing", message);
+      return;
+    }
+
+    try {
+      setIsAddingImageUrl(true);
+      setError("");
+      const url = new URL(trimmedUrl);
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        throw new Error("Could not load image from this URL.");
+      }
+
+      const imageBlob = await response.blob();
+      const imageType = String(imageBlob.type || "").toLowerCase();
+      const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+      if (!allowedImageTypes.has(imageType)) {
+        throw new Error("Only JPG, PNG, or WEBP image URLs are supported.");
+      }
+
+      const extensionByType = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+      };
+      const rawName = decodeURIComponent(
+        url.pathname.split("/").filter(Boolean).pop() || "online-image",
+      );
+      const baseName =
+        rawName
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[^a-zA-Z0-9-_]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "online-image";
+      const imageFile = new File(
+        [imageBlob],
+        `${baseName}-online.${extensionByType[imageType] || "jpg"}`,
+        {
+          type: imageType,
+          lastModified: Date.now(),
+        },
+      );
+
+      const queuedCount = queueTripImagesForCrop([imageFile]);
+      if (!queuedCount) {
+        throw new Error("Image queue is full (max 10) or this image is already added.");
+      }
+
+      setOnlineImageUrl("");
+    } catch (addError) {
+      const message =
+        addError instanceof Error
+          ? addError.message
+          : "Failed to add image from URL. Please try another link.";
+      setError(message);
+      await showErrorAlert("Unable to add image URL", message);
+    } finally {
+      setIsAddingImageUrl(false);
+    }
   };
 
   const addTripImage = (file) => {
@@ -927,8 +1006,32 @@ export default function CreateTripPage() {
                       onChange={onSelectTripImages}
                       className="w-full rounded-xl bg-[#eeebe4] px-4 py-3 text-sm"
                     />
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="url"
+                        value={onlineImageUrl}
+                        onChange={(event) => setOnlineImageUrl(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addTripImageByUrl();
+                          }
+                        }}
+                        placeholder="Or paste online image URL (jpg/png/webp)"
+                        className="w-full rounded-xl bg-[#eeebe4] px-4 py-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={addTripImageByUrl}
+                        disabled={isAddingImageUrl}
+                        className="rounded-xl bg-[#124f38] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                      >
+                        {isAddingImageUrl ? "Adding..." : "Add URL"}
+                      </button>
+                    </div>
                     <p className="mt-2 text-xs text-[#6f736b]">
-                      You can choose multiple files at once. Each image opens a square crop step.
+                      You can upload files or paste an online image URL. Each image opens a crop step
+                      so you can choose which part appears in the trip card.
                     </p>
 
                     {previewUrls.length ? (
