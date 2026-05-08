@@ -88,13 +88,16 @@ const initSocket = (io) => {
           }
         }
 
+        const resolvedClientMessageId =
+          sanitizedClientId || `${socket.id.slice(0, 12)}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
         const savedMessage = await ChatMessage.create({
           roomId,
           senderId: authenticatedUserId,
           senderName: authenticatedUserName,
           message: trimmedMessage,
           sentAt: new Date(),
-          ...(sanitizedClientId ? { clientMessageId: sanitizedClientId } : {}),
+          clientMessageId: resolvedClientMessageId,
         });
 
         if (roomId.startsWith("trip_")) {
