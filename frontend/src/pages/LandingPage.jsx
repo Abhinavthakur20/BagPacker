@@ -24,7 +24,10 @@ export default function LandingPage() {
     const loadTrips = async () => {
       try {
         setIsLoadingTrips(true);
-        const response = await api.get("/trips?page=1&limit=3", { cacheTtlMs: 60000 });
+        const response = await api.get("/trips?page=1&limit=3", {
+          cacheTtlMs: 3600000, // Cache for 1 hour
+          persistCache: true, // Store in localStorage for instant retrieval on next visit
+        });
         setTrips(Array.isArray(response?.items) ? response.items : []);
       } catch (err) {
         console.error("Failed to fetch top trips:", err);

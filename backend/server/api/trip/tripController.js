@@ -207,8 +207,18 @@ const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
   return "";
 };
 
+const TRIP_CACHE = new Map();
+const TRIP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 const getTrips = async (req, res) => {
   try {
+    // Generate a simple cache key based on query parameters
+    const cacheKey = JSON.stringify(req.query);
+    const cached = TRIP_CACHE.get(cacheKey);
+    if (cached && cached.expireAt > Date.now()) {
+      return res.status(200).json(cached.data);
+    }
+
     const filters = {};
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
@@ -304,7 +314,7 @@ const getTrips = async (req, res) => {
       organizerId: shapeOrganizer(organizerMap.get(String(trip.organizerId)) || null),
     }));
 
-    return res.status(200).json({
+    const responseData = {
       items: mappedTrips,
       pagination: {
         page,
@@ -312,7 +322,21 @@ const getTrips = async (req, res) => {
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
+    };
+
+    // Cache the successful response
+    TRIP_CACHE.set(cacheKey, {
+      data: responseData,
+      expireAt: Date.now() + TRIP_CACHE_TTL,
     });
+
+    // Prune cache if it gets too large
+    if (TRIP_CACHE.size > 100) {
+      const firstKey = TRIP_CACHE.keys().next().value;
+      TRIP_CACHE.delete(firstKey);
+    }
+
+    return res.status(200).json(responseData);
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

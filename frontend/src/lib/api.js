@@ -45,8 +45,43 @@ const pruneResponseCache = () => {
     }
 };
 
+const getPersistedData = (key) => {
+    try {
+        const item = localStorage.getItem(`api_cache_${key}`);
+        if (!item) return null;
+        const parsed = JSON.parse(item);
+        if (parsed.expireAt && parsed.expireAt < Date.now()) {
+            localStorage.removeItem(`api_cache_${key}`);
+            return null;
+        }
+        return parsed.data;
+    } catch (e) {
+        return null;
+    }
+};
+
+const setPersistedData = (key, data, ttl) => {
+    try {
+        const cacheValue = {
+            data,
+            expireAt: Date.now() + ttl,
+        };
+        localStorage.setItem(`api_cache_${key}`, JSON.stringify(cacheValue));
+    } catch (e) {
+        // LocalStorage might be full
+    }
+};
+
 async function request(path, options = {}) {
-    const { method = "GET", body, headers = {}, token, cacheTtlMs = 0, forceRefresh = false } = options;
+    const {
+        method = "GET",
+        body,
+        headers = {},
+        token,
+        cacheTtlMs = 0,
+        forceRefresh = false,
+        persistCache = false,
+    } = options;
     const resolvedToken = token ?? getAuthToken();
     const normalizedMethod = String(method || "GET").toUpperCase();
     const requestKey = getRequestCacheKey({
@@ -60,6 +95,15 @@ async function request(path, options = {}) {
         const cachedResponse = responseCache.get(requestKey);
         if (cachedResponse && cachedResponse.expireAt > Date.now()) {
             return cloneData(cachedResponse.data);
+        }
+
+        if (persistCache) {
+            const persisted = getPersistedData(requestKey);
+            if (persisted) {
+                // Return persisted data immediately, but we might want to refresh it in the background
+                // if we don't return here. For simplicity, we return it if it's fresh enough.
+                return persisted;
+            }
         }
     }
 
@@ -105,6 +149,10 @@ async function request(path, options = {}) {
                 data: cloneData(data),
                 expireAt: Date.now() + cacheTtlMs,
             });
+
+            if (persistCache) {
+                setPersistedData(requestKey, data, cacheTtlMs);
+            }
         }
 
         return data;
