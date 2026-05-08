@@ -44,7 +44,7 @@ const checkOrigin = (origin, callback) => {
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: checkOrigin,
     credentials: true,
   },
 });

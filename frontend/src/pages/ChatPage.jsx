@@ -17,12 +17,14 @@ const AI_CONTACT = {
 };
 
 const getSocketUrl = () => {
-  if (import.meta.env.VITE_SOCKET_URL) {
-    return import.meta.env.VITE_SOCKET_URL;
+  const explicitSocketUrl = String(import.meta.env.VITE_SOCKET_URL || "").trim();
+  if (explicitSocketUrl) {
+    return explicitSocketUrl.replace(/\/$/, "");
   }
 
-  if (window.location.hostname === "localhost") {
-    return "http://localhost:5000";
+  const apiUrl = String(import.meta.env.VITE_API_URL || "").trim();
+  if (/^https?:\/\//i.test(apiUrl)) {
+    return new URL(apiUrl).origin;
   }
 
   return window.location.origin;
@@ -50,13 +52,17 @@ export default function ChatPage() {
     }
 
     const socket = io(getSocketUrl(), {
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
+      withCredentials: true,
       auth: {
         token,
       },
     });
 
     socketRef.current = socket;
+    socket.on("connect_error", () => {
+      setError("Realtime chat connection issue. Please refresh and try again.");
+    });
 
     socket.on("receive_message", (payload) => {
       if (!payload?.sender || !payload?.message || !payload?.roomId) {
