@@ -119,18 +119,30 @@ const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false
           },
           genderPreferenceResolved: { $ifNull: ["$genderPreference", "Any"] },
           vehicleTypeResolved: { $ifNull: ["$vehicleType", null] },
+          sourceMatchesQuery: source
+            ? {
+                $regexMatch: {
+                  input: "$source",
+                  regex: escapeRegex(source),
+                  options: "i",
+                },
+              }
+            : true,
+          destinationMatchesQuery: destination
+            ? {
+                $regexMatch: {
+                  input: "$destination",
+                  regex: escapeRegex(destination),
+                  options: "i",
+                },
+              }
+            : true,
         },
       },
       {
         $match: {
           ownerId: { $ne: req.user._id },
           status: "active",
-          ...(source
-            ? { source: { $regex: `^${escapeRegex(source)}$`, $options: "i" } }
-            : {}),
-          ...(destination
-            ? { destination: { $regex: `^${escapeRegex(destination)}$`, $options: "i" } }
-            : {}),
         },
       },
       {
@@ -225,7 +237,24 @@ const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false
       {
         $addFields: {
           request: { $arrayElemAt: ["$request", 0] },
-          routeScore: source && destination ? 50 : 0,
+          routeScore:
+            source && destination
+              ? {
+                  $cond: [
+                    { $and: ["$sourceMatchesQuery", "$destinationMatchesQuery"] },
+                    50,
+                    0,
+                  ],
+                }
+              : source || destination
+                ? {
+                    $cond: [
+                      { $and: ["$sourceMatchesQuery", "$destinationMatchesQuery"] },
+                      25,
+                      0,
+                    ],
+                  }
+                : 0,
           dateScore: dateWindow
             ? {
                 $switch: {

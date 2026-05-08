@@ -44,9 +44,9 @@ export default function CompanionPage() {
   const [activeTab, setActiveTab] = useState("discover");
 
   // Search State
-  const [source, setSource] = useState(DEFAULT_SOURCE);
-  const [destination, setDestination] = useState(DEFAULT_DESTINATION);
-  const [travelDate, setTravelDate] = useState(tomorrowISO);
+  const [source, setSource] = useState("");
+  const [destination, setDestination] = useState("");
+  const [travelDate, setTravelDate] = useState("");
   const [requestedSeats, setRequestedSeats] = useState(1);
   const [searchGenderPreference, setSearchGenderPreference] = useState("Any");
   const [searchVehicleType, setSearchVehicleType] = useState("");
@@ -72,13 +72,18 @@ export default function CompanionPage() {
 
   const buildSearchQuery = (overrides = {}) => {
     const params = new URLSearchParams({
-      source: overrides.source ?? source,
-      destination: overrides.destination ?? destination,
-      date: overrides.travelDate ?? travelDate,
       page: "1",
       limit: "50",
       seatsRequested: String(overrides.requestedSeats ?? requestedSeats),
     });
+
+    const resolvedSource = String(overrides.source ?? source ?? "").trim();
+    const resolvedDestination = String(overrides.destination ?? destination ?? "").trim();
+    const resolvedTravelDate = String(overrides.travelDate ?? travelDate ?? "").trim();
+
+    if (resolvedSource) params.set("source", resolvedSource);
+    if (resolvedDestination) params.set("destination", resolvedDestination);
+    if (resolvedTravelDate) params.set("date", resolvedTravelDate);
 
     const genderPreference = overrides.searchGenderPreference ?? searchGenderPreference;
     if (genderPreference && genderPreference !== "Any") params.set("genderPreference", genderPreference);
@@ -97,18 +102,22 @@ export default function CompanionPage() {
       setPageError("");
 
       const searchQuery = buildSearchQuery(overrides);
-      const bookingQuery = new URLSearchParams({
-        source: overrides.source ?? source,
-        destination: overrides.destination ?? destination,
-        date: overrides.travelDate ?? travelDate,
+      const bookingParams = new URLSearchParams({
         page: "1",
         limit: "50",
-      }).toString();
+      });
+      const bookingSource = String(overrides.source ?? source ?? "").trim();
+      const bookingDestination = String(overrides.destination ?? destination ?? "").trim();
+      const bookingDate = String(overrides.travelDate ?? travelDate ?? "").trim();
+      if (bookingSource) bookingParams.set("source", bookingSource);
+      if (bookingDestination) bookingParams.set("destination", bookingDestination);
+      if (bookingDate) bookingParams.set("date", bookingDate);
+      const bookingQuery = bookingParams.toString();
 
       const [foundMatches, requests, foundPosts, minePosts, userNotifications] = await Promise.all([
-        api.get(`/companions/find?${bookingQuery}`, { cacheTtlMs: 25000 }),
+        api.get(`/companions/find?${bookingQuery}`, { forceRefresh: true }),
         api.get("/companions/my?page=1&limit=50", { cacheTtlMs: 15000 }),
-        api.get(`/companions/search?${searchQuery}`, { cacheTtlMs: 25000 }),
+        api.get(`/companions/search?${searchQuery}`, { forceRefresh: true }),
         api.get("/companions/posts/mine?page=1&limit=50"),
         api.get("/notifications?page=1&limit=25", { cacheTtlMs: 10000 }),
       ]);
@@ -130,16 +139,16 @@ export default function CompanionPage() {
   }, [loggedIn]);
 
   const resetSearchFilters = async () => {
-    setSource(DEFAULT_SOURCE);
-    setDestination(DEFAULT_DESTINATION);
-    setTravelDate(tomorrowISO);
+    setSource("");
+    setDestination("");
+    setTravelDate("");
     setRequestedSeats(1);
     setSearchGenderPreference("Any");
     setSearchVehicleType("");
     await loadCompanionData({
-      source: DEFAULT_SOURCE,
-      destination: DEFAULT_DESTINATION,
-      travelDate: tomorrowISO,
+      source: "",
+      destination: "",
+      travelDate: "",
       requestedSeats: 1,
       searchGenderPreference: "Any",
       searchVehicleType: "",
@@ -287,7 +296,7 @@ export default function CompanionPage() {
           receiverId: item.userId,
           source: item.source,
           destination: item.destination,
-          travelDate,
+          travelDate: item.travelDate || travelDate,
           seatsRequested: Number(requestedSeats),
           genderPreference: searchGenderPreference,
           ...(searchVehicleType ? { vehicleType: searchVehicleType } : {}),
@@ -424,6 +433,12 @@ export default function CompanionPage() {
                 </div>
               )}
             </header>
+
+            {loggedIn && pageError && (
+              <div className="rounded-2xl border border-error/20 bg-error-container/30 px-4 py-3 text-xs font-bold text-error">
+                {pageError}
+              </div>
+            )}
 
             {!loggedIn && (
                <div className="rounded-3xl bg-error-container p-10 text-center border border-error/10">
