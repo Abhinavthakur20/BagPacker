@@ -61,9 +61,9 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="mx-auto grid max-w-[1600px] min-h-[calc(100vh-4rem)] lg:max-h-[850px] lg:grid-cols-2">
-        <div className="flex items-center px-5 py-10 sm:px-8 lg:px-14 xl:px-24">
-          <div className="w-full max-w-2xl">
+      <div className="mx-auto grid max-w-[1600px] items-center lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+        <div className="flex flex-col justify-center px-5 py-8 sm:px-8 sm:py-12 lg:px-14 lg:py-16 xl:px-20">
+          <div className="w-full max-w-xl">
 
 
           <h1 className="font-headline text-4xl font-extrabold leading-[1.05] text-primary sm:text-5xl xl:text-6xl">
@@ -161,8 +161,8 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
           </div>
         </div>
 
-        <div className="relative min-h-[430px] lg:h-full lg:p-6">
-          <div className="relative h-full w-full overflow-hidden lg:rounded-[2.5rem] bg-primary shadow-2xl">
+        <div className="relative mx-auto flex w-full max-w-3xl flex-col lg:p-10 xl:p-12">
+          <div className="relative aspect-square w-full overflow-hidden rounded-[2.5rem] bg-primary shadow-2xl sm:aspect-[1.1/1] lg:aspect-[1/1] lg:rounded-[3.5rem]">
           {heroSlides.map((slide, index) => (
             <img
               key={slide.image}

@@ -19,6 +19,10 @@ export default function AuthPage() {
 
   const [mode, setMode] = useState(initialMode);
   const [role, setRole] = useState("traveler");
+
+  useEffect(() => {
+    setShowPassword(false);
+  }, [mode]);
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
@@ -40,6 +44,7 @@ export default function AuthPage() {
     preferences: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState("");
   const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
   const googleButtonRef = useRef(null);
@@ -291,18 +296,30 @@ export default function AuthPage() {
                         }))
                       }
                     />
-                    <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
-                      placeholder="Password"
-                      type="password"
-                      value={loginForm.password}
-                      onChange={(e) =>
-                        setLoginForm((prev) => ({
-                          ...prev,
-                          password: e.target.value,
-                        }))
-                      }
-                    />
+                    <div className="relative">
+                      <input
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 pr-12 outline-none transition focus:border-primary"
+                        placeholder="Password"
+                        type={showPassword ? "text" : "password"}
+                        value={loginForm.password}
+                        onChange={(e) =>
+                          setLoginForm((prev) => ({
+                            ...prev,
+                            password: e.target.value,
+                          }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-on-surface-variant/70 transition hover:text-primary"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">
+                          {showPassword ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={onLogin}
@@ -357,15 +374,27 @@ export default function AuthPage() {
                       value={userForm.email}
                       onChange={(e) => updateUserField("email", e.target.value)}
                     />
-                    <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
-                      placeholder="Create Password"
-                      type="password"
-                      value={userForm.password}
-                      onChange={(e) =>
-                        updateUserField("password", e.target.value)
-                      }
-                    />
+                    <div className="relative">
+                      <input
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 pr-12 outline-none transition focus:border-primary"
+                        placeholder="Create Password"
+                        type={showPassword ? "text" : "password"}
+                        value={userForm.password}
+                        onChange={(e) =>
+                          updateUserField("password", e.target.value)
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-on-surface-variant/70 transition hover:text-primary"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">
+                          {showPassword ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <select
