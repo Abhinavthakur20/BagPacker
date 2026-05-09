@@ -96,6 +96,11 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    // Reject banned or suspended accounts before issuing a token
+    if (user.verificationStatus === "rejected" || user.isBanned) {
+      return res.status(403).json({ message: "This account has been suspended. Please contact support." });
+    }
+
     return res.status(200).json({
       token: generateToken(user),
       user: sanitizeUser(user),

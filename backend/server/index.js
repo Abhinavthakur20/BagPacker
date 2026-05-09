@@ -148,7 +148,8 @@ app.use((_req, res) => {
 
 app.use((err, _req, res, _next) => {
   if (err && err.message) {
-    return res.status(400).json({ message: err.message });
+    const status = (typeof err.status === "number" && err.status >= 400) ? err.status : 500;
+    return res.status(status).json({ message: err.message });
   }
 
   return res.status(500).json({ message: "Internal server error" });

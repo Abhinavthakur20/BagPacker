@@ -257,7 +257,7 @@ export default function PaymentPage() {
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-2xl bg-[#858585] p-4 text-sm font-semibold text-[#f94a4a]">
+          <div className="rounded-2xl bg-[#d6f0e4] p-4 text-sm font-semibold text-[#0f4a2c]">
             {successMessage}
           </div>
         ) : null}

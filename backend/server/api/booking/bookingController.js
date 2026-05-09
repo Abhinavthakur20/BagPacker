@@ -482,11 +482,13 @@ const completeBooking = async (req, res) => {
 
     // Only the trip's organizer can mark bookings as complete
     const trip = await Trip.findById(booking.tripId).select("endDate title organizerId");
-    if (trip) {
-      const organizer = await Organizer.findById(trip.organizerId).select("userId");
-      if (!organizer || String(organizer.userId) !== String(req.user._id)) {
-        return res.status(403).json({ message: "Only the trip organizer can complete bookings" });
-      }
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    const organizer = await Organizer.findById(trip.organizerId).select("userId");
+    if (!organizer || String(organizer.userId) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Only the trip organizer can complete bookings" });
     }
 
     if (booking.status === "cancelled") {
