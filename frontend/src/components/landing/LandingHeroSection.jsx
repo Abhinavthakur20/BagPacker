@@ -162,7 +162,7 @@ export default function LandingHeroSection({ form, setForm, onSubmit }) {
         </div>
 
         <div className="relative mx-auto flex w-full max-w-3xl flex-col lg:p-10 xl:p-12">
-          <div className="relative aspect-square w-full overflow-hidden rounded-[2.5rem] bg-primary shadow-2xl sm:aspect-[1.1/1] lg:aspect-[1/1] lg:rounded-[3.5rem]">
+          <div className="relative aspect-square w-full overflow-hidden rounded-none bg-primary shadow-2xl sm:aspect-[1.1/1] lg:aspect-[1/1] lg:rounded-[3.5rem]">
           {heroSlides.map((slide, index) => (
             <img
               key={slide.image}
