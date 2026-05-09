@@ -309,7 +309,7 @@ export default function PublicProfilePage() {
                         </div>
                         {review.comment && (
                           <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
-                            "{review.comment}"
+                            &ldquo;{review.comment}&rdquo;
                           </p>
                         )}
                       </div>

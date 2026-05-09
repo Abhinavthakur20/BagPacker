@@ -64,7 +64,7 @@ export default function TripDetailPage() {
       if (!tripDetails?.organizerId?.userId?._id) return;
       try {
         setIsReviewsLoading(true);
-        const response = await api.get(`/reviews/user/${tripDetails.organizerId.userId._id}`);
+        const response = await api.get(`/reviews/${tripDetails.organizerId.userId._id}`);
         setReviews(response.items || []);
       } catch (err) {
         console.error("Failed to load reviews:", err);
@@ -127,7 +127,7 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     setActiveImageIndex(0);
-  }, [id, tripImages.length]);
+  }, [id]);
 
   useEffect(() => {
     setOpenDay(itinerary[0]?.day || 1);
@@ -273,8 +273,11 @@ export default function TripDetailPage() {
           <article className="flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-surface-container-low p-6 md:p-8">
             <div className="flex items-center gap-4">
               <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80"
-                alt="Organizer"
+                src={
+                  trip.organizerId?.userId?.avatarUrl ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(trip.organizerId?.businessName || "Organizer")}&background=124f38&color=fff&size=200`
+                }
+                alt={trip.organizerId?.businessName || "Organizer"}
                 className="h-18 w-18 rounded-full border-4 border-surface-container-highest object-cover"
               />
               <div>
@@ -500,7 +503,7 @@ export default function TripDetailPage() {
                     </div>
                     {review.comment && (
                       <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
-                        "{review.comment}"
+                        &ldquo;{review.comment}&rdquo;
                       </p>
                     )}
                   </article>
@@ -516,7 +519,7 @@ export default function TripDetailPage() {
 
         <aside className="lg:col-span-4">
             <div className="sticky top-28 space-y-5">
-              <div className="rounded-3xl border border-primary/10 bg-linear-to-br from-[#173f31] to-[#0f3327] p-6 text-white shadow-xl">
+              <div className="rounded-3xl border border-primary/10 bg-gradient-to-br from-[#173f31] to-[#0f3327] p-6 text-white shadow-xl">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
                   Group Energy
                 </p>

@@ -46,6 +46,8 @@ export default function ChatPage() {
   const [isMobileRoomsOpen, setIsMobileRoomsOpen] = useState(false);
   const socketRef = useRef(null);
   const loadedRoomsRef = useRef(new Set());
+  // Ref to track selectedRoomId inside socket event callbacks without stale closure
+  const selectedRoomIdRef = useRef(selectedRoomId);
   useEffect(() => {
     if (!isLoggedIn) {
       return undefined;
@@ -60,18 +62,46 @@ export default function ChatPage() {
     });
 
     socketRef.current = socket;
+
+    // Re-join the active room after any reconnection
+    socket.on("connect", () => {
+      const activeRoom = selectedRoomIdRef.current;
+      if (activeRoom && activeRoom !== AI_ROOM_ID) {
+        socket.emit("join_room", { roomId: activeRoom });
+      }
+    });
+
     socket.on("connect_error", () => {
       setError("Realtime chat connection issue. Please refresh and try again.");
     });
 
     socket.on("receive_message", (payload) => {
-      if (!payload?.sender || !payload?.message || !payload?.roomId) {
+      // Guard: server emits { id, roomId, message, senderId, sender(name), timestamp }
+      if (!payload?.message || !payload?.roomId) {
         return;
       }
 
       setMessagesByRoom((prev) => {
         const roomMessages = prev[payload.roomId] || [];
         const messageId = String(payload.id || `${Date.now()}-${Math.random()}`);
+        const isMine = String(payload.senderId) === String(user?._id);
+
+        // Replace matching optimistic entry (same text, sent by me, temp id)
+        if (isMine) {
+          const optimisticIdx = roomMessages.findIndex(
+            (item) =>
+              item.id.startsWith("client-") &&
+              item.sender === "me" &&
+              item.text === payload.message,
+          );
+          if (optimisticIdx !== -1) {
+            const updated = [...roomMessages];
+            updated[optimisticIdx] = { ...updated[optimisticIdx], id: messageId };
+            return { ...prev, [payload.roomId]: updated };
+          }
+        }
+
+        // Standard dedup by id
         if (roomMessages.some((item) => item.id === messageId)) {
           return prev;
         }
@@ -82,7 +112,7 @@ export default function ChatPage() {
             ...roomMessages,
             {
               id: messageId,
-              sender: String(payload.senderId) === String(user?._id) ? "me" : "other",
+              sender: isMine ? "me" : "other",
               text: payload.message,
               time: new Date(payload.timestamp || Date.now()).toLocaleTimeString("en-IN", {
                 hour: "numeric",
@@ -98,7 +128,8 @@ export default function ChatPage() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isLoggedIn, token, user?._id, user?.name]);
+  // Remove user?.name — not used in this effect, causes unnecessary reconnects
+  }, [isLoggedIn, token, user?._id]);
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -124,7 +155,9 @@ export default function ChatPage() {
           .filter((item) => item.status === "accepted" && item.chatRoomId)
           .map((item) => {
             const otherUser =
-              item.requesterId?._id === user?._id ? item.receiverId : item.requesterId;
+              String(item.requesterId?._id || item.requesterId) === String(user?._id)
+                ? item.receiverId
+                : item.requesterId;
 
             return {
               id: item.chatRoomId,
@@ -167,11 +200,15 @@ export default function ChatPage() {
       }
     };
 
+    // Reset loaded-rooms cache so switching accounts / re-login fetches fresh history
+    loadedRoomsRef.current = new Set();
     loadRooms();
   }, [isLoggedIn, user?._id]);
 
   useEffect(() => {
-    if (socketRef.current && selectedRoomId && selectedRoomId !== AI_ROOM_ID) {
+    // Emit join_room whenever the room changes AND the socket is ready.
+    // We also re-emit on socket reconnect inside the connection effect.
+    if (socketRef.current?.connected && selectedRoomId && selectedRoomId !== AI_ROOM_ID) {
       socketRef.current.emit("join_room", { roomId: selectedRoomId });
     }
   }, [selectedRoomId]);
@@ -294,6 +331,7 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
+    selectedRoomIdRef.current = selectedRoomId;
     if (selectedRoomId) {
       setIsMobileRoomsOpen(false);
     }
@@ -422,12 +460,29 @@ export default function ChatPage() {
       return;
     }
 
+    const clientMessageId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    // Optimistic update — show message immediately before server echo
+    setMessagesByRoom((current) => ({
+      ...current,
+      [selectedRoomId]: [
+        ...(current[selectedRoomId] || []),
+        {
+          id: clientMessageId,
+          sender: "me",
+          text: trimmedMessage,
+          time: messageTime,
+        },
+      ],
+    }));
+
+    setDraft("");
+
     socketRef.current.emit("send_message", {
       roomId: selectedRoomId,
       message: trimmedMessage,
+      clientMessageId,
     });
-
-    setDraft("");
   };
 
   if (!isLoggedIn) {
@@ -564,7 +619,8 @@ export default function ChatPage() {
             </div>
           ) : null}
 
-            <div className="chat-scroll flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:px-7 md:py-5">
+          {/* ✅ chat-scroll is now correctly inside <section> at the same level as header/footer */}
+          <div className="chat-scroll flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:px-7 md:py-5">
             {isMessagesLoading ? (
               <LoadingPanel
                 label="Loading messages..."
