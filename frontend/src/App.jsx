@@ -1,18 +1,20 @@
 import { Suspense, lazy, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import { useAuthModal } from "./context/AuthModalContext";
 import LocomotiveScroll from "locomotive-scroll";
 import "locomotive-scroll/dist/locomotive-scroll.css";
 import AlertHost from "./components/ui/AlertHost";
 import LoadingPanel from "./components/ui/LoadingPanel";
 import RoleRoute from "./components/RoleRoute";
+import AuthModal from "./components/AuthModal";
+import { AuthModalProvider } from "./context/AuthModalContext";
 import { getDashboardPath, setAuthTokenGetter } from "./lib/auth";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const TripDetailPage = lazy(() => import("./pages/TripDetailPage"));
-const AuthPage = lazy(() => import("./pages/AuthPage"));
 const TravelerDashboardPage = lazy(() => import("./pages/TravelerDashboardPage"));
 const OrganizerDashboardPage = lazy(() => import("./pages/OrganizerDashboardPage"));
 const OrganizerTripBuyersPage = lazy(() => import("./pages/OrganizerTripBuyersPage"));
@@ -27,6 +29,16 @@ const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 function DashboardRedirect() {
   const user = useSelector((state) => state.auth.user);
   return <Navigate to={getDashboardPath(user?.role)} replace />;
+}
+
+function AuthRedirect() {
+  const [searchParams] = useSearchParams();
+  const { openAuthModal } = useAuthModal();
+  useEffect(() => {
+    const mode = searchParams.get("mode") === "signup" ? "signup" : "login";
+    openAuthModal(mode);
+  }, [searchParams, openAuthModal]);
+  return <Navigate to="/" replace />;
 }
 
 function App() {
@@ -116,6 +128,7 @@ function App() {
   }, [location.pathname]);
 
   return (
+    <AuthModalProvider>
     <div ref={scrollContainerRef} data-scroll-container>
       <Suspense
         fallback={
@@ -126,7 +139,7 @@ function App() {
       >
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth" element={<AuthRedirect />} />
           <Route path="/trips">
             <Route index element={<Navigate to="search" replace />} />
             <Route path="search" element={<SearchPage />} />
@@ -219,8 +232,10 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <AuthModal />
       <AlertHost />
     </div>
+    </AuthModalProvider>
   );
 }
 

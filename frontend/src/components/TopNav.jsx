@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuthModal } from "../context/AuthModalContext";
 
 const getDesktopLinkClass = ({ isActive }) =>
   [
@@ -16,6 +17,7 @@ export default function TopNav() {
   const isLoggedIn = Boolean(token);
   const role = user?.role;
   const location = useLocation();
+  const { openAuthModal } = useAuthModal();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
@@ -100,18 +102,20 @@ export default function TopNav() {
             </NavLink>
           ) : (
             <>
-              <NavLink
-                to="/auth?mode=login"
+              <button
+                type="button"
+                onClick={() => openAuthModal("login")}
                 className="rounded-xl px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-all duration-300 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.97]"
               >
                 Login
-              </NavLink>
-              <NavLink
-                to="/auth?mode=signup"
+              </button>
+              <button
+                type="button"
+                onClick={() => openAuthModal("signup")}
                 className="rounded-xl bg-primary px-6 py-2.5 text-sm font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/20 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.97]"
               >
                 Join
-              </NavLink>
+              </button>
             </>
           )}
         </div>
@@ -172,20 +176,20 @@ export default function TopNav() {
               </NavLink>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                <NavLink
-                  to="/auth?mode=login"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => { setIsMobileMenuOpen(false); openAuthModal("login"); }}
                   className="inline-flex min-h-12 items-center justify-center rounded-xl border border-outline-variant/20 px-4 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high"
                 >
                   Login
-                </NavLink>
-                <NavLink
-                  to="/auth?mode=signup"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsMobileMenuOpen(false); openAuthModal("signup"); }}
                   className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-xs font-black uppercase tracking-widest text-on-primary"
                 >
                   Join
-                </NavLink>
+                </button>
               </div>
             )}
           </div>

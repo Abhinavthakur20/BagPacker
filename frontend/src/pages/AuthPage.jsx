@@ -19,9 +19,11 @@ export default function AuthPage() {
 
   const [mode, setMode] = useState(initialMode);
   const [role, setRole] = useState("traveler");
+  const [signupStep, setSignupStep] = useState(1);
 
   useEffect(() => {
     setShowPassword(false);
+    setSignupStep(1);
   }, [mode]);
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -333,157 +335,197 @@ export default function AuthPage() {
                 </div>
               ) : (
                 <div>
-                  <h2 className="font-headline text-xl font-extrabold text-primary">
-                    Join the Expedition
-                  </h2>
-                  <div className="mt-5 flex rounded-xl bg-surface-container-low p-1">
-                    <button
-                      type="button"
-                      onClick={() => setRole("traveler")}
-                      aria-pressed={role === "traveler"}
-                      className={`flex-1 rounded-lg py-2 text-xs font-bold ${role === "traveler" ? "bg-secondary-container text-on-secondary-container" : "text-primary"}`}
-                    >
-                      TRAVELER
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole("organizer")}
-                      aria-pressed={role === "organizer"}
-                      className={`flex-1 rounded-lg py-2 text-xs font-bold ${role === "organizer" ? "bg-secondary-container text-on-secondary-container" : "text-primary"}`}
-                    >
-                      ORGANIZER
-                    </button>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="font-headline text-xl font-extrabold text-primary">
+                        Join the Expedition
+                      </h2>
+                      <p className="mt-0.5 text-sm text-on-surface-variant">
+                        Step {signupStep} of 2 — {signupStep === 1 ? "Basic Info" : "Profile Setup"}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black text-primary">
+                      {signupStep}/2
+                    </span>
+                  </div>
+
+                  {/* Step progress bar */}
+                  <div className="mt-4 flex gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-outline-variant/15">
+                      <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: "100%" }} />
+                    </div>
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-outline-variant/15">
+                      <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: signupStep >= 2 ? "100%" : "0%" }} />
+                    </div>
                   </div>
 
                   <form className="mt-5 space-y-3">
-                    <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
-                      placeholder="Full Name"
-                      value={userForm.name}
-                      onChange={(e) => updateUserField("name", e.target.value)}
-                    />
-                    <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
-                      placeholder="Phone Number"
-                      value={userForm.phone}
-                      onChange={(e) => updateUserField("phone", e.target.value)}
-                    />
-                    <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
-                      placeholder="Email Address"
-                      type="email"
-                      value={userForm.email}
-                      onChange={(e) => updateUserField("email", e.target.value)}
-                    />
-                    <div className="relative">
-                      <input
-                        className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 pr-12 outline-none transition focus:border-primary"
-                        placeholder="Create Password"
-                        type={showPassword ? "text" : "password"}
-                        value={userForm.password}
-                        onChange={(e) =>
-                          updateUserField("password", e.target.value)
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-on-surface-variant/70 transition hover:text-primary"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          {showPassword ? "visibility_off" : "visibility"}
-                        </span>
-                      </button>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <select
-                        className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
-                        value={roleLabel}
-                        onChange={(e) => {
-                          setRole(e.target.value);
-                          updateUserField("role", e.target.value);
-                        }}
-                      >
-                        <option value="traveler">Traveler</option>
-                        <option value="organizer">Organizer</option>
-                      </select>
-                      <label className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 text-sm">
+                    {signupStep === 1 ? (
+                      /* ── Step 1: Basic Info ── */
+                      <>
                         <input
-                          type="checkbox"
-                          checked={userForm.isVerified}
-                          onChange={(e) =>
-                            updateUserField("isVerified", e.target.checked)
-                          }
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                          placeholder="Full Name"
+                          value={userForm.name}
+                          onChange={(e) => updateUserField("name", e.target.value)}
                         />
-                        Verified Account
-                      </label>
-                    </div>
-
-                    {role === "organizer" ? (
-                      <div className="space-y-3 rounded-xl bg-surface-container-low p-3">
                         <input
-                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
-                          placeholder="Business Name"
-                          value={organizerForm.businessName}
-                          onChange={(e) =>
-                            setOrganizerForm((prev) => ({
-                              ...prev,
-                              businessName: e.target.value,
-                            }))
-                          }
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                          placeholder="Phone Number"
+                          value={userForm.phone}
+                          onChange={(e) => updateUserField("phone", e.target.value)}
                         />
-                        <textarea
-                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
-                          rows={3}
-                          placeholder="Business Description"
-                          value={organizerForm.businessDesc}
-                          onChange={(e) =>
-                            setOrganizerForm((prev) => ({
-                              ...prev,
-                              businessDesc: e.target.value,
-                            }))
-                          }
+                        <input
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                          placeholder="Email Address"
+                          type="email"
+                          value={userForm.email}
+                          onChange={(e) => updateUserField("email", e.target.value)}
                         />
-                      </div>
-                    ) : (
-                      <div className="space-y-3 rounded-xl bg-surface-container-low p-3">
-                        <label className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 text-sm">
+                        <div className="relative">
                           <input
-                            type="checkbox"
-                            checked={travelerForm.govIDVerified}
-                            onChange={(e) =>
-                              setTravelerForm((prev) => ({
-                                ...prev,
-                                govIDVerified: e.target.checked,
-                              }))
-                            }
+                            className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 pr-12 outline-none transition focus:border-primary"
+                            placeholder="Create Password"
+                            type={showPassword ? "text" : "password"}
+                            value={userForm.password}
+                            onChange={(e) => updateUserField("password", e.target.value)}
                           />
-                          Government ID Verified
-                        </label>
-                        <input
-                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
-                          placeholder="Travel Preferences"
-                          value={travelerForm.preferences}
-                          onChange={(e) =>
-                            setTravelerForm((prev) => ({
-                              ...prev,
-                              preferences: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-on-surface-variant/70 transition hover:text-primary"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {showPassword ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={onSignUp}
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl bg-primary py-3 font-extrabold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {isSubmitting ? "Creating account..." : "Sign Up"}
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!userForm.name || !userForm.phone || !userForm.email || !userForm.password) {
+                              setFormError("Please fill all fields before continuing.");
+                              return;
+                            }
+                            setFormError("");
+                            setSignupStep(2);
+                          }}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-extrabold text-white transition hover:brightness-105"
+                        >
+                          Next
+                          <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                        </button>
+                      </>
+                    ) : (
+                      /* ── Step 2: Profile Setup ── */
+                      <>
+                        <div className="flex rounded-xl bg-surface-container-low p-1">
+                          <button
+                            type="button"
+                            onClick={() => setRole("traveler")}
+                            aria-pressed={role === "traveler"}
+                            className={`flex-1 rounded-lg py-2 text-xs font-bold ${role === "traveler" ? "bg-secondary-container text-on-secondary-container" : "text-primary"}`}
+                          >
+                            TRAVELER
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRole("organizer")}
+                            aria-pressed={role === "organizer"}
+                            className={`flex-1 rounded-lg py-2 text-xs font-bold ${role === "organizer" ? "bg-secondary-container text-on-secondary-container" : "text-primary"}`}
+                          >
+                            ORGANIZER
+                          </button>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <select
+                            className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                            value={roleLabel}
+                            onChange={(e) => {
+                              setRole(e.target.value);
+                              updateUserField("role", e.target.value);
+                            }}
+                          >
+                            <option value="traveler">Traveler</option>
+                            <option value="organizer">Organizer</option>
+                          </select>
+                          <label className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={userForm.isVerified}
+                              onChange={(e) => updateUserField("isVerified", e.target.checked)}
+                            />
+                            Verified Account
+                          </label>
+                        </div>
+
+                        {role === "organizer" ? (
+                          <div className="space-y-3 rounded-xl bg-surface-container-low p-3">
+                            <input
+                              className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
+                              placeholder="Business Name"
+                              value={organizerForm.businessName}
+                              onChange={(e) =>
+                                setOrganizerForm((prev) => ({ ...prev, businessName: e.target.value }))
+                              }
+                            />
+                            <textarea
+                              className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
+                              rows={3}
+                              placeholder="Business Description"
+                              value={organizerForm.businessDesc}
+                              onChange={(e) =>
+                                setOrganizerForm((prev) => ({ ...prev, businessDesc: e.target.value }))
+                              }
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-3 rounded-xl bg-surface-container-low p-3">
+                            <label className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={travelerForm.govIDVerified}
+                                onChange={(e) =>
+                                  setTravelerForm((prev) => ({ ...prev, govIDVerified: e.target.checked }))
+                                }
+                              />
+                              Government ID Verified
+                            </label>
+                            <input
+                              className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3 outline-none transition focus:border-primary"
+                              placeholder="Travel Preferences"
+                              value={travelerForm.preferences}
+                              onChange={(e) =>
+                                setTravelerForm((prev) => ({ ...prev, preferences: e.target.value }))
+                              }
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setSignupStep(1); setFormError(""); }}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant/30 py-3 font-bold text-primary transition hover:bg-surface-container-highest"
+                          >
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                            Back
+                          </button>
+                          <button
+                            type="button"
+                            onClick={onSignUp}
+                            disabled={isSubmitting}
+                            className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-primary py-3 font-extrabold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {isSubmitting ? "Creating account..." : "Create Account"}
+                            {!isSubmitting && <span className="material-symbols-outlined text-lg">check</span>}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </form>
                 </div>
               )}
