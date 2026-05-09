@@ -134,6 +134,7 @@ export default function AuthPage() {
           "/organizers",
           {
             businessName: organizerForm.businessName,
+            businessDesc: organizerForm.businessDesc || "",
           },
           {
             token: response.token,

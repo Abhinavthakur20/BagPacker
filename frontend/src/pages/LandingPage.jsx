@@ -19,6 +19,7 @@ export default function LandingPage() {
   const [form, setForm] = useState({ from: "", to: "", date: "" });
   const [trips, setTrips] = useState([]);
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+  const [tripsError, setTripsError] = useState("");
 
   useEffect(() => {
     const loadTrips = async () => {
@@ -31,6 +32,7 @@ export default function LandingPage() {
         setTrips(Array.isArray(response?.items) ? response.items : []);
       } catch (err) {
         console.error("Failed to fetch top trips:", err);
+        setTripsError("Could not load top picks. Please refresh to try again.");
       } finally {
         setIsLoadingTrips(false);
       }
@@ -84,6 +86,7 @@ export default function LandingPage() {
       <TopPicksSection
         trips={trips}
         isLoading={isLoadingTrips}
+        error={tripsError}
         onExplore={() => navigate("/trips/search")}
       />
       <StatsBandSection />
