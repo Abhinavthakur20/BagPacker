@@ -110,6 +110,34 @@ router.post(
       .optional({ values: "falsy" })
       .isIn(["car", "bike"])
       .withMessage("vehicleType must be car or bike"),
+    body("sourceLatitude")
+      .optional({ values: "falsy" })
+      .isFloat({ min: -90, max: 90 })
+      .withMessage("sourceLatitude must be between -90 and 90"),
+    body("sourceLongitude")
+      .optional({ values: "falsy" })
+      .isFloat({ min: -180, max: 180 })
+      .withMessage("sourceLongitude must be between -180 and 180"),
+    body("destinationLatitude")
+      .optional({ values: "falsy" })
+      .isFloat({ min: -90, max: 90 })
+      .withMessage("destinationLatitude must be between -90 and 90"),
+    body("destinationLongitude")
+      .optional({ values: "falsy" })
+      .isFloat({ min: -180, max: 180 })
+      .withMessage("destinationLongitude must be between -180 and 180"),
+    body("fuelPricePerLitre")
+      .optional({ values: "falsy" })
+      .isFloat({ gt: 0 })
+      .withMessage("fuelPricePerLitre must be greater than 0"),
+    body("mileage")
+      .optional({ values: "falsy" })
+      .isFloat({ gt: 0 })
+      .withMessage("mileage must be greater than 0"),
+    body("tollAmount")
+      .optional({ values: "falsy" })
+      .isFloat({ min: 0 })
+      .withMessage("tollAmount must be 0 or greater"),
     body("note").optional().isString().isLength({ max: 500 }).withMessage("Note is too long"),
     validateRequest,
   ],

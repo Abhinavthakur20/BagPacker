@@ -4,6 +4,7 @@ const PersonalTripPost = require("./personalTripPostModel");
 const Notification = require("../notification/notificationModel");
 const Booking = require("../booking/bookingModel");
 const Trip = require("../trip/tripModel");
+const { splitExpense } = require("../../utils/haversine");
 const {
   buildChatRoomId,
   escapeRegex,
@@ -44,6 +45,214 @@ const resolvePostSeatsAvailable = (post) => {
   const maxCompanions = Number(post?.maxCompanions || 0);
   const acceptedCount = Array.isArray(post?.acceptedCompanionIds) ? post.acceptedCompanionIds.length : 0;
   return Math.max(0, maxCompanions - acceptedCount);
+};
+
+const parseCoordinate = (value, { min, max }) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+    return null;
+  }
+
+  return parsed;
+};
+
+const parsePositiveNumber = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+};
+
+const parseNonNegativeNumber = (value, fallback = 0) => {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+
+  return parsed;
+};
+
+const getGeoapifyApiKey = () => {
+  const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  // Accept either the plain API key or a full Geoapify URL containing ?apiKey=...
+  if (rawValue.includes("apiKey=")) {
+    try {
+      const parsedUrl = new URL(rawValue);
+      return String(parsedUrl.searchParams.get("apiKey") || "").trim();
+    } catch (_error) {
+      const match = /[?&]apiKey=([^&]+)/i.exec(rawValue);
+      return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
+    }
+  }
+
+  return rawValue;
+};
+
+const getGeoapifyGeocodedPoint = async (locationText) => {
+  const apiKey = getGeoapifyApiKey();
+  if (!apiKey) {
+    throw new Error("Geoapify API key is not configured");
+  }
+
+  const geocodeUrl = new URL("https://api.geoapify.com/v1/geocode/search");
+  geocodeUrl.searchParams.set("text", locationText);
+  geocodeUrl.searchParams.set("limit", "1");
+  geocodeUrl.searchParams.set("apiKey", apiKey);
+
+  const response = await fetch(geocodeUrl.toString());
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.message || `Geoapify geocoding failed with status ${response.status}`);
+  }
+
+  const hit = payload?.features?.[0]?.properties || null;
+  const latitude = Number(hit?.lat);
+  const longitude = Number(hit?.lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error(`Could not geocode location: ${locationText}`);
+  }
+
+  return { latitude, longitude };
+};
+
+const resolveRouteCoordinates = async ({
+  source,
+  destination,
+  sourceLatitude,
+  sourceLongitude,
+  destinationLatitude,
+  destinationLongitude,
+}) => {
+  const hasManualCoordinates =
+    [sourceLatitude, sourceLongitude, destinationLatitude, destinationLongitude].every(
+      (value) => typeof value === "number",
+    );
+
+  if (hasManualCoordinates) {
+    return {
+      sourceLatitude,
+      sourceLongitude,
+      destinationLatitude,
+      destinationLongitude,
+    };
+  }
+
+  const [sourcePoint, destinationPoint] = await Promise.all([
+    getGeoapifyGeocodedPoint(source),
+    getGeoapifyGeocodedPoint(destination),
+  ]);
+
+  return {
+    sourceLatitude: sourcePoint.latitude,
+    sourceLongitude: sourcePoint.longitude,
+    destinationLatitude: destinationPoint.latitude,
+    destinationLongitude: destinationPoint.longitude,
+  };
+};
+
+const getGeoapifyDistanceKm = async ({
+  sourceLatitude,
+  sourceLongitude,
+  destinationLatitude,
+  destinationLongitude,
+}) => {
+  const apiKey = getGeoapifyApiKey();
+  if (!apiKey) {
+    throw new Error("Geoapify API key is not configured");
+  }
+
+  const directionsUrl = new URL("https://api.geoapify.com/v1/routing");
+  directionsUrl.searchParams.set(
+    "waypoints",
+    `${sourceLatitude},${sourceLongitude}|${destinationLatitude},${destinationLongitude}`,
+  );
+  directionsUrl.searchParams.set("mode", "drive");
+  directionsUrl.searchParams.set("overview", "false");
+  directionsUrl.searchParams.set("apiKey", apiKey);
+
+  const response = await fetch(directionsUrl.toString());
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.message || `Geoapify routing request failed with status ${response.status}`,
+    );
+  }
+
+  const routeDistanceMeters = Number(payload?.features?.[0]?.properties?.distance);
+  if (!Number.isFinite(routeDistanceMeters) || routeDistanceMeters <= 0) {
+    throw new Error("Geoapify routing did not return a valid route distance");
+  }
+
+  return Number((routeDistanceMeters / 1000).toFixed(2));
+};
+
+const buildExpenseEstimate = async ({
+  sourceLatitude,
+  sourceLongitude,
+  destinationLatitude,
+  destinationLongitude,
+  fuelPricePerLitre,
+  mileage,
+  tollAmount,
+  numberOfPassengers,
+}) => {
+  const hasCoordinates =
+    [sourceLatitude, sourceLongitude, destinationLatitude, destinationLongitude].every(
+      (value) => typeof value === "number",
+    );
+
+  if (!hasCoordinates) {
+    return {
+      distanceKm: null,
+      estimatedFuelCost: null,
+      estimatedCostPerPerson: null,
+    };
+  }
+
+  const distanceKm = await getGeoapifyDistanceKm({
+    sourceLatitude,
+    sourceLongitude,
+    destinationLatitude,
+    destinationLongitude,
+  });
+
+  if (typeof fuelPricePerLitre !== "number" || typeof mileage !== "number") {
+    return {
+      distanceKm,
+      estimatedFuelCost: null,
+      estimatedCostPerPerson: null,
+    };
+  }
+
+  const estimatedFuelCost = Number(((distanceKm / mileage) * fuelPricePerLitre).toFixed(2));
+  const perPersonFuelCost = splitExpense(distanceKm, fuelPricePerLitre, mileage, numberOfPassengers);
+  const perPersonToll = Number((parseNonNegativeNumber(tollAmount, 0) / numberOfPassengers).toFixed(2));
+
+  return {
+    distanceKm,
+    estimatedFuelCost,
+    estimatedCostPerPerson: Number((perPersonFuelCost + perPersonToll).toFixed(2)),
+  };
 };
 
 const mapBookingMatch = ({ booking, request, selectedDate, userId }) => {
@@ -330,6 +539,16 @@ const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false
                 verificationStatus: { $ifNull: ["$owner.verificationStatus", "unverified"] },
                 source: 1,
                 destination: 1,
+                sourceLatitude: 1,
+                sourceLongitude: 1,
+                destinationLatitude: 1,
+                destinationLongitude: 1,
+                fuelPricePerLitre: 1,
+                mileage: 1,
+                tollAmount: { $ifNull: ["$tollAmount", 0] },
+                distanceKm: 1,
+                estimatedFuelCost: 1,
+                estimatedCostPerPerson: 1,
                 travelDate: 1,
                 maxCompanions: { $ifNull: ["$maxCompanions", "$seatsAvailableResolved"] },
                 seatsAvailable: "$seatsAvailableResolved",
@@ -677,6 +896,13 @@ const createPersonalTripPost = async (req, res) => {
     const note = String(req.body.note || "").trim();
     const genderPreference = normalizeGenderPreference(req.body.genderPreference);
     const vehicleType = normalizeVehicleType(req.body.vehicleType);
+    const sourceLatitude = parseCoordinate(req.body.sourceLatitude, { min: -90, max: 90 });
+    const sourceLongitude = parseCoordinate(req.body.sourceLongitude, { min: -180, max: 180 });
+    const destinationLatitude = parseCoordinate(req.body.destinationLatitude, { min: -90, max: 90 });
+    const destinationLongitude = parseCoordinate(req.body.destinationLongitude, { min: -180, max: 180 });
+    const fuelPricePerLitre = parsePositiveNumber(req.body.fuelPricePerLitre);
+    const mileage = parsePositiveNumber(req.body.mileage);
+    const tollAmount = parseNonNegativeNumber(req.body.tollAmount, 0);
 
     if (!source || !destination) {
       return res.status(400).json({ message: "Source and destination are required" });
@@ -690,10 +916,52 @@ const createPersonalTripPost = async (req, res) => {
       return res.status(400).json({ message: "seatsAvailable must be at least 1" });
     }
 
+    const hasAnyExpenseInput = [
+      req.body.fuelPricePerLitre,
+      req.body.mileage,
+      req.body.tollAmount,
+    ].some((value) => value !== undefined && value !== null && value !== "");
+
+    if (hasAnyExpenseInput && (fuelPricePerLitre === null || mileage === null)) {
+      return res.status(400).json({
+        message: "fuelPricePerLitre and mileage must be positive numbers when expense fields are provided",
+      });
+    }
+
+    const resolvedCoordinates = await resolveRouteCoordinates({
+      source,
+      destination,
+      sourceLatitude,
+      sourceLongitude,
+      destinationLatitude,
+      destinationLongitude,
+    });
+
+    const expenseEstimate = await buildExpenseEstimate({
+      sourceLatitude: resolvedCoordinates.sourceLatitude,
+      sourceLongitude: resolvedCoordinates.sourceLongitude,
+      destinationLatitude: resolvedCoordinates.destinationLatitude,
+      destinationLongitude: resolvedCoordinates.destinationLongitude,
+      fuelPricePerLitre,
+      mileage,
+      tollAmount,
+      numberOfPassengers: maxCompanions + 1,
+    });
+
     const post = await PersonalTripPost.create({
       ownerId: req.user._id,
       source,
       destination,
+      sourceLatitude: resolvedCoordinates.sourceLatitude,
+      sourceLongitude: resolvedCoordinates.sourceLongitude,
+      destinationLatitude: resolvedCoordinates.destinationLatitude,
+      destinationLongitude: resolvedCoordinates.destinationLongitude,
+      fuelPricePerLitre,
+      mileage,
+      tollAmount,
+      distanceKm: expenseEstimate.distanceKm,
+      estimatedFuelCost: expenseEstimate.estimatedFuelCost,
+      estimatedCostPerPerson: expenseEstimate.estimatedCostPerPerson,
       travelDate: range.start,
       maxCompanions,
       seatsAvailable: maxCompanions,
@@ -884,7 +1152,7 @@ const getMyCompanionRequests = async (req, res) => {
         .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
         .populate(
           "personalTripPostId",
-          "source destination travelDate maxCompanions seatsAvailable note status genderPreference vehicleType",
+          "source destination sourceLatitude sourceLongitude destinationLatitude destinationLongitude fuelPricePerLitre mileage tollAmount distanceKm estimatedFuelCost estimatedCostPerPerson travelDate maxCompanions seatsAvailable note status genderPreference vehicleType",
         )
         .skip(skip)
         .limit(limit)
@@ -894,7 +1162,7 @@ const getMyCompanionRequests = async (req, res) => {
         .populate("requesterId receiverId", "name email phone trustScore verificationStatus role")
         .populate(
           "personalTripPostId",
-          "source destination travelDate maxCompanions seatsAvailable note status genderPreference vehicleType",
+          "source destination sourceLatitude sourceLongitude destinationLatitude destinationLongitude fuelPricePerLitre mileage tollAmount distanceKm estimatedFuelCost estimatedCostPerPerson travelDate maxCompanions seatsAvailable note status genderPreference vehicleType",
         )
         .skip(skip)
         .limit(limit)

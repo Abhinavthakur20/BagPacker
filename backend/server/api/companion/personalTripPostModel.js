@@ -20,6 +20,60 @@ const personalTripPostSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    sourceLatitude: {
+      type: Number,
+      min: -90,
+      max: 90,
+      default: null,
+    },
+    sourceLongitude: {
+      type: Number,
+      min: -180,
+      max: 180,
+      default: null,
+    },
+    destinationLatitude: {
+      type: Number,
+      min: -90,
+      max: 90,
+      default: null,
+    },
+    destinationLongitude: {
+      type: Number,
+      min: -180,
+      max: 180,
+      default: null,
+    },
+    fuelPricePerLitre: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+    mileage: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+    tollAmount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    distanceKm: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+    estimatedFuelCost: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+    estimatedCostPerPerson: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
     travelDate: {
       type: Date,
       required: true,

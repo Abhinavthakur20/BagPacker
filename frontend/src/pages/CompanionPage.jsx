@@ -26,6 +26,10 @@ const formatDateTime = (value) =>
   value ? new Date(value).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "";
 
 const getScoreBadge = (score) => `${Math.round(Number(score || 0))}% Fit`;
+const formatCurrency = (value) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? `Rs ${Number(value).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
+    : "N/A";
 
 const getRequestPriority = (item) => {
   if (item.direction === "incoming" && item.status === "pending") return 0;
@@ -59,6 +63,9 @@ export default function CompanionPage() {
   const [postGenderPreference, setPostGenderPreference] = useState("Any");
   const [postVehicleType, setPostVehicleType] = useState("");
   const [postNote, setPostNote] = useState("");
+  const [postFuelPricePerLitre, setPostFuelPricePerLitre] = useState("");
+  const [postMileage, setPostMileage] = useState("");
+  const [postTollAmount, setPostTollAmount] = useState("");
 
   // Data State
   const [matches, setMatches] = useState([]);
@@ -178,6 +185,9 @@ export default function CompanionPage() {
       seatsCapacity: null,
       genderPreference: item.request?.genderPreference || "Any",
       vehicleType: item.request?.vehicleType || null,
+      distanceKm: null,
+      estimatedFuelCost: null,
+      estimatedCostPerPerson: null,
       note: "Matched via active BagPacker booking.",
       postId: null,
       image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80"
@@ -205,6 +215,10 @@ export default function CompanionPage() {
       seatsCapacity: item.maxCompanions,
       genderPreference: item.genderPreference || "Any",
       vehicleType: item.vehicleType || null,
+      distanceKm: typeof item.distanceKm === "number" ? item.distanceKm : null,
+      estimatedFuelCost: typeof item.estimatedFuelCost === "number" ? item.estimatedFuelCost : null,
+      estimatedCostPerPerson:
+        typeof item.estimatedCostPerPerson === "number" ? item.estimatedCostPerPerson : null,
       note: item.note || "Open personal expedition post.",
       postId: item.postId,
       image: "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?auto=format&fit=crop&w=400&q=80"
@@ -326,6 +340,9 @@ export default function CompanionPage() {
         seatsAvailable: Number(postSeatsAvailable),
         genderPreference: postGenderPreference,
         ...(postVehicleType ? { vehicleType: postVehicleType } : {}),
+        ...(postFuelPricePerLitre !== "" ? { fuelPricePerLitre: Number(postFuelPricePerLitre) } : {}),
+        ...(postMileage !== "" ? { mileage: Number(postMileage) } : {}),
+        ...(postTollAmount !== "" ? { tollAmount: Number(postTollAmount) } : {}),
         note: postNote,
       });
       setPostNote("");
@@ -476,8 +493,26 @@ export default function CompanionPage() {
                            <div className="mt-4 flex gap-2">
                               <span className="rounded-lg bg-surface-container px-2 py-1 text-[9px] font-bold text-on-surface-variant">{item.dates}</span>
                               <span className={`rounded-lg px-2 py-1 text-[9px] font-bold text-on-surface-variant ${item.kind === 'post' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>{item.kind === 'post' ? 'Trip Post' : 'Booking Match'}</span>
-                           </div>
-                           <p className="mt-4 text-xs font-medium text-on-surface-variant line-clamp-2 italic leading-relaxed">"{item.note}"</p>
+                            </div>
+                            {item.kind === "post" && (
+                              <div className="mt-4 grid grid-cols-3 gap-2">
+                                <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
+                                  <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">Distance</p>
+                                  <p className="mt-1 text-[10px] font-black text-on-surface">
+                                    {typeof item.distanceKm === "number" ? `${item.distanceKm} km` : "N/A"}
+                                  </p>
+                                </div>
+                                <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
+                                  <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">Fuel</p>
+                                  <p className="mt-1 text-[10px] font-black text-on-surface">{formatCurrency(item.estimatedFuelCost)}</p>
+                                </div>
+                                <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
+                                  <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">Per Person</p>
+                                  <p className="mt-1 text-[10px] font-black text-secondary">{formatCurrency(item.estimatedCostPerPerson)}</p>
+                                </div>
+                              </div>
+                            )}
+                            <p className="mt-4 text-xs font-medium text-on-surface-variant line-clamp-2 italic leading-relaxed">"{item.note}"</p>
                            <div className="mt-8 flex gap-3">
                               <button onClick={() => onDecision(item, "accept")} className="flex-1 rounded-xl bg-primary py-3 text-[9px] font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/10 transition active:scale-95">Connect</button>
                               <button onClick={() => onDecision(item, "decline")} className="flex h-9 w-9 flex items-center justify-center rounded-xl bg-surface-container text-on-surface-variant hover:text-error transition"><span className="material-symbols-outlined text-sm">close</span></button>
@@ -554,15 +589,31 @@ export default function CompanionPage() {
                             </div>
                             <h4 className="font-headline text-lg font-black text-on-surface">{item.source} ➔ {item.destination}</h4>
                             <p className="mt-2 text-[10px] font-bold text-secondary uppercase tracking-widest">{formatTravelDate(item.travelDate)}</p>
-                            <div className="mt-8 pt-8 border-t border-outline-variant/5">
-                               <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 mb-3">Preferences</p>
-                               <div className="flex flex-wrap gap-2">
-                                  <span className="rounded-lg bg-surface-container-low px-3 py-1.5 text-[9px] font-black text-on-surface-variant/80 uppercase">{item.genderPreference} Only</span>
-                                  <span className="rounded-lg bg-surface-container-low px-3 py-1.5 text-[9px] font-black text-on-surface-variant/80 uppercase">{item.vehicleType || "Open"}</span>
-                               </div>
-                            </div>
-                         </article>
-                      ))}
+                             <div className="mt-8 pt-8 border-t border-outline-variant/5">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 mb-3">Preferences</p>
+                                <div className="flex flex-wrap gap-2">
+                                   <span className="rounded-lg bg-surface-container-low px-3 py-1.5 text-[9px] font-black text-on-surface-variant/80 uppercase">{item.genderPreference} Only</span>
+                                   <span className="rounded-lg bg-surface-container-low px-3 py-1.5 text-[9px] font-black text-on-surface-variant/80 uppercase">{item.vehicleType || "Open"}</span>
+                                </div>
+                                <div className="mt-4 grid grid-cols-3 gap-2">
+                                   <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
+                                      <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">Distance</p>
+                                      <p className="mt-1 text-[10px] font-black text-on-surface">
+                                        {typeof item.distanceKm === "number" ? `${item.distanceKm} km` : "N/A"}
+                                      </p>
+                                   </div>
+                                   <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
+                                      <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">Fuel</p>
+                                      <p className="mt-1 text-[10px] font-black text-on-surface">{formatCurrency(item.estimatedFuelCost)}</p>
+                                   </div>
+                                   <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
+                                      <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">Per Person</p>
+                                      <p className="mt-1 text-[10px] font-black text-secondary">{formatCurrency(item.estimatedCostPerPerson)}</p>
+                                   </div>
+                                </div>
+                             </div>
+                          </article>
+                       ))}
                       {myPersonalPosts.length === 0 && (
                          <div className="col-span-full py-20 text-center rounded-[2.5rem] bg-surface-container-low/30 border border-dashed border-outline-variant/30">
                             <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">You haven't launched any expeditions yet</p>
@@ -653,6 +704,15 @@ export default function CompanionPage() {
                          <div className="space-y-2">
                             <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-2">Briefing</p>
                             <textarea value={postNote} onChange={(e) => setPostNote(e.target.value)} className="w-full rounded-2xl bg-surface-container-low p-4 text-xs font-black outline-none border border-outline-variant/10 h-32 resize-none" placeholder="Expedition details, route perks, or vibes..." />
+                         </div>
+
+                         <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-low/40 p-5 space-y-4">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">Expense Estimation (Optional, based on Source & Arrival)</p>
+                            <div className="grid gap-4 sm:grid-cols-3">
+                               <input type="number" step="0.01" min="0" value={postFuelPricePerLitre} onChange={(e) => setPostFuelPricePerLitre(e.target.value)} className="w-full rounded-xl bg-surface-container-low p-3 text-xs font-black outline-none border border-outline-variant/10" placeholder="Fuel Price/Litre" />
+                               <input type="number" step="0.01" min="0" value={postMileage} onChange={(e) => setPostMileage(e.target.value)} className="w-full rounded-xl bg-surface-container-low p-3 text-xs font-black outline-none border border-outline-variant/10" placeholder="Mileage (km/l)" />
+                               <input type="number" step="0.01" min="0" value={postTollAmount} onChange={(e) => setPostTollAmount(e.target.value)} className="w-full rounded-xl bg-surface-container-low p-3 text-xs font-black outline-none border border-outline-variant/10" placeholder="Toll Amount" />
+                            </div>
                          </div>
 
                          <button onClick={createPersonalTripPost} disabled={isPosting || !loggedIn} className="w-full rounded-2xl bg-primary py-5 text-[11px] font-black uppercase tracking-widest text-on-primary shadow-2xl shadow-primary/20 transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30">
