@@ -343,77 +343,118 @@ export default function TripDetailPage() {
             </div>
           </article>
 
-          <article>
+          <article className="overflow-hidden rounded-[1.6rem] border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-[0_4px_20px_rgba(28,28,24,0.06)] md:p-8">
             <div className="mb-8 flex items-end justify-between gap-4">
               <div>
-                <h2 className="font-headline text-2xl font-extrabold text-primary">
-                  The Journey Map
-                </h2>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                    <span className="material-symbols-outlined text-lg text-primary">map</span>
+                  </span>
+                  <h2 className="font-headline text-xl font-black text-on-surface sm:text-2xl">
+                    Journey Route
+                  </h2>
+                </div>
                 <p className="mt-2 text-sm text-on-surface-variant">
-                  Tap each day to open the full plan like a package builder.
+                  Tap each stop to see what&rsquo;s planned for the day.
                 </p>
               </div>
-              <div className="rounded-2xl bg-surface-container-low px-4 py-3 text-right">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
-                  Trip Flow
-                </p>
-                <p className="mt-1 font-headline text-lg font-black text-primary">
-                  {itinerary.length} Days
-                </p>
-              </div>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+                {itinerary.length} stops
+              </span>
             </div>
-            <div className="space-y-4">
-              {itinerary.map((item) => {
+
+            {/* Route map timeline */}
+            <div className="relative ml-4 sm:ml-6">
+              {itinerary.map((item, index) => {
                 const isOpen = openDay === item.day;
+                const isFirst = index === 0;
+                const isLast = index === itinerary.length - 1;
 
                 return (
-                  <article
-                    key={`${item.day}-${item.title}`}
-                    className={`overflow-hidden rounded-3xl border transition ${
-                      isOpen
-                        ? "border-primary/20 bg-surface-container-lowest shadow-[0_18px_36px_rgba(16,58,45,0.08)]"
-                        : "border-outline-variant/10 bg-surface-container-low"
-                    }`}
-                  >
+                  <div key={`${item.day}-${item.title}`} className="relative pb-2 last:pb-0">
+                    {/* Track line */}
+                    {!isLast && (
+                      <div
+                        className="absolute left-[11px] top-[30px] w-[2px]"
+                        style={{ bottom: 0, background: "linear-gradient(to bottom, var(--color-primary), var(--color-outline-variant, #c5c8c2) 70%)" }}
+                      />
+                    )}
+
+                    {/* Station node + content */}
                     <button
                       type="button"
-                      onClick={() => setOpenDay((currentDay) => (currentDay === item.day ? 0 : item.day))}
-                      className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left md:px-6"
+                      onClick={() => setOpenDay((d) => (d === item.day ? 0 : item.day))}
+                      className="group flex w-full items-start gap-4 text-left"
                     >
-                      <div className="flex items-center gap-4">
-                        <span
-                          className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black ${
-                            isOpen
-                              ? "bg-primary text-white"
-                              : "bg-surface-container-highest text-primary"
-                          }`}
-                        >
-                          {String(item.day).padStart(2, "0")}
-                        </span>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-outline">
-                            Day {item.day}
-                          </p>
-                          <h4 className="font-headline text-lg font-bold text-primary">
-                            {item.title}
-                          </h4>
+                      {/* Station dot */}
+                      <div className="relative z-10 flex shrink-0 flex-col items-center pt-1">
+                        <div className={`flex items-center justify-center rounded-full transition-all duration-300 ${
+                          isOpen
+                            ? "h-6 w-6 bg-primary shadow-[0_0_0_4px_rgba(18,79,56,0.15)]"
+                            : isFirst
+                              ? "h-6 w-6 bg-secondary"
+                              : "h-4 w-4 bg-outline-variant/40 group-hover:bg-primary/60"
+                        }`}>
+                          {isOpen && (
+                            <span className="h-2 w-2 rounded-full bg-white" />
+                          )}
+                          {isFirst && !isOpen && (
+                            <span className="material-symbols-outlined text-xs text-white">flag</span>
+                          )}
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-primary">
-                        {isOpen ? "remove" : "add"}
-                      </span>
-                    </button>
 
-                    {isOpen ? (
-                      <div className="border-t border-outline-variant/10 px-5 py-5 md:px-6">
-                        <p className="leading-relaxed text-on-surface-variant">
-                          {item.note}
-                        </p>
+                      {/* Day content card */}
+                      <div className={`mb-4 flex-1 overflow-hidden rounded-2xl border transition-all duration-300 ${
+                        isOpen
+                          ? "border-primary/15 bg-primary/[0.03] shadow-[0_8px_24px_rgba(16,58,45,0.06)]"
+                          : "border-transparent hover:border-outline-variant/15 hover:bg-surface-container-low"
+                      }`}>
+                        <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+                          <div className="flex items-center gap-3">
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-[11px] font-black ${
+                              isOpen ? "bg-primary text-white" : "bg-surface-container-highest text-primary"
+                            }`}>
+                              {String(item.day).padStart(2, "0")}
+                            </span>
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/50">Day {item.day}</p>
+                              <h4 className="font-headline text-sm font-black text-on-surface sm:text-base">{item.title}</h4>
+                            </div>
+                          </div>
+                          <span className={`material-symbols-outlined text-lg transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : "text-outline-variant"}`}>
+                            expand_more
+                          </span>
+                        </div>
+
+                        {isOpen && (
+                          <div className="border-t border-primary/10 px-4 py-4 sm:px-5">
+                            <div className="flex items-start gap-2.5">
+                              <span className="material-symbols-outlined mt-0.5 text-base text-primary/50">notes</span>
+                              <p className="text-sm leading-relaxed text-on-surface-variant">
+                                {item.note}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ) : null}
-                  </article>
+                    </button>
+                  </div>
                 );
               })}
+
+              {/* End marker */}
+              <div className="relative flex items-start gap-4">
+                <div className="relative z-10 flex shrink-0 flex-col items-center pt-1">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary">
+                    <span className="material-symbols-outlined text-xs text-white">check</span>
+                  </div>
+                </div>
+                <div className="pb-2 pt-0.5">
+                  <p className="text-xs font-black uppercase tracking-widest text-secondary">Trip Complete</p>
+                  <p className="text-[11px] text-on-surface-variant">End of the adventure!</p>
+                </div>
+              </div>
             </div>
           </article>
 
