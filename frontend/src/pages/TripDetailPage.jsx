@@ -180,156 +180,166 @@ export default function TripDetailPage() {
 
   return (
     <MainLayout withFooter={false}>
-      <section className="relative h-[52vh] min-h-80 overflow-hidden sm:min-h-96">
-        <img
-          src={activeHeroImage}
-          alt={trip.title}
-          className="h-full w-full object-cover"
-          loading="eager"
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-primary/80 via-primary/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl p-5 text-white sm:p-8 md:p-12">
-          <p className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-4 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-on-secondary-container">
-            <span className="material-symbols-outlined text-sm">star</span>
-            Trending Expedition
-          </p>
-          <h1 className="mt-4 break-words font-headline text-xl font-extrabold leading-tight tracking-tight sm:text-2xl md:text-4xl lg:text-5xl">
-            {trip.title}
-          </h1>
-          <div className="mt-5 flex flex-wrap items-center gap-6 text-sm text-surface-variant">
-            <p className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">
-                calendar_today
+      {/* ── Hero Gallery ── */}
+      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+        {/* Back + Share row */}
+        <div className="mb-4 flex items-center justify-between">
+          <Link to="/trips/search" className="inline-flex items-center gap-1.5 text-sm font-bold text-on-surface-variant transition hover:text-primary">
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            Back to trips
+          </Link>
+          <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant transition hover:bg-surface-container-highest" aria-label="Share trip">
+            <span className="material-symbols-outlined text-lg">share</span>
+          </button>
+        </div>
+
+        {/* Image Gallery Grid */}
+        <div className="grid gap-2 overflow-hidden rounded-[1.6rem] sm:grid-cols-[1fr_0.4fr] sm:grid-rows-2" style={{ height: "clamp(280px, 50vh, 520px)" }}>
+          {/* Main image */}
+          <button type="button" onClick={() => tripImages.length > 1 && setActiveImageIndex((c) => (c + 1) % tripImages.length)} className="group relative row-span-2 overflow-hidden">
+            <img src={activeHeroImage} alt={trip.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="eager" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            {/* Floating info chips */}
+            <div className="absolute bottom-0 inset-x-0 p-5 sm:p-7">
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
+                  <span className="material-symbols-outlined text-xs">calendar_today</span>
+                  {getTripDuration(trip.startDate, trip.endDate)}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
+                  <span className="material-symbols-outlined text-xs">location_on</span>
+                  {trip.source} → {trip.destination}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/90 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                  <span className="material-symbols-outlined text-xs">group</span>
+                  {trip.availableSeats} slots left
+                </span>
+              </div>
+            </div>
+            {tripImages.length > 1 && (
+              <div className="absolute bottom-5 right-5 sm:bottom-7 sm:right-7 flex items-center gap-1.5">
+                {tripImages.map((_, i) => (
+                  <span key={i} className={`h-1.5 rounded-full transition-all ${i === activeImageIndex ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} />
+                ))}
+              </div>
+            )}
+          </button>
+
+          {/* Side thumbnails (desktop) */}
+          {tripImages.length > 1 ? (
+            <>
+              <button type="button" onClick={() => setActiveImageIndex(tripImages.length > 1 ? 1 : 0)} className="group relative hidden overflow-hidden sm:block">
+                <img src={optimizeCloudinaryImage(tripImages[1] || tripImages[0], "f_auto,q_auto,w_600")} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                <div className="pointer-events-none absolute inset-0 bg-black/10 transition group-hover:bg-black/0" />
+              </button>
+              <button type="button" onClick={() => setActiveImageIndex(tripImages.length > 2 ? 2 : 0)} className="group relative hidden overflow-hidden sm:block">
+                <img src={optimizeCloudinaryImage(tripImages[2] || tripImages[0], "f_auto,q_auto,w_600")} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                <div className="pointer-events-none absolute inset-0 bg-black/10 transition group-hover:bg-black/0" />
+                {tripImages.length > 3 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm font-black text-white backdrop-blur-[2px]">
+                    +{tripImages.length - 3} more
+                  </div>
+                )}
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {/* Title row below gallery */}
+        <div className="mt-6 flex flex-wrap items-start justify-between gap-4 sm:mt-8">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary-container px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-secondary-container">
+                <span className="material-symbols-outlined text-xs">star</span>
+                Trending
               </span>
-              {getTripDuration(trip.startDate, trip.endDate)}
-            </p>
-            <p className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">
-                location_on
+              <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-highest px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                <span className="material-symbols-outlined text-xs">directions_bus</span>
+                {String(trip.transportType || "bus").replaceAll("_", " ")}
               </span>
-              {trip.destination}
-            </p>
-            <p className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">directions_bus</span>
-              {String(trip.transportType || "bus").replaceAll("_", " ")}
-            </p>
-            <p className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">group</span>
-              {trip.availableSeats} Slots Left
-            </p>
-            <p className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">diversity_3</span>
-              {joinedCount} already joined
+            </div>
+            <h1 className="mt-3 font-headline text-2xl font-black tracking-tight text-on-surface sm:text-3xl md:text-4xl">
+              {trip.title}
+            </h1>
+            <p className="mt-2 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
+              <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-base text-primary">place</span>{trip.source} → {trip.destination}</span>
+              <span className="hidden sm:inline h-1 w-1 rounded-full bg-outline-variant" />
+              <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-base text-primary">diversity_3</span>{joinedCount} already joined</span>
             </p>
           </div>
+          <div className="text-right">
+            <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">From</p>
+            <p className="font-headline text-3xl font-black text-primary">{formatINR(trip.pricePerPerson)}</p>
+            <p className="text-xs text-on-surface-variant">per person</p>
+          </div>
         </div>
-        {tripImages.length > 1 ? (
-          <>
-            <button
-              onClick={() =>
-                setActiveImageIndex((current) =>
-                  current === 0 ? tripImages.length - 1 : current - 1,
-                )
-              }
-               className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:left-4"
-              aria-label="Previous trip image"
-            >
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            <button
-              onClick={() =>
-                setActiveImageIndex((current) => (current + 1) % tripImages.length)
-              }
-               className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:right-4"
-              aria-label="Next trip image"
-            >
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
-             <div className="absolute bottom-3 right-3 hidden gap-2 sm:bottom-4 sm:right-4 sm:flex">
-              {tripImages.map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  onClick={() => setActiveImageIndex(index)}
-                   className={`h-10 w-14 overflow-hidden rounded-lg border-2 ${
-                     index === activeImageIndex ? "border-secondary-container" : "border-white/30"
-                   }`}
-                  aria-label={`Open trip image ${index + 1}`}
-                >
-                  <img
-                    src={optimizeCloudinaryImage(image, "f_auto,q_auto,w_220")}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
-      </section>
+      </div>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 lg:grid-cols-12">
         <div className="space-y-8 lg:col-span-8">
-          <article className="flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-surface-container-low p-6 md:p-8">
-            <div className="flex items-center gap-4">
-              <img
-                src={
-                  trip.organizerId?.userId?.avatarUrl ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(trip.organizerId?.businessName || "Organizer")}&background=124f38&color=fff&size=200`
-                }
-                alt={trip.organizerId?.businessName || "Organizer"}
-                className="h-18 w-18 rounded-full border-4 border-surface-container-highest object-cover"
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-headline text-lg font-bold text-primary">
-                    {trip.organizerId?.businessName || "Verified Organizer"}
-                  </h3>
-                  {trip.organizerId?.trustScore >= 90 ? (
-                    <span className="flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-secondary border border-secondary/20">
-                      <span className="material-symbols-outlined text-[10px]">workspace_premium</span>
-                      Elite
-                    </span>
-                  ) : trip.organizerId?.trustScore >= 75 ? (
-                    <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary border border-primary/20">
-                      <span className="material-symbols-outlined text-[10px]">verified</span>
-                      Pro
-                    </span>
-                  ) : trip.organizerId?.trustScore >= 50 ? (
-                    <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-blue-500 border border-blue-500/20">
-                      Rising
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 rounded-full bg-outline-variant/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-outline border border-outline-variant/20">
-                      Newcomer
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 flex items-center gap-3">
-                  <p className="text-sm text-outline">Trip Organizer</p>
-                  <div className="h-1 w-1 rounded-full bg-outline-variant/40" />
-                  <p className="flex items-center gap-1 text-[11px] font-bold text-secondary">
-                    <span className="material-symbols-outlined text-xs">verified_user</span>
-                    {trip.organizerId?.trustScore}% Trust Score
-                  </p>
+          {/* Organizer Card */}
+          <article className="overflow-hidden rounded-[1.6rem] border border-outline-variant/10 bg-surface-container-lowest shadow-[0_4px_20px_rgba(28,28,24,0.06)]">
+            <div className="flex flex-wrap items-center justify-between gap-5 p-6 md:p-8">
+              <div className="flex items-center gap-4">
+                <img
+                  src={
+                    trip.organizerId?.userId?.avatarUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(trip.organizerId?.businessName || "Organizer")}&background=124f38&color=fff&size=200`
+                  }
+                  alt={trip.organizerId?.businessName || "Organizer"}
+                  className="h-16 w-16 rounded-2xl border-2 border-primary/10 object-cover shadow-md"
+                />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-headline text-lg font-black text-on-surface">
+                      {trip.organizerId?.businessName || "Verified Organizer"}
+                    </h3>
+                    {trip.organizerId?.trustScore >= 90 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-secondary border border-secondary/20">
+                        <span className="material-symbols-outlined text-[10px]">workspace_premium</span>
+                        Elite
+                      </span>
+                    ) : trip.organizerId?.trustScore >= 75 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary border border-primary/20">
+                        <span className="material-symbols-outlined text-[10px]">verified</span>
+                        Pro
+                      </span>
+                    ) : trip.organizerId?.trustScore >= 50 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-blue-500 border border-blue-500/20">
+                        Rising
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full bg-outline-variant/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-outline border border-outline-variant/20">
+                        Newcomer
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex items-center gap-3">
+                    <p className="text-sm text-on-surface-variant">Trip Organizer</p>
+                    <div className="h-1 w-1 rounded-full bg-outline-variant/40" />
+                    <p className="flex items-center gap-1 text-[11px] font-bold text-secondary">
+                      <span className="material-symbols-outlined text-xs">verified_user</span>
+                      {trip.organizerId?.trustScore}% Trust Score
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {canEditTrip ? (
+              <div className="flex flex-wrap gap-2">
+                {canEditTrip ? (
+                  <Link
+                    to={`/trips/${trip._id}/edit`}
+                    className="rounded-xl bg-primary px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-on-primary"
+                  >
+                    Edit Trip
+                  </Link>
+                ) : null}
                 <Link
-                  to={`/trips/${trip._id}/edit`}
-                  className="rounded-xl bg-primary px-6 py-2 font-semibold text-white"
+                  to={`/users/${trip.organizerId?.userId?._id || ""}`}
+                  className="rounded-xl border border-primary/20 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
                 >
-                  Edit Trip
+                  View Profile
                 </Link>
-              ) : null}
-              <Link
-                to={`/users/${trip.organizerId?.userId?._id || ""}`}
-                className="rounded-xl border border-primary/20 px-6 py-2 font-semibold text-primary hover:bg-primary hover:text-white"
-              >
-                View Profile
-              </Link>
+              </div>
             </div>
           </article>
 
