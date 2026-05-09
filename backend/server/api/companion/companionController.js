@@ -86,45 +86,28 @@ const parseNonNegativeNumber = (value, fallback = 0) => {
   return parsed;
 };
 
-const getGeoapifyApiKey = () => {
-  const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
-  if (!rawValue) {
-    return "";
-  }
-
-  // Accept either the plain API key or a full Geoapify URL containing ?apiKey=...
-  if (rawValue.includes("apiKey=")) {
-    try {
-      const parsedUrl = new URL(rawValue);
-      return String(parsedUrl.searchParams.get("apiKey") || "").trim();
-    } catch (_error) {
-      const match = /[?&]apiKey=([^&]+)/i.exec(rawValue);
-      return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
-    }
-  }
-
-  return rawValue;
-};
-
-const getGeoapifyGeocodedPoint = async (locationText) => {
-  const apiKey = getGeoapifyApiKey();
-  if (!apiKey) {
-    throw new Error("Geoapify API key is not configured");
-  }
-
-  const geocodeUrl = new URL("https://api.geoapify.com/v1/geocode/search");
-  geocodeUrl.searchParams.set("text", locationText);
+// Nominatim (OpenStreetMap) geocoding — no API key required
+const getNominatimGeocodedPoint = async (locationText) => {
+  const geocodeUrl = new URL("https://nominatim.openstreetmap.org/search");
+  geocodeUrl.searchParams.set("q", locationText);
+  geocodeUrl.searchParams.set("format", "json");
   geocodeUrl.searchParams.set("limit", "1");
-  geocodeUrl.searchParams.set("apiKey", apiKey);
 
-  const response = await fetch(geocodeUrl.toString());
+  const response = await fetch(geocodeUrl.toString(), {
+    headers: {
+      // Nominatim usage policy requires a descriptive User-Agent
+      "User-Agent": "BagPacker/1.0 (thakurabhinav16160@gmail.com)",
+      "Accept-Language": "en",
+    },
+  });
+
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message || `Geoapify geocoding failed with status ${response.status}`);
+    throw new Error(`Nominatim geocoding failed with status ${response.status}`);
   }
 
-  const hit = payload?.features?.[0]?.properties || null;
+  const hit = Array.isArray(payload) ? payload[0] : null;
   const latitude = Number(hit?.lat);
   const longitude = Number(hit?.lon);
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
@@ -157,8 +140,8 @@ const resolveRouteCoordinates = async ({
   }
 
   const [sourcePoint, destinationPoint] = await Promise.all([
-    getGeoapifyGeocodedPoint(source),
-    getGeoapifyGeocodedPoint(destination),
+    getNominatimGeocodedPoint(source),
+    getNominatimGeocodedPoint(destination),
   ]);
 
   return {
@@ -169,38 +152,32 @@ const resolveRouteCoordinates = async ({
   };
 };
 
-const getGeoapifyDistanceKm = async ({
+// OSRM public routing service — no API key required
+// Coordinate order for OSRM is longitude,latitude (GeoJSON convention)
+const getOSRMDistanceKm = async ({
   sourceLatitude,
   sourceLongitude,
   destinationLatitude,
   destinationLongitude,
 }) => {
-  const apiKey = getGeoapifyApiKey();
-  if (!apiKey) {
-    throw new Error("Geoapify API key is not configured");
-  }
+  const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${sourceLongitude},${sourceLatitude};${destinationLongitude},${destinationLatitude}?overview=false&steps=false`;
 
-  const directionsUrl = new URL("https://api.geoapify.com/v1/routing");
-  directionsUrl.searchParams.set(
-    "waypoints",
-    `${sourceLatitude},${sourceLongitude}|${destinationLatitude},${destinationLongitude}`,
-  );
-  directionsUrl.searchParams.set("mode", "drive");
-  directionsUrl.searchParams.set("overview", "false");
-  directionsUrl.searchParams.set("apiKey", apiKey);
-
-  const response = await fetch(directionsUrl.toString());
+  const response = await fetch(osrmUrl, {
+    headers: {
+      "User-Agent": "BagPacker/1.0 (thakurabhinav16160@gmail.com)",
+    },
+  });
   const payload = await response.json().catch(() => null);
 
-  if (!response.ok) {
+  if (!response.ok || payload?.code !== "Ok") {
     throw new Error(
-      payload?.message || `Geoapify routing request failed with status ${response.status}`,
+      payload?.message || `OSRM routing request failed with status ${response.status}`,
     );
   }
 
-  const routeDistanceMeters = Number(payload?.features?.[0]?.properties?.distance);
+  const routeDistanceMeters = Number(payload?.routes?.[0]?.distance);
   if (!Number.isFinite(routeDistanceMeters) || routeDistanceMeters <= 0) {
-    throw new Error("Geoapify routing did not return a valid route distance");
+    throw new Error("OSRM routing did not return a valid route distance");
   }
 
   return Number((routeDistanceMeters / 1000).toFixed(2));
@@ -229,7 +206,7 @@ const buildExpenseEstimate = async ({
     };
   }
 
-  const distanceKm = await getGeoapifyDistanceKm({
+  const distanceKm = await getOSRMDistanceKm({
     sourceLatitude,
     sourceLongitude,
     destinationLatitude,

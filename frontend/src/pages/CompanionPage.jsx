@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import CityAutocompleteInput from "../components/ui/CityAutocompleteInput";
+import RouteMap from "../components/ui/RouteMap";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 
@@ -221,6 +222,10 @@ export default function CompanionPage() {
         typeof item.estimatedCostPerPerson === "number" ? item.estimatedCostPerPerson : null,
       note: item.note || "Open personal expedition post.",
       postId: item.postId,
+      srcLat: typeof item.sourceLatitude === "number" ? item.sourceLatitude : null,
+      srcLon: typeof item.sourceLongitude === "number" ? item.sourceLongitude : null,
+      dstLat: typeof item.destinationLatitude === "number" ? item.destinationLatitude : null,
+      dstLon: typeof item.destinationLongitude === "number" ? item.destinationLongitude : null,
       image: "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?auto=format&fit=crop&w=400&q=80"
     }));
 
@@ -473,14 +478,30 @@ export default function CompanionPage() {
                   <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {discoverItems.map((item) => (
                       <article key={item.id} className="group overflow-hidden rounded-[2.5rem] border border-outline-variant/10 bg-surface transition-all hover:shadow-xl hover:-translate-y-1">
-                        <div className="relative aspect-[5/4] overflow-hidden bg-surface-container-high">
+                        {/* Map preview for trip posts with coordinates; photo fallback otherwise */}
+                        {item.kind === "post" && item.srcLat !== null && item.dstLat !== null ? (
+                          <div className="px-4 pt-4">
+                            <RouteMap
+                              srcLat={item.srcLat}
+                              srcLon={item.srcLon}
+                              dstLat={item.dstLat}
+                              dstLon={item.dstLon}
+                              srcLabel={item.source}
+                              dstLabel={item.destination}
+                              height="180px"
+                            />
+                          </div>
+                        ) : (
+                          <div className="relative aspect-[5/4] overflow-hidden bg-surface-container-high">
                            <img src={item.image} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" alt={item.name} />
                            <div className="absolute inset-0 bg-linear-to-t from-on-surface/60 to-transparent" />
                            <div className="absolute left-4 top-4 flex gap-2">
                               <span className="rounded-lg bg-white/20 px-3 py-1 text-[8px] font-black uppercase tracking-widest text-white backdrop-blur-md">{getScoreBadge(item.score)}</span>
                               <span className={`rounded-lg px-3 py-1 text-[8px] font-black uppercase tracking-widest backdrop-blur-md ${item.verificationStatus === 'verified' ? 'bg-primary/20 text-white' : 'bg-surface-container/20 text-white/60'}`}>{item.verificationStatus}</span>
                            </div>
-                        </div>
+                          </div>
+                        )}
+
                         <div className="p-6">
                            <div className="flex items-center justify-between">
                               <h4 className="font-headline text-lg font-black text-on-surface">{item.name}</h4>
