@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { optimizeCloudinaryImage } from "../../lib/api";
+import fallbackImage from "../../assets/images/landing/story/HomeDesign.webp";
 
 const formatPrice = (value) => {
   const amount = Number(value || 0);
@@ -25,7 +26,7 @@ const getTripDurationLabel = (startDate, endDate) => {
   return `${diffDays}D / ${nights}N`;
 };
 
-export default function TopPicksSection({ trips = [], isLoading = false }) {
+export default function TopPicksSection({ trips = [], isLoading = false, error = "" }) {
   const navigate = useNavigate();
 
   return (
@@ -43,7 +44,11 @@ export default function TopPicksSection({ trips = [], isLoading = false }) {
         and tailored experiences.
       </p>
 
-      {isLoading ? (
+      {error ? (
+        <div className="rounded-2xl bg-error-container p-4 text-sm font-semibold text-on-error-container">
+          {error}
+        </div>
+      ) : isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-80 w-full animate-pulse rounded-3xl bg-surface-container" />
@@ -54,7 +59,9 @@ export default function TopPicksSection({ trips = [], isLoading = false }) {
           {trips.length > 0 ? (
             trips.map((trip) => {
               const mainImage = Array.isArray(trip.images) && trip.images[0] ? trip.images[0] : "";
-              const optimizedImage = optimizeCloudinaryImage(mainImage, "f_auto,q_auto,w_800");
+              const optimizedImage = mainImage
+                ? optimizeCloudinaryImage(mainImage, "f_auto,q_auto,w_800")
+                : fallbackImage;
 
               return (
                 <article

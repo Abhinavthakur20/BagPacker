@@ -51,7 +51,7 @@ const mapTrip = (trip, index) => ({
     "Organizer",
   departureType: "Scheduled Departure",
   inclusions: ["Transport", "Stay", "Trip Support"],
-  joiningCount: 5 + index,
+  joiningCount: Math.max(0, Number(trip.totalSeats || 0) - Number(trip.availableSeats || 0)),
 });
 
 export default function SearchPage() {
