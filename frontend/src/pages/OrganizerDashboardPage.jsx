@@ -273,8 +273,32 @@ export default function OrganizerDashboardPage() {
           </div>
         </aside>
 
+        {/* Mobile Tab Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
+          <nav className="flex items-center justify-around px-2 py-3">
+            {[
+              ["overview", "space_dashboard", "Home"],
+              ["trips", "inventory_2", "Trips"],
+              ["social", "photo_library", "Social"],
+            ].map(([key, icon, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveView(key)}
+                className={`relative flex flex-col items-center gap-1 transition-all ${
+                  activeView === key ? "text-primary" : "text-on-surface-variant/40"
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[1.4rem] ${activeView === key ? "font-bold" : ""}`}>
+                  {icon}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
         {/* ── Main Content ── */}
-        <main className="flex-1 overflow-y-auto px-4 py-10 md:px-12">
+        <main className="flex-1 overflow-y-auto px-4 py-10 pb-24 md:px-12 md:pb-10">
           <div className="mx-auto max-w-6xl space-y-10">
             {/* Header Section */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">

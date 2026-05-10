@@ -285,8 +285,37 @@ export default function TravelerDashboardPage() {
           </div>
         </aside>
 
+        {/* Mobile Tab Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
+          <nav className="flex items-center justify-around px-2 py-3">
+            {[
+              ["overview", "grid_view", "Home"],
+              ["bookings", "event_note", "Bookings"],
+              ["tickets", "confirmation_number", "Pass"],
+              ["notifications", "notifications", "Alerts"],
+              ["recommendations", "grade", "For You"],
+            ].map(([key, icon, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`relative flex flex-col items-center gap-1 transition-all ${
+                  activeTab === key ? "text-primary" : "text-on-surface-variant/40"
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[1.4rem] ${activeTab === key ? "font-bold" : ""}`}>
+                  {icon}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+                {key === "notifications" && notifications.filter((n) => !n.isRead).length > 0 && (
+                  <span className="absolute top-0 right-0 -mr-1 h-3 w-3 rounded-full bg-secondary" />
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
         {/* ── Main Content ── */}
-        <main className="flex-1 overflow-y-auto px-4 py-10 md:px-12">
+        <main className="flex-1 overflow-y-auto px-4 py-10 pb-24 md:px-12 md:pb-10">
           <div className="mx-auto max-w-5xl space-y-10">
             {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

@@ -76,6 +76,7 @@ export default function CompanionPage() {
   const [myPersonalPosts, setMyPersonalPosts] = useState([]);
   const [myRequests, setMyRequests] = useState({ sent: [], received: [] });
   const [notifications, setNotifications] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [pageError, setPageError] = useState("");
@@ -170,20 +171,21 @@ export default function CompanionPage() {
       ).trim();
       const bookingDate = String(
         overrides.travelDate ?? travelDate ?? "",
-      ).trim();
+        overrides.travelDate ?? travelDate ?? "").trim();
       if (bookingSource) bookingParams.set("source", bookingSource);
       if (bookingDestination)
         bookingParams.set("destination", bookingDestination);
       if (bookingDate) bookingParams.set("date", bookingDate);
       const bookingQuery = bookingParams.toString();
 
-      const [foundMatches, requests, foundPosts, minePosts, userNotifications] =
+      const [foundMatches, requests, foundPosts, minePosts, userNotifications, userBookings] =
         await Promise.all([
           api.get(`/companions/find?${bookingQuery}`, { forceRefresh: true }),
           api.get("/companions/my?page=1&limit=50", { cacheTtlMs: 15000 }),
           api.get(`/companions/search?${searchQuery}`, { forceRefresh: true }),
           api.get("/companions/posts/mine?page=1&limit=50"),
           api.get("/notifications?page=1&limit=25", { cacheTtlMs: 10000 }),
+          api.get("/bookings/my?page=1&limit=50"),
         ]);
 
       setMatches(
@@ -210,6 +212,9 @@ export default function CompanionPage() {
       setMyRequests(requests || { sent: [], received: [] });
       setNotifications(
         Array.isArray(userNotifications?.items) ? userNotifications.items : [],
+      );
+      setBookings(
+        Array.isArray(userBookings?.items) ? userBookings.items : [],
       );
     } catch (fetchError) {
       setPageError(fetchError.message);
@@ -561,12 +566,13 @@ export default function CompanionPage() {
 
           <nav className="flex-1 space-y-1 px-4 pt-4">
             {[
-              ["discover", "Discover", "explore"],
-              ["requests", "Requests", "group"],
-              ["my_posts", "My Posts", "rocket_launch"],
-              ["notifications", "Updates", "notifications"],
-              ["create", "Launch Expedition", "add_circle"],
-            ].map(([key, label, icon]) => (
+              ["discover", "Discover", "explore", 0],
+              ["bookings", "My Bookings", "event_note", bookings.length],
+              ["requests", "Requests", "group", requestRows.filter(r => r.status === 'pending' && r.direction === 'incoming').length],
+              ["my_posts", "My Posts", "rocket_launch", 0],
+              ["notifications", "Updates", "notifications", unreadNotificationCount],
+              ["create", "Launch Expedition", "add_circle", 0],
+            ].map(([key, label, icon, count]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -582,9 +588,9 @@ export default function CompanionPage() {
                   </span>
                   {label}
                 </div>
-                {key === "notifications" && unreadNotificationCount > 0 && (
-                  <span className="h-4 w-4 rounded-full bg-secondary text-[8px] flex items-center justify-center text-on-secondary">
-                    {unreadNotificationCount}
+                {count > 0 && (
+                  <span className={`h-4 w-4 rounded-full text-[8px] flex items-center justify-center ${activeTab === key ? "bg-on-primary text-primary" : "bg-secondary text-on-secondary"}`}>
+                    {count}
                   </span>
                 )}
               </button>
@@ -607,8 +613,39 @@ export default function CompanionPage() {
           </div>
         </aside>
 
+        {/* Mobile Tab Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl lg:hidden">
+          <nav className="flex items-center justify-around px-2 py-3">
+            {[
+              ["discover", "explore", "Discover", 0],
+              ["bookings", "event_note", "Bookings", bookings.length],
+              ["requests", "group", "Requests", requestRows.filter(r => r.status === 'pending' && r.direction === 'incoming').length],
+              ["my_posts", "rocket_launch", "Posts", 0],
+              ["create", "add_circle", "Launch", 0],
+            ].map(([key, icon, label, count]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`relative flex flex-col items-center gap-1 transition-all ${
+                  activeTab === key ? "text-primary" : "text-on-surface-variant/40"
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[1.4rem] ${activeTab === key ? "font-bold" : ""}`}>
+                  {icon}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+                {count > 0 && (
+                  <span className="absolute top-0 right-0 -mr-1 h-3.5 w-3.5 rounded-full bg-secondary text-[7px] flex items-center justify-center text-on-secondary font-black">
+                    {count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
         {/* ── Main content area ── */}
-        <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-12">
+        <main className="flex-1 overflow-y-auto px-6 py-10 pb-24 lg:px-12 lg:pb-10">
           <div className="mx-auto max-w-6xl space-y-10">
             {/* Context Header */}
             <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -620,6 +657,8 @@ export default function CompanionPage() {
                 <p className="mt-1 text-sm font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">
                   {activeTab === "discover" &&
                     "Find travel companions near your route"}
+                  {activeTab === "bookings" &&
+                    "Manage your confirmed travel reservations"}
                   {activeTab === "requests" &&
                     "Manage incoming and outgoing requests"}
                   {activeTab === "my_posts" &&
@@ -817,6 +856,63 @@ export default function CompanionPage() {
                         />
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* ── Bookings Tab ── */}
+                {activeTab === "bookings" && (
+                  <div className="space-y-6">
+                    <div className="grid gap-4">
+                      {bookings.map((booking) => (
+                        <article
+                          key={booking._id}
+                          className="rounded-3xl border border-outline-variant/10 bg-surface p-8 transition hover:shadow-md"
+                        >
+                          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-3">
+                                <h4 className="truncate font-headline text-xl font-black text-on-surface">
+                                  {booking.tripId?.title}
+                                </h4>
+                                <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+                                  booking.status === "confirmed"
+                                    ? "bg-success-container text-on-success-container"
+                                    : "bg-warning-container text-on-warning-container"
+                                }`}>
+                                  {booking.status}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm font-bold text-on-surface-variant">
+                                {booking.tripId?.source} ➔ {booking.tripId?.destination}
+                              </p>
+                              <div className="mt-4 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm">calendar_today</span>
+                                  {formatTravelDate(booking.tripId?.startDate)}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm">group</span>
+                                  {booking.seatsBooked} Seats
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-headline text-2xl font-black text-primary">
+                                {formatCurrency(booking.totalAmount)}
+                              </p>
+                              <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase mt-1">Confirmed</p>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                      {bookings.length === 0 && (
+                        <div className="py-20 text-center rounded-[2.5rem] bg-surface-container-low/30">
+                          <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">
+                            No active bookings
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
