@@ -542,7 +542,7 @@ export default function CompanionPage() {
   };
 
   return (
-    <MainLayout>
+    <MainLayout hideFooterOnMobile={true}>
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
         {/* ── Dashboard Sidebar ── */}
         <aside className="hidden w-72 flex-col border-r border-outline-variant/10 bg-surface-container-low lg:flex">
@@ -649,12 +649,12 @@ export default function CompanionPage() {
           <div className="mx-auto max-w-6xl space-y-10">
             {/* Context Header */}
             <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="font-headline text-3xl font-black tracking-tighter text-on-surface capitalize">
+              <div className="flex-1 min-w-0">
+                <h1 className="font-headline text-2xl sm:text-3xl font-black tracking-tighter text-on-surface capitalize">
                   {activeTab.replace("_", " ")}{" "}
                   <span className="text-secondary">Console</span>
                 </h1>
-                <p className="mt-1 text-sm font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">
+                <p className="mt-1 text-[11px] sm:text-sm font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">
                   {activeTab === "discover" &&
                     "Find travel companions near your route"}
                   {activeTab === "bookings" &&
@@ -671,32 +671,32 @@ export default function CompanionPage() {
               </div>
 
               {activeTab === "discover" && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
                   <div className="flex items-center gap-2 rounded-xl bg-surface-container-low px-3 py-2 border border-outline-variant/20">
-                    <span className="material-symbols-outlined text-xs text-primary">
+                    <span className="material-symbols-outlined text-xs text-primary shrink-0">
                       trip_origin
                     </span>
                     <CityAutocompleteInput
                       value={source}
                       onChange={(e) => setSource(e.target.value)}
-                      className="bg-transparent text-[11px] font-black outline-none w-24 uppercase"
+                      className="bg-transparent text-[11px] font-black outline-none w-full uppercase"
                       placeholder="Source"
                     />
                   </div>
                   <div className="flex items-center gap-2 rounded-xl bg-surface-container-low px-3 py-2 border border-outline-variant/20">
-                    <span className="material-symbols-outlined text-xs text-secondary">
+                    <span className="material-symbols-outlined text-xs text-secondary shrink-0">
                       near_me
                     </span>
                     <CityAutocompleteInput
                       value={destination}
                       onChange={(e) => setDestination(e.target.value)}
-                      className="bg-transparent text-[11px] font-black outline-none w-24 uppercase"
+                      className="bg-transparent text-[11px] font-black outline-none w-full uppercase"
                       placeholder="Dest"
                     />
                   </div>
                   <button
                     onClick={() => loadCompanionData()}
-                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg shadow-primary/10"
+                    className="col-span-2 sm:col-auto h-9 w-full sm:w-9 flex items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg shadow-primary/10"
                   >
                     <span className="material-symbols-outlined text-sm">
                       refresh
@@ -742,7 +742,7 @@ export default function CompanionPage() {
                         key={item.id}
                         className="group overflow-hidden rounded-[2.5rem] border border-outline-variant/10 bg-surface transition-all hover:shadow-xl hover:-translate-y-1"
                       >
-                        <div className="relative aspect-[5/4] overflow-hidden bg-surface-container-high">
+                        <div className="relative aspect-[3/2] sm:aspect-[5/4] overflow-hidden bg-surface-container-high">
                           <img
                             src={item.image}
                             className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
@@ -760,12 +760,12 @@ export default function CompanionPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="p-6">
+                        <div className="p-5 sm:p-6">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-headline text-lg font-black text-on-surface">
+                            <h4 className="truncate font-headline text-lg font-black text-on-surface">
                               {item.name}
                             </h4>
-                            <div className="flex items-center gap-1 text-secondary">
+                            <div className="flex items-center gap-1 text-secondary shrink-0">
                               <span className="material-symbols-outlined text-xs">
                                 verified
                               </span>
@@ -774,15 +774,15 @@ export default function CompanionPage() {
                               </span>
                             </div>
                           </div>
-                          <p className="mt-1 text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                          <p className="mt-1 truncate text-[9px] sm:text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
                             {item.route}
                           </p>
-                          <div className="mt-4 flex gap-2">
-                            <span className="rounded-lg bg-surface-container px-2 py-1 text-[9px] font-bold text-on-surface-variant">
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <span className="rounded-lg bg-surface-container px-2 py-1 text-[8px] sm:text-[9px] font-bold text-on-surface-variant">
                               {item.dates}
                             </span>
                             <span
-                              className={`rounded-lg px-2 py-1 text-[9px] font-bold text-on-surface-variant ${item.kind === "post" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}
+                              className={`rounded-lg px-2 py-1 text-[8px] sm:text-[9px] font-bold text-on-surface-variant ${item.kind === "post" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}
                             >
                               {item.kind === "post"
                                 ? "Trip Post"
@@ -866,15 +866,15 @@ export default function CompanionPage() {
                       {bookings.map((booking) => (
                         <article
                           key={booking._id}
-                          className="rounded-3xl border border-outline-variant/10 bg-surface p-8 transition hover:shadow-md"
+                          className="rounded-3xl border border-outline-variant/10 bg-surface p-5 sm:p-8 transition hover:shadow-md"
                         >
-                          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-3">
-                                <h4 className="truncate font-headline text-xl font-black text-on-surface">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <h4 className="truncate font-headline text-lg sm:text-xl font-black text-on-surface">
                                   {booking.tripId?.title}
                                 </h4>
-                                <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+                                <span className={`rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${
                                   booking.status === "confirmed"
                                     ? "bg-success-container text-on-success-container"
                                     : "bg-warning-container text-on-warning-container"
@@ -882,10 +882,10 @@ export default function CompanionPage() {
                                   {booking.status}
                                 </span>
                               </div>
-                              <p className="mt-2 text-sm font-bold text-on-surface-variant">
+                              <p className="mt-2 text-xs sm:text-sm font-bold text-on-surface-variant">
                                 {booking.tripId?.source} ➔ {booking.tripId?.destination}
                               </p>
-                              <div className="mt-4 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">
                                 <span className="flex items-center gap-1.5">
                                   <span className="material-symbols-outlined text-sm">calendar_today</span>
                                   {formatTravelDate(booking.tripId?.startDate)}
@@ -896,11 +896,19 @@ export default function CompanionPage() {
                                 </span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-headline text-2xl font-black text-primary">
-                                {formatCurrency(booking.totalAmount)}
-                              </p>
-                              <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase mt-1">Confirmed</p>
+                            <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4 md:border-none md:pt-0 md:text-right">
+                              <div className="md:hidden">
+                                <p className="text-[8px] font-bold text-on-surface-variant/40 uppercase">Amount</p>
+                                <p className="font-headline text-lg font-black text-primary">
+                                  {formatCurrency(booking.totalAmount)}
+                                </p>
+                              </div>
+                              <div className="hidden md:block">
+                                <p className="font-headline text-2xl font-black text-primary">
+                                  {formatCurrency(booking.totalAmount)}
+                                </p>
+                                <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase mt-1">Confirmed</p>
+                              </div>
                             </div>
                           </div>
                         </article>
@@ -923,24 +931,24 @@ export default function CompanionPage() {
                       {requestRows.map((item) => (
                         <article
                           key={item.key}
-                          className="rounded-3xl border border-outline-variant/10 bg-surface p-8 transition hover:shadow-md"
+                          className="rounded-3xl border border-outline-variant/10 bg-surface p-5 sm:p-8 transition hover:shadow-md"
                         >
-                          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-4">
-                                <h4 className="font-headline text-xl font-black text-on-surface">
+                          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <h4 className="truncate font-headline text-lg sm:text-xl font-black text-on-surface">
                                   {item.name}
                                 </h4>
                                 <span
-                                  className={`rounded-lg px-3 py-1 text-[9px] font-black uppercase tracking-widest ${item.status === "accepted" ? "bg-primary/10 text-primary" : "bg-surface-container-high text-on-surface-variant"}`}
+                                  className={`rounded-lg px-3 py-1 text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${item.status === "accepted" ? "bg-primary/10 text-primary" : "bg-surface-container-high text-on-surface-variant"}`}
                                 >
                                   {item.status}
                                 </span>
                               </div>
-                              <p className="mt-1 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">
+                              <p className="mt-1 truncate text-[9px] sm:text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">
                                 {item.route}
                               </p>
-                              <div className="mt-4 flex flex-wrap gap-4 text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">
                                 <span className="flex items-center gap-1.5">
                                   <span className="material-symbols-outlined text-[0.8rem]">
                                     calendar_today
@@ -956,7 +964,7 @@ export default function CompanionPage() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-3 border-t border-outline-variant/10 pt-4 md:border-none md:pt-0">
                               {item.direction === "incoming" &&
                               item.status === "pending" ? (
                                 <>
@@ -967,7 +975,7 @@ export default function CompanionPage() {
                                         "accepted",
                                       )
                                     }
-                                    className="rounded-xl bg-primary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-on-primary"
+                                    className="flex-1 md:flex-none rounded-xl bg-primary px-8 py-3 text-[9px] font-black uppercase tracking-widest text-on-primary"
                                   >
                                     Approve
                                   </button>
@@ -978,7 +986,7 @@ export default function CompanionPage() {
                                         "declined",
                                       )
                                     }
-                                    className="rounded-xl bg-surface-container-high px-8 py-3 text-[10px] font-black uppercase tracking-widest text-on-surface-variant"
+                                    className="flex-1 md:flex-none rounded-xl bg-surface-container-high px-8 py-3 text-[9px] font-black uppercase tracking-widest text-on-surface-variant"
                                   >
                                     Ignore
                                   </button>
@@ -990,7 +998,7 @@ export default function CompanionPage() {
                                       ? `/chat?roomId=${encodeURIComponent(item.chatRoomId)}`
                                       : "/chat"
                                   }
-                                  className="flex items-center gap-2 rounded-xl bg-secondary px-8 py-3 text-[10px] font-black uppercase tracking-widest text-on-secondary"
+                                  className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-secondary px-8 py-3 text-[9px] font-black uppercase tracking-widest text-on-secondary"
                                 >
                                   <span className="material-symbols-outlined text-sm">
                                     chat
@@ -1148,17 +1156,17 @@ export default function CompanionPage() {
 
                 {/* ── Create Tab ── */}
                 {activeTab === "create" && (
-                  <div className="max-w-2xl mx-auto rounded-[3rem] bg-surface p-12 shadow-2xl border border-outline-variant/10">
+                  <div className="mx-auto max-w-2xl rounded-[2rem] sm:rounded-[3rem] bg-surface p-6 sm:p-12 shadow-2xl border border-outline-variant/10">
                     <div className="mb-10 text-center">
-                      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
-                        <span className="material-symbols-outlined text-3xl">
+                      <div className="mx-auto mb-6 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl sm:rounded-3xl bg-primary/10 text-primary">
+                        <span className="material-symbols-outlined text-2xl sm:text-3xl">
                           add_location_alt
                         </span>
                       </div>
-                      <h3 className="font-headline text-2xl font-black text-on-surface">
+                      <h3 className="font-headline text-xl sm:text-2xl font-black text-on-surface">
                         Launch New Expedition
                       </h3>
-                      <p className="mt-2 text-sm font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                      <p className="mt-2 text-[10px] sm:text-sm font-bold text-on-surface-variant/60 uppercase tracking-widest">
                         Recruit companions for your journey
                       </p>
                     </div>
@@ -1344,7 +1352,7 @@ export default function CompanionPage() {
                               {Math.round(routeCalcProgress)}%
                             </p>
                           </div>
-                          <div className="relative h-36 overflow-hidden rounded-2xl border border-outline-variant/10 bg-[radial-gradient(circle_at_20%_20%,rgba(38,166,154,0.18),transparent_55%),radial-gradient(circle_at_85%_75%,rgba(16,185,129,0.14),transparent_45%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(15,23,42,0.04))]">
+                          <div className="relative h-28 sm:h-36 overflow-hidden rounded-2xl border border-outline-variant/10 bg-[radial-gradient(circle_at_20%_20%,rgba(38,166,154,0.18),transparent_55%),radial-gradient(circle_at_85%_75%,rgba(16,185,129,0.14),transparent_45%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(15,23,42,0.04))]">
                             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)] bg-[size:24px_24px]" />
                             <div className="absolute left-[12%] top-[16%] h-3 w-3 rounded-full bg-primary shadow-[0_0_0_4px_rgba(38,166,154,0.2)]" />
                             <div className="absolute bottom-[14%] right-[12%] h-3 w-3 rounded-full bg-secondary shadow-[0_0_0_4px_rgba(245,158,11,0.24)]" />

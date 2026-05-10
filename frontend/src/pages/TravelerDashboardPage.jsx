@@ -205,7 +205,7 @@ export default function TravelerDashboardPage() {
 
   if (!isLoggedIn) {
     return (
-      <MainLayout>
+      <MainLayout hideFooterOnMobile={true}>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">
           <p className="rounded-2xl bg-error-container p-6 font-semibold text-on-error-container">
             Please login to access your traveler dashboard.
@@ -216,7 +216,7 @@ export default function TravelerDashboardPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideFooterOnMobile={true}>
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
         {/* ── Sidebar ── */}
         <aside className="hidden w-72 flex-col border-r border-outline-variant/20 bg-surface-container-low md:flex">
@@ -318,12 +318,12 @@ export default function TravelerDashboardPage() {
         <main className="flex-1 overflow-y-auto px-4 py-10 pb-24 md:px-12 md:pb-10">
           <div className="mx-auto max-w-5xl space-y-10">
             {/* Header Section */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="font-headline text-3xl font-black tracking-tight text-on-surface capitalize">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1 min-w-0">
+                <h1 className="font-headline text-2xl sm:text-3xl font-black tracking-tight text-on-surface capitalize">
                   {activeTab.replace("_", " ")} <span className="text-secondary">Console</span>
                 </h1>
-                <p className="mt-1 text-sm text-on-surface-variant">
+                <p className="mt-1 text-[11px] sm:text-sm text-on-surface-variant opacity-70">
                   {activeTab === "overview" && "Welcome back! Here's a snapshot of your travel activity."}
                   {activeTab === "bookings" && "Manage your upcoming and past travel reservations."}
                   {activeTab === "tickets" && "Quick access to your confirmed travel passes."}
@@ -463,12 +463,12 @@ export default function TravelerDashboardPage() {
                   <section className="space-y-6">
                     <div className="grid gap-4">
                       {bookings.map((booking) => (
-                        <article key={booking._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md">
-                          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                        <article key={booking._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-5 sm:p-8 shadow-sm transition hover:shadow-md">
+                          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-3">
-                                <h4 className="truncate font-headline text-xl font-black text-on-surface">{booking.tripId?.title}</h4>
-                                <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+                              <div className="flex flex-wrap items-center gap-3">
+                                <h4 className="truncate font-headline text-lg sm:text-xl font-black text-on-surface">{booking.tripId?.title}</h4>
+                                <span className={`rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${
                                   booking.status === "confirmed"
                                     ? new Date(booking.tripId?.endDate) < new Date() ? "bg-primary/10 text-primary" : "bg-success-container text-on-success-container"
                                     : "bg-warning-container text-on-warning-container"
@@ -476,28 +476,34 @@ export default function TravelerDashboardPage() {
                                   {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? "Completed" : booking.status}
                                 </span>
                               </div>
-                              <div className="mt-2 flex items-center gap-2 text-sm font-bold text-on-surface-variant">
-                                <span>{booking.tripId?.source}</span>
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                <span>{booking.tripId?.destination}</span>
+                              <div className="mt-2 flex items-center gap-2 text-xs sm:text-sm font-bold text-on-surface-variant">
+                                <span className="truncate">{booking.tripId?.source}</span>
+                                <span className="material-symbols-outlined text-sm shrink-0">arrow_forward</span>
+                                <span className="truncate">{booking.tripId?.destination}</span>
                               </div>
-                              <div className="mt-4 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-outline">
+                              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[9px] font-black uppercase tracking-widest text-outline">
                                 <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">calendar_today</span>{formatDateLabel(booking.tripId?.startDate)}</span>
                                 <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">group</span>{booking.seatsBooked} Seats</span>
                               </div>
                             </div>
-                            <div className="text-right border-t border-outline-variant/10 pt-4 sm:border-none sm:pt-0">
+                            <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4 md:border-none md:pt-0 md:text-right">
                               {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? (
                                 <button
                                   onClick={() => setSelectedBookingForReview(booking)}
-                                  className="rounded-2xl bg-secondary px-6 py-3 text-[11px] font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
+                                  className="w-full md:w-auto rounded-2xl bg-secondary px-6 py-3 text-[10px] font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
                                 >
                                   Leave Review
                                 </button>
                               ) : (
-                                <div>
-                                  <p className="font-headline text-2xl font-black text-primary">{formatINR(booking.totalAmount)}</p>
-                                  <p className="text-[10px] font-bold text-outline-variant uppercase mt-1">Transaction Total</p>
+                                <div className="w-full md:w-auto flex items-center justify-between md:block">
+                                  <div className="md:hidden">
+                                    <p className="text-[8px] font-bold text-outline-variant uppercase">Amount</p>
+                                    <p className="font-headline text-lg font-black text-primary">{formatINR(booking.totalAmount)}</p>
+                                  </div>
+                                  <div className="hidden md:block">
+                                    <p className="font-headline text-2xl font-black text-primary">{formatINR(booking.totalAmount)}</p>
+                                    <p className="text-[10px] font-bold text-outline-variant uppercase mt-1">Transaction Total</p>
+                                  </div>
                                 </div>
                               )}
                             </div>
