@@ -69,7 +69,6 @@ export default function ProfilePage() {
     if (profile?.verificationStatus === "pending") {
       return "bg-[#3d4466] text-[#7fa11c]";
     }
-    // "unverified" or unknown
     return "bg-[#e4e4e4] text-[#555]";
   }, [profile?.verificationStatus]);
 
@@ -89,6 +88,30 @@ export default function ProfilePage() {
       await showErrorAlert("Could not save profile", saveError.message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const uploadAvatar = async (file) => {
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await api.post("/users/upload-avatar", formData);
+      setProfile(response.user);
+      dispatch(setUser(response.user));
+      setSuccessMessage("Profile photo updated successfully.");
+      await showSuccessAlert("Photo updated", "Your profile photo has been refreshed.");
+    } catch (uploadError) {
+      setError(uploadError.message);
+      await showErrorAlert("Upload failed", uploadError.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -168,17 +191,46 @@ export default function ProfilePage() {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7fa11c]">
             Live Profile
           </p>
-          <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="break-words font-manrope text-xl font-extrabold sm:text-3xl">
-                {profile?.name || storedUser?.name || "BagPacker User"}
-              </h1>
-              <p className="mt-2 text-white/80">
-                {profile?.email || storedUser?.email}
-              </p>
-              <p className="mt-1 text-sm uppercase tracking-[0.14em] text-[#7fa11c]">
-                {profile?.role || storedUser?.role || "traveler"}
-              </p>
+          <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center">
+              <div className="relative group h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-4 border-[#7fa11c]/30 bg-[#3d4466]">
+                {profile?.avatarUrl || storedUser?.avatarUrl ? (
+                  <img
+                    src={resolveMediaUrl(profile?.avatarUrl || storedUser?.avatarUrl)}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-3xl font-black text-[#7fa11c]">
+                    {(profile?.name || storedUser?.name || "B")[0].toUpperCase()}
+                  </div>
+                )}
+                
+                <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadAvatar(file);
+                    }}
+                  />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white">Change</span>
+                </label>
+              </div>
+
+              <div>
+                <h1 className="break-words font-manrope text-xl font-extrabold sm:text-3xl">
+                  {profile?.name || storedUser?.name || "BagPacker User"}
+                </h1>
+                <p className="mt-2 text-white/80">
+                  {profile?.email || storedUser?.email}
+                </p>
+                <p className="mt-1 text-sm uppercase tracking-[0.14em] text-[#7fa11c]">
+                  {profile?.role || storedUser?.role || "traveler"}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Link
@@ -336,4 +388,3 @@ export default function ProfilePage() {
     </MainLayout>
   );
 }
-

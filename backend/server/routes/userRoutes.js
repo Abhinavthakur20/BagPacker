@@ -5,6 +5,7 @@ const {
   getPublicProfileById,
   updateProfile,
   uploadGovernmentId,
+  uploadAvatar,
 } = require("../api/user/userController");
 const authMiddleware = require("../middleware/authMiddleware");
 const upload = require("../middleware/uploadMiddleware");
@@ -25,4 +26,5 @@ router.put(
   updateProfile,
 );
 router.post("/upload-id", upload.single("governmentId"), uploadGovernmentId);
+router.post("/upload-avatar", upload.single("avatar"), uploadAvatar);
 module.exports = router;

@@ -94,11 +94,19 @@ export default function TopNav() {
             <NavLink
               to="/profile"
               aria-label="Open profile"
-              className="group flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-low transition-all duration-300 hover:bg-surface-container-high"
+              className="group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-outline-variant/20 bg-surface-container-low transition-all duration-300 hover:bg-surface-container-high"
             >
-              <span className="material-symbols-outlined text-[1.4rem] text-on-surface-variant transition-colors group-hover:text-primary">
-                account_circle
-              </span>
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="material-symbols-outlined text-[1.4rem] text-on-surface-variant transition-colors group-hover:text-primary">
+                  account_circle
+                </span>
+              )}
             </NavLink>
           ) : (
             <>
@@ -169,9 +177,17 @@ export default function TopNav() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-surface-container-high px-5 text-sm font-bold text-on-surface shadow-sm"
               >
-                <span className="material-symbols-outlined text-[1.2rem]">
-                  account_circle
-                </span>
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="h-10 w-10 shrink-0 rounded-full object-cover border border-outline-variant/20"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-[1.2rem]">
+                    account_circle
+                  </span>
+                )}
                 View Profile
               </NavLink>
             ) : (
