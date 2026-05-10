@@ -559,30 +559,30 @@ export default function AdminDashboardPage() {
             </button>
           </div>
         </aside>
-+
-+        {/* Mobile Tab Navigation */}
-+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
-+          <nav className="flex items-center justify-around px-2 py-3">
-+            {[
-+              ["overview", "grid_view", "Admin"],
-+              ["moderation", "gavel", "Mod"],
-+              ["operations", "monitoring", "Ops"],
-+            ].map(([key, icon, label]) => (
-+              <button
-+                key={key}
-+                onClick={() => setActiveTab(key)}
-+                className={`relative flex flex-col items-center gap-1 transition-all ${
-+                  activeTab === key ? "text-primary" : "text-on-surface-variant/40"
-+                }`}
-+              >
-+                <span className={`material-symbols-outlined text-[1.4rem] ${activeTab === key ? "font-bold" : ""}`}>
-+                  {icon}
-+                </span>
-+                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
-+              </button>
-+            ))}
-+          </nav>
-+        </div>
+
+        {/* Mobile Tab Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
+          <nav className="flex items-center justify-around px-2 py-3">
+            {[
+              ["overview", "grid_view", "Admin"],
+              ["moderation", "gavel", "Mod"],
+              ["operations", "monitoring", "Ops"],
+            ].map(([key, icon, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`relative flex flex-col items-center gap-1 transition-all ${
+                  activeTab === key ? "text-primary" : "text-on-surface-variant/40"
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[1.4rem] ${activeTab === key ? "font-bold" : ""}`}>
+                  {icon}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
 
         {/* ── Main Content ── */}
         <main className="flex-1 overflow-y-auto px-4 py-10 pb-24 md:px-12 md:pb-10">
@@ -635,13 +635,13 @@ export default function AdminDashboardPage() {
                 {activeTab === "overview" && (
                   <div className="space-y-8">
                     {/* Stats Grid */}
-                    <div className="grid gap-4 sm:gap-6 grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-4">
                       {stats.map(([label, value, icon]) => (
                         <article
                           key={label}
                           className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/20 bg-surface p-4 sm:p-6 shadow-sm transition hover:shadow-md"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
                             <div>
                               <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
                                 {label}
@@ -655,8 +655,8 @@ export default function AdminDashboardPage() {
                             </div>
                           </div>
                           <div className="mt-4 sm:mt-6 flex items-center gap-2 text-[8px] sm:text-[10px] font-bold text-secondary">
-                            <span className="material-symbols-outlined text-xs sm:text-sm">trending_up</span>
-                            <span>Growth monitored</span>
+                            <span className="material-symbols-outlined text-[10px] sm:text-sm">trending_up</span>
+                            <span>Growth</span>
                           </div>
                         </article>
                       ))}
@@ -755,7 +755,7 @@ export default function AdminDashboardPage() {
                 {activeTab === "moderation" && (
                   <div className="space-y-8">
                     {/* Sub-Tabs */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       {[
                         ["users", "User Directory", "groups"],
                         ["organizers", "Organizers", "business_center"],
@@ -765,13 +765,13 @@ export default function AdminDashboardPage() {
                         <button
                           key={key}
                           onClick={() => setModerationSection(key)}
-                          className={`flex items-center gap-2 rounded-2xl border px-5 py-3 text-xs font-bold transition-all duration-300 ${
+                          className={`flex items-center gap-2 rounded-2xl border px-3 py-3 sm:px-5 text-[10px] sm:text-xs font-bold transition-all duration-300 ${
                             moderationSection === key
                               ? "border-primary bg-primary text-on-primary shadow-lg"
                               : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container"
                           }`}
                         >
-                          <span className="material-symbols-outlined text-base">{icon}</span>
+                          <span className="material-symbols-outlined text-sm sm:text-base">{icon}</span>
                           {label}
                         </button>
                       ))}
@@ -779,8 +779,8 @@ export default function AdminDashboardPage() {
 
                     {/* Section: Users */}
                     {moderationSection === "users" && (
-                      <section className="rounded-3xl border border-outline-variant/20 bg-surface shadow-sm">
-                        <div className="overflow-x-auto">
+                      <section className="space-y-4">
+                        <div className="hidden md:block rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
                           <table className="w-full text-left">
                             <thead>
                               <tr className="border-b border-outline-variant/10">
@@ -836,6 +836,45 @@ export default function AdminDashboardPage() {
                             </tbody>
                           </table>
                         </div>
+                        {/* Mobile Cards */}
+                        <div className="grid gap-3 md:hidden">
+                          {users.map((u) => (
+                            <article key={u._id} className="rounded-3xl border border-outline-variant/10 bg-surface p-5 shadow-sm">
+                              <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 flex shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary font-black text-lg">
+                                  {u.name?.charAt(0)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-headline text-base font-black text-on-surface">{u.name}</p>
+                                  <p className="truncate text-[10px] font-bold text-on-surface-variant/60">{u.email}</p>
+                                </div>
+                              </div>
+                              <div className="mt-4 flex items-center justify-between border-t border-outline-variant/10 pt-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className={`w-fit rounded-lg px-2.5 py-1 text-[8px] font-black uppercase tracking-widest ${
+                                    u.role === "admin" ? "bg-purple-500/10 text-purple-700" :
+                                    u.role === "organizer" ? "bg-blue-500/10 text-blue-700" :
+                                    "bg-slate-500/10 text-slate-700"
+                                  }`}>
+                                    {u.role}
+                                  </span>
+                                  <span className={`inline-flex items-center gap-1 text-[8px] font-black uppercase ${u.isBanned ? "text-error" : "text-secondary"}`}>
+                                    {u.isBanned ? "Suspended" : "Active"}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleToggleBan(u._id, u.isBanned)}
+                                  className={`rounded-xl px-6 py-2 text-[9px] font-black uppercase tracking-widest transition ${
+                                    u.isBanned ? "bg-secondary text-on-secondary" : "bg-error-container text-error"
+                                  }`}
+                                >
+                                  {u.isBanned ? "Restore" : "Suspend"}
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+
                         <div className="flex items-center justify-between border-t border-outline-variant/10 px-6 py-4 bg-surface-container-low/50">
                           <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
                             Page {userPagination.page} of {userPagination.totalPages}
@@ -965,7 +1004,7 @@ export default function AdminDashboardPage() {
                 {activeTab === "operations" && (
                   <div className="space-y-8">
                     {/* Secondary Navigation */}
-                    <div className="flex border-b border-outline-variant/10">
+                    <div className="flex overflow-x-auto border-b border-outline-variant/10 no-scrollbar">
                       {[
                         ["trips", "Lifecycle Monitor", "rocket_launch"],
                         ["join", "Community Activity", "hub"],
@@ -974,14 +1013,14 @@ export default function AdminDashboardPage() {
                         <button
                           key={key}
                           onClick={() => setOperationsSection(key)}
-                          className={`flex items-center gap-2.5 px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${
+                          className={`flex shrink-0 items-center gap-2.5 px-4 py-4 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${
                             operationsSection === key
                               ? "text-primary border-b-4 border-primary"
                               : "text-on-surface-variant/60 hover:text-primary"
                           }`}
                         >
                           <span className="material-symbols-outlined text-base">{icon}</span>
-                          {label}
+                          <span className="truncate">{label}</span>
                         </button>
                       ))}
                     </div>
@@ -1010,7 +1049,7 @@ export default function AdminDashboardPage() {
                           </select>
                         </div>
 
-                        <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                           {tripSlice.items.map((trip) => (
                             <article key={trip._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md">
                               <div className="flex items-start justify-between">
@@ -1065,45 +1104,82 @@ export default function AdminDashboardPage() {
 
                     {/* Section: Payments Ledger */}
                     {operationsSection === "payments" && (
-                      <section className="rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left">
-                            <thead className="bg-surface-container-low/50">
-                              <tr>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Client</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Service Item</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50 text-right">Value</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Ledger Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-outline-variant/5">
-                              {paymentSlice.items.map((p) => (
-                                <tr key={p._id} className="transition hover:bg-surface-container-lowest">
-                                  <td className="px-6 py-5">
-                                    <p className="text-sm font-bold text-on-surface">{p.travelerId?.name}</p>
-                                    <p className="text-[10px] text-on-surface-variant/60 uppercase">{p.travelerId?.email}</p>
-                                  </td>
-                                  <td className="px-6 py-5">
-                                    <p className="text-sm font-bold text-on-surface-variant">{p.tripId?.title}</p>
-                                    <p className="text-[10px] text-on-surface-variant/40">{p.tripId?.source} → {p.tripId?.destination}</p>
-                                  </td>
-                                  <td className="px-6 py-5 text-right">
-                                    <p className="font-headline text-sm font-black text-primary">INR {safeNumber(p.totalAmount)}</p>
-                                    <p className="text-[10px] font-black text-on-surface-variant/30 uppercase">{p.currency}</p>
-                                  </td>
-                                  <td className="px-6 py-5">
-                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${
-                                      p.paymentStatus === "paid" ? "bg-green-100 text-green-700" :
-                                      p.paymentStatus === "failed" ? "bg-red-100 text-red-700" :
-                                      "bg-orange-100 text-orange-700"
-                                    }`}>
-                                      {p.paymentStatus}
-                                    </span>
-                                  </td>
+                      <section className="space-y-4">
+                        <div className="hidden md:block rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                              <thead className="bg-surface-container-low/50">
+                                <tr>
+                                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Client</th>
+                                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Service Item</th>
+                                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50 text-right">Value</th>
+                                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Ledger Status</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="divide-y divide-outline-variant/5">
+                                {paymentSlice.items.map((p) => (
+                                  <tr key={p._id} className="transition hover:bg-surface-container-lowest">
+                                    <td className="px-6 py-5">
+                                      <p className="text-sm font-bold text-on-surface">{p.travelerId?.name}</p>
+                                      <p className="text-[10px] text-on-surface-variant/60 uppercase">{p.travelerId?.email}</p>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                      <p className="text-sm font-bold text-on-surface-variant">{p.tripId?.title}</p>
+                                      <p className="text-[10px] text-on-surface-variant/40">{p.tripId?.source} → {p.tripId?.destination}</p>
+                                    </td>
+                                    <td className="px-6 py-5 text-right">
+                                      <p className="font-headline text-sm font-black text-primary">INR {safeNumber(p.totalAmount)}</p>
+                                      <p className="text-[10px] font-black text-on-surface-variant/30 uppercase">{p.currency}</p>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${
+                                        p.paymentStatus === "paid" ? "bg-green-100 text-green-700" :
+                                        p.paymentStatus === "failed" ? "bg-red-100 text-red-700" :
+                                        "bg-orange-100 text-orange-700"
+                                      }`}>
+                                        {p.paymentStatus}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Mobile Payment Cards */}
+                        <div className="grid gap-4 md:hidden">
+                          {paymentSlice.items.map((p) => (
+                            <article key={p._id} className="rounded-3xl border border-outline-variant/10 bg-surface p-5 shadow-sm">
+                              <div className="flex items-center justify-between mb-4">
+                                <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${
+                                  p.paymentStatus === "paid" ? "bg-green-100 text-green-700" :
+                                  p.paymentStatus === "failed" ? "bg-red-100 text-red-700" :
+                                  "bg-orange-100 text-orange-700"
+                                }`}>
+                                  {p.paymentStatus}
+                                </span>
+                                <p className="font-headline text-sm font-black text-primary">INR {safeNumber(p.totalAmount)}</p>
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-[8px] font-black uppercase text-on-surface-variant/40">Client</p>
+                                  <p className="text-xs font-bold text-on-surface">{p.travelerId?.name}</p>
+                                  <p className="text-[9px] text-on-surface-variant/60">{p.travelerId?.email}</p>
+                                </div>
+                                <div className="pt-3 border-t border-outline-variant/5">
+                                  <p className="text-[8px] font-black uppercase text-on-surface-variant/40">Service</p>
+                                  <p className="text-xs font-bold text-on-surface-variant">{p.tripId?.title}</p>
+                                  <p className="text-[9px] text-on-surface-variant/40">{p.tripId?.source} → {p.tripId?.destination}</p>
+                                </div>
+                              </div>
+                            </article>
+                          ))}
+                          {paymentSlice.items.length === 0 && (
+                            <div className="py-20 text-center rounded-3xl bg-surface-container-low/30 border border-dashed border-outline-variant/20">
+                              <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">No payment records</p>
+                            </div>
+                          )}
                         </div>
                       </section>
                     )}
