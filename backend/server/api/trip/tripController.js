@@ -326,11 +326,10 @@ const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
 };
 
 const TRIP_CACHE = new Map();
-const TRIP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const TRIP_CACHE_TTL = 1000; // 1 second for testing
 
 const getTrips = async (req, res) => {
   try {
-    // Generate a simple cache key based on query parameters
     const cacheKey = JSON.stringify(req.query);
     const cached = TRIP_CACHE.get(cacheKey);
     if (cached && cached.expireAt > Date.now()) {
@@ -361,15 +360,33 @@ const getTrips = async (req, res) => {
       filters.paymentEnabled = parseBooleanInput(req.query.paymentEnabled, true);
     }
 
+    const buildFlexibleLocationFilter = (queryValue) => {
+      const trimmed = String(queryValue || "").trim();
+      if (!trimmed) return null;
+
+      const words = trimmed
+        .split(/[\s,.\-/]+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length > 0);
+
+      const significantWords = words.filter((w) => w.length > 2);
+      const wordsToUse = significantWords.length > 0 ? significantWords : words;
+
+      if (wordsToUse.length === 0) return null;
+
+      // Use a single regex but ensure it's a string for aggregation compatibility
+      const pattern = wordsToUse.map((w) => escapeRegex(w)).join("|");
+      return { $regex: pattern, $options: "i" };
+    };
+
     if (req.query.source) {
-      filters.source = { $regex: escapeRegex(req.query.source.trim()), $options: "i" };
+      const sourceFilter = buildFlexibleLocationFilter(req.query.source);
+      if (sourceFilter) filters.source = sourceFilter;
     }
 
     if (req.query.destination) {
-      filters.destination = {
-        $regex: escapeRegex(req.query.destination.trim()),
-        $options: "i",
-      };
+      const destinationFilter = buildFlexibleLocationFilter(req.query.destination);
+      if (destinationFilter) filters.destination = destinationFilter;
     }
 
     if (req.query.date) {
@@ -393,7 +410,6 @@ const getTrips = async (req, res) => {
       }
     }
 
-    // Single $facet aggregation returns both data and total count atomically
     const [result] = await Trip.aggregate([
       { $match: filters },
       { $sort: { startDate: 1, createdAt: -1 } },
@@ -419,7 +435,6 @@ const getTrips = async (req, res) => {
     const total = result.totalCount[0]?.count || 0;
     const tripIds = result.items.map((t) => t.organizerId);
 
-    // Populate organizer data manually since $facet doesn't support Mongoose populate
     const organizers = await Organizer.find({ _id: { $in: tripIds } })
       .select("businessName approvalStatus userId")
       .populate({ path: "userId", select: "name trustScore verificationStatus" })
@@ -442,13 +457,11 @@ const getTrips = async (req, res) => {
       },
     };
 
-    // Cache the successful response
     TRIP_CACHE.set(cacheKey, {
       data: responseData,
       expireAt: Date.now() + TRIP_CACHE_TTL,
     });
 
-    // Prune cache if it gets too large
     if (TRIP_CACHE.size > 100) {
       const firstKey = TRIP_CACHE.keys().next().value;
       TRIP_CACHE.delete(firstKey);
@@ -700,7 +713,6 @@ const deleteTrip = async (req, res) => {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    // Block deletion if there are confirmed paid bookings
     const confirmedBookings = await Booking.countDocuments({ tripId: trip._id, status: "confirmed" });
     if (confirmedBookings > 0) {
       return res.status(400).json({

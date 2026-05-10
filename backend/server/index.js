@@ -125,6 +125,7 @@ app.use("/api/admin", adminRoutes);
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
     success: true,
+    version: "1.0.1-flexible-search",
     timestamp: new Date().toISOString(),
   });
 });
