@@ -144,7 +144,7 @@ function App() {
             <Route index element={<Navigate to="search" replace />} />
             <Route path="search" element={<SearchPage />} />
             <Route
-              path="new"
+              path="create"
               element={
                 <RoleRoute allowedRoles={["organizer"]}>
                   <CreateTripPage />

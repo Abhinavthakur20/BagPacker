@@ -315,14 +315,14 @@ export default function OrganizerDashboardPage() {
               <div className="flex items-center gap-3">
                 <Link
                   to="/trips/create"
-                  className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-on-primary shadow-lg transition hover:scale-[1.02]"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 sm:px-6 py-3 sm:py-2.5 text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-on-primary shadow-lg transition hover:scale-[1.02] sm:flex-none"
                 >
                   <span className="material-symbols-outlined text-sm">add_circle</span>
                   Create Trip
                 </Link>
                 <button
                   onClick={loadDashboard}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition hover:bg-surface-container-highest"
+                  className="flex h-12 w-12 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition hover:bg-surface-container-highest shrink-0"
                 >
                   <span className="material-symbols-outlined text-[1.2rem]">refresh</span>
                 </button>
@@ -374,36 +374,36 @@ export default function OrganizerDashboardPage() {
 
                     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
                       {/* Performance Chart / Occupancy */}
-                      <section className="rounded-[2.5rem] border border-outline-variant/20 bg-surface p-8 shadow-sm">
-                        <h3 className="font-headline text-xl font-black text-on-surface">Expedition <span className="text-secondary">Reach</span></h3>
-                        <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest mt-1">Real-time seat occupancy</p>
+                      <section className="rounded-3xl sm:rounded-[2.5rem] border border-outline-variant/20 bg-surface p-6 sm:p-8 shadow-sm">
+                        <h3 className="font-headline text-lg sm:text-xl font-black text-on-surface">Expedition <span className="text-secondary">Reach</span></h3>
+                        <p className="text-[10px] sm:text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest mt-1">Real-time seat occupancy</p>
                         
-                        <div className="mt-10 space-y-8">
+                        <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-8">
                           <div>
                             <div className="flex items-end justify-between mb-3">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Average Occupancy</p>
-                              <p className="font-headline text-3xl font-black text-primary">{dashboard.fillPercent}%</p>
+                              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Average Occupancy</p>
+                              <p className="font-headline text-2xl sm:text-3xl font-black text-primary">{dashboard.fillPercent}%</p>
                             </div>
-                            <div className="h-4 overflow-hidden rounded-full bg-surface-container">
+                            <div className="h-3 sm:h-4 overflow-hidden rounded-full bg-surface-container">
                               <div
                                 className="h-full rounded-full bg-linear-to-r from-primary to-secondary transition-all duration-1000"
                                 style={{ width: `${dashboard.fillPercent}%` }}
                               />
                             </div>
-                            <p className="mt-4 text-xs font-bold text-on-surface-variant">
+                            <p className="mt-4 text-[10px] sm:text-xs font-bold text-on-surface-variant">
                               {dashboard.seatsFilled} active travelers across {dashboard.totalSeats} capacity.
                             </p>
                           </div>
-
-                          <div className="rounded-3xl bg-primary p-6 text-on-primary shadow-xl shadow-primary/10">
+ 
+                          <div className="rounded-2xl sm:rounded-3xl bg-primary p-5 sm:p-6 text-on-primary shadow-xl shadow-primary/10">
                             <div className="flex items-center justify-between">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-on-primary/60">Estimated Revenue</p>
-                              <span className="material-symbols-outlined text-on-primary/40">payments</span>
+                              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-on-primary/60">Estimated Revenue</p>
+                              <span className="material-symbols-outlined text-on-primary/40 text-sm sm:text-base">payments</span>
                             </div>
-                            <p className="mt-3 font-headline text-3xl font-black">{formatINR(dashboard.revenueEstimate)}</p>
+                            <p className="mt-2 sm:mt-3 font-headline text-2xl sm:text-3xl font-black">{formatINR(dashboard.revenueEstimate)}</p>
                             <div className="mt-4 flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-on-primary/70">Calculated from confirmed bookings</p>
+                              <span className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-secondary animate-pulse" />
+                              <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-on-primary/70">Calculated from confirmed bookings</p>
                             </div>
                           </div>
                         </div>
@@ -443,15 +443,15 @@ export default function OrganizerDashboardPage() {
                 {/* ── My Posted Trips Tab ── */}
                 {activeView === "trips" && (
                   <section className="rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-outline-variant/10 px-8 py-6 bg-surface-container-low/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/10 px-6 sm:px-8 py-6 bg-surface-container-low/30 gap-4">
                       <div>
-                        <h3 className="font-headline text-xl font-black text-on-surface">Inventory <span className="text-secondary">Control</span></h3>
-                        <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest mt-1">Manage your active listings</p>
+                        <h3 className="font-headline text-lg sm:text-xl font-black text-on-surface">Inventory <span className="text-secondary">Control</span></h3>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest mt-1">Manage your active listings</p>
                       </div>
-                      <Link to="/trips/create" className="rounded-xl bg-primary px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-on-primary">New Listing</Link>
+                      <Link to="/trips/create" className="flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-on-primary shadow-md">New Listing</Link>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full text-left">
                         <thead className="bg-surface-container-low/20 text-[10px] font-black uppercase tracking-widest text-outline-variant">
                           <tr>
@@ -517,6 +517,63 @@ export default function OrganizerDashboardPage() {
                           })}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Mobile Card Layout */}
+                    <div className="grid gap-px md:hidden bg-outline-variant/10">
+                      {sortedTrips.map((trip) => {
+                         const soldSeats = Math.max(0, safeNumber(trip.totalSeats) - safeNumber(trip.availableSeats));
+                         const occupancy = trip.totalSeats ? Math.min(100, Math.round((soldSeats / trip.totalSeats) * 100)) : 0;
+                         return (
+                           <article key={trip._id} className="bg-surface p-5 space-y-5">
+                             <div className="flex justify-between items-start">
+                               <div className="min-w-0 flex-1 pr-4">
+                                 <h4 className="truncate font-headline text-base font-black text-on-surface">{trip.title}</h4>
+                                 <div className="mt-1 flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
+                                   <span>{trip.source}</span>
+                                   <span className="material-symbols-outlined text-[8px]">arrow_forward</span>
+                                   <span>{trip.destination}</span>
+                                 </div>
+                               </div>
+                               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${badgeStylesByStatus[trip.status] || 'bg-surface-container text-on-surface-variant'}`}>
+                                 {trip.status}
+                               </span>
+                             </div>
+
+                             <div className="grid grid-cols-2 gap-4 rounded-2xl bg-surface-container-lowest p-4 border border-outline-variant/5">
+                               <div>
+                                 <p className="text-[8px] font-black text-on-surface-variant uppercase opacity-40">Occupancy</p>
+                                 <p className="text-sm font-black text-on-surface mt-1">{soldSeats} / {trip.totalSeats}</p>
+                                 <div className="mt-2 h-1 w-full bg-surface-container rounded-full overflow-hidden">
+                                   <div className="h-full bg-secondary" style={{ width: `${occupancy}%` }} />
+                                 </div>
+                               </div>
+                               <div>
+                                 <p className="text-[8px] font-black text-on-surface-variant uppercase opacity-40">Unit Price</p>
+                                 <p className="text-sm font-black text-primary mt-1">{formatINR(trip.pricePerPerson)}</p>
+                               </div>
+                             </div>
+
+                             <div className="flex gap-2">
+                               {trip.status === "active" && !trip.startedAt && (
+                                 <button
+                                   onClick={() => api.put(`/trips/${trip._id}/start`, {}).then(loadDashboard)}
+                                   className="flex-1 rounded-xl bg-secondary py-3 text-[10px] font-black uppercase tracking-widest text-on-secondary shadow-md"
+                                 >
+                                   Start
+                                 </button>
+                               )}
+                               <Link to={`/dashboard/organizer/trips/${trip._id}`} className="flex-1 text-center rounded-xl bg-primary py-3 text-[10px] font-black uppercase tracking-widest text-on-primary shadow-md">Buyers</Link>
+                               <Link to={`/trips/${trip._id}/edit`} className="flex-1 text-center rounded-xl bg-surface-container py-3 text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Edit</Link>
+                             </div>
+                           </article>
+                         )
+                      })}
+                      {sortedTrips.length === 0 && (
+                        <div className="bg-surface py-20 text-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40">No trips posted</p>
+                        </div>
+                      )}
                     </div>
                   </section>
                 )}
@@ -590,9 +647,9 @@ export default function OrganizerDashboardPage() {
                         )}
                       </article>
 
-                      <article className="rounded-[2.5rem] border border-outline-variant/20 bg-surface p-8 shadow-sm">
-                         <h3 className="font-headline text-xl font-black text-on-surface">Gallery <span className="text-secondary">Archive</span></h3>
-                         <div className="mt-8 grid grid-cols-3 gap-4">
+                      <article className="rounded-3xl sm:rounded-[2.5rem] border border-outline-variant/20 bg-surface p-6 sm:p-8 shadow-sm">
+                         <h3 className="font-headline text-lg sm:text-xl font-black text-on-surface">Gallery <span className="text-secondary">Archive</span></h3>
+                         <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                             {posts.map((post) => (
                                <div key={post._id} className="group relative aspect-square overflow-hidden rounded-2xl bg-surface-container">
                                   <img
@@ -603,7 +660,7 @@ export default function OrganizerDashboardPage() {
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                                      <button
                                        onClick={() => removePost(post._id)}
-                                       className="h-10 w-10 rounded-full bg-error text-on-error flex items-center justify-center"
+                                       className="h-10 w-10 rounded-full bg-error text-on-error flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition"
                                      >
                                        <span className="material-symbols-outlined">delete</span>
                                      </button>
@@ -611,7 +668,7 @@ export default function OrganizerDashboardPage() {
                                </div>
                             ))}
                             {posts.length === 0 && (
-                              <div className="col-span-full py-20 text-center">
+                              <div className="col-span-full py-20 text-center bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant/10">
                                 <span className="material-symbols-outlined text-5xl text-outline-variant/30">photo_library</span>
                                 <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-outline-variant">No posts published yet</p>
                               </div>

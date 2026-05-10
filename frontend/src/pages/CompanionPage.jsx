@@ -545,7 +545,7 @@ export default function CompanionPage() {
     <MainLayout hideFooterOnMobile={true}>
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
         {/* ── Dashboard Sidebar ── */}
-        <aside className="hidden w-72 flex-col border-r border-outline-variant/10 bg-surface-container-low lg:flex">
+        <aside className="hidden w-72 flex-col border-r border-outline-variant/10 bg-surface-container-low md:flex">
           <div className="p-8 pb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg shadow-primary/20">
@@ -614,7 +614,7 @@ export default function CompanionPage() {
         </aside>
 
         {/* Mobile Tab Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
           <nav className="flex items-center justify-around px-2 py-3">
             {[
               ["discover", "explore", "Discover", 0],
@@ -645,7 +645,7 @@ export default function CompanionPage() {
         </div>
 
         {/* ── Main content area ── */}
-        <main className="flex-1 overflow-y-auto px-6 py-10 pb-24 lg:px-12 lg:pb-10">
+        <main className="flex-1 overflow-y-auto px-6 py-10 pb-24 md:px-12 md:pb-10">
           <div className="mx-auto max-w-6xl space-y-10">
             {/* Context Header */}
             <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">

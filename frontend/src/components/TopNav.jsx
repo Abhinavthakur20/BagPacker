@@ -44,7 +44,7 @@ export default function TopNav() {
       return [
         { label: "Home", to: "/" },
         { label: "Dashboard", to: "/dashboard/organizer" },
-        { label: "Launch Trip", to: "/trips/new" },
+        { label: "Launch Trip", to: "/trips/create" },
         { label: "Inbox", to: "/chat" },
       ];
     }

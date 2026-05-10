@@ -80,7 +80,7 @@ export default function OrganizerTripsPage() {
               Back to Dashboard
             </Link>
             <Link
-              to="/trips/new"
+              to="/trips/create"
               className="rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white"
             >
               Create Trip
@@ -175,7 +175,7 @@ export default function OrganizerTripsPage() {
                 </p>
                 <div className="mt-5">
                   <Link
-                    to="/trips/new"
+                    to="/trips/create"
                     className="inline-flex items-center gap-2 rounded-2xl bg-[#f94a4a] px-5 py-3 text-sm font-black text-white"
                   >
                     <span className="material-symbols-outlined text-base">add_circle</span>

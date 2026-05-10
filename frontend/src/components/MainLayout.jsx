@@ -12,7 +12,7 @@ export default function MainLayout({
       <TopNav />
       <main className="pt-16">{children}</main>
       {withFooter ? (
-        <div className={hideFooterOnMobile ? "hidden sm:block" : ""}>
+        <div className={hideFooterOnMobile ? "hidden md:block" : ""}>
           <Footer />
         </div>
       ) : null}
