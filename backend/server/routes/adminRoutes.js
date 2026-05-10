@@ -14,6 +14,7 @@ const {
   updateTripLifecycle,
   updateVerificationStatus,
   toggleUserBan,
+  recalculateAllTrustScores,
 } = require("../api/admin/adminController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
@@ -40,6 +41,7 @@ router.put(
   [param("id").isMongoId().withMessage("Valid user id is required"), validateRequest],
   toggleUserBan,
 );
+router.post("/trust-scores/recalculate", recalculateAllTrustScores);
 router.get("/organizers/pending", getPendingOrganizers);
 router.put(
   "/organizers/:id/approve",

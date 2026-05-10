@@ -80,6 +80,23 @@ const parseBooleanInput = (value, fallback = false) => {
 };
 
 const normalizeCityName = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
+const getGeoapifyApiKey = () => {
+  const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
+  if (!rawValue) return "";
+  if (rawValue.includes("apiKey=")) {
+    try {
+      const parsedUrl = new URL(rawValue);
+      return String(parsedUrl.searchParams.get("apiKey") || "").trim();
+    } catch (_error) {
+      const match = /[?&]apiKey=([^&]+)/i.exec(rawValue);
+      return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
+    }
+  }
+  return rawValue;
+};
+
+const buildSuggestionValue = ({ city, state, country }) =>
+  normalizeCityName([city, state, country].filter(Boolean).join(", "));
 
 const getCitySuggestions = async (req, res) => {
   try {
@@ -88,8 +105,76 @@ const getCitySuggestions = async (req, res) => {
     if (!query) {
       return res.status(200).json({
         items: [],
+        legacyItems: [],
         meta: { query, limit },
       });
+    }
+
+    const countryFilter = String(process.env.LOCATION_COUNTRY_FILTER || "in")
+      .trim()
+      .toLowerCase();
+    const geoapifyApiKey = getGeoapifyApiKey();
+    if (geoapifyApiKey) {
+      try {
+        const autoUrl = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+        autoUrl.searchParams.set("text", query);
+        autoUrl.searchParams.set("format", "json");
+        autoUrl.searchParams.set("type", "city");
+        autoUrl.searchParams.set("limit", String(Math.min(50, limit * 3)));
+        autoUrl.searchParams.set("filter", `countrycode:${countryFilter}`);
+        autoUrl.searchParams.set("apiKey", geoapifyApiKey);
+
+        const autoRes = await fetch(autoUrl.toString());
+        const autoPayload = await autoRes.json().catch(() => null);
+        if (autoRes.ok) {
+          const rawResults = Array.isArray(autoPayload?.results) ? autoPayload.results : [];
+          const items = [];
+          const legacyItems = [];
+          const seen = new Set();
+
+          for (const result of rawResults) {
+            const city = normalizeCityName(
+              result?.city || result?.town || result?.village || result?.municipality || result?.county || "",
+            );
+            const state = normalizeCityName(result?.state || result?.state_district || "");
+            const country = normalizeCityName(result?.country || "");
+            const value = buildSuggestionValue({ city, state, country });
+            if (!value) continue;
+
+            const lat = Number(result?.lat);
+            const lon = Number(result?.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+            const key = value.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            items.push({
+              label: normalizeCityName(result?.formatted || value),
+              value,
+              city,
+              state,
+              country,
+              countryCode: String(result?.country_code || "").trim().toLowerCase(),
+              latitude: lat,
+              longitude: lon,
+            });
+            legacyItems.push(value);
+
+            if (items.length >= limit) break;
+          }
+
+          if (items.length > 0) {
+            return res.status(200).json({
+              items,
+              legacyItems,
+              meta: { query, limit, source: "geoapify-autocomplete" },
+            });
+          }
+        }
+      } catch (_geoapifyError) {
+        // Fall through to Nominatim fallback.
+      }
     }
 
     const osmUrl = new URL("https://nominatim.openstreetmap.org/search");
@@ -98,6 +183,8 @@ const getCitySuggestions = async (req, res) => {
     osmUrl.searchParams.set("addressdetails", "1");
     osmUrl.searchParams.set("limit", String(Math.min(50, limit * 3)));
     osmUrl.searchParams.set("accept-language", "en");
+    osmUrl.searchParams.set("countrycodes", countryFilter);
+    osmUrl.searchParams.set("dedupe", "1");
 
     if (process.env.NOMINATIM_EMAIL) {
       osmUrl.searchParams.set("email", process.env.NOMINATIM_EMAIL);
@@ -119,6 +206,7 @@ const getCitySuggestions = async (req, res) => {
     const rawItems = Array.isArray(payload) ? payload : [];
     const deduped = [];
     const seen = new Set();
+    const legacyItems = [];
 
     for (const item of rawItems) {
       const address = item?.address || {};
@@ -136,12 +224,40 @@ const getCitySuggestions = async (req, res) => {
         continue;
       }
 
-      const key = normalized.toLowerCase();
+      const stateCandidate = normalizeCityName(
+        address.state || address.state_district || address.county || "",
+      );
+      const countryCandidate = normalizeCityName(address.country || "");
+      const countryCode = String(address.country_code || "").trim().toLowerCase();
+      const latitude = Number(item?.lat);
+      const longitude = Number(item?.lon);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        continue;
+      }
+
+      const value = normalizeCityName(
+        [normalized, stateCandidate, countryCandidate].filter(Boolean).join(", "),
+      );
+      if (!value) {
+        continue;
+      }
+
+      const key = value.toLowerCase();
       if (seen.has(key)) {
         continue;
       }
       seen.add(key);
-      deduped.push(normalized);
+      deduped.push({
+        label: normalizeCityName(item?.display_name || value),
+        value,
+        city: normalized,
+        state: stateCandidate,
+        country: countryCandidate,
+        countryCode,
+        latitude,
+        longitude,
+      });
+      legacyItems.push(value);
 
       if (deduped.length >= limit) {
         break;
@@ -150,6 +266,7 @@ const getCitySuggestions = async (req, res) => {
 
     return res.status(200).json({
       items: deduped,
+      legacyItems,
       meta: {
         query,
         limit,
@@ -159,6 +276,7 @@ const getCitySuggestions = async (req, res) => {
   } catch (error) {
     return res.status(200).json({
       items: [],
+      legacyItems: [],
       meta: {
         query: normalizeCityName(req.query.q || ""),
         limit: Math.min(20, Math.max(1, Number(req.query.limit || 10))),

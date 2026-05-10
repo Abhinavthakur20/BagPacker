@@ -1,5 +1,6 @@
 const User = require("./userModel");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
+const { recalculateAndPersistTrustScore } = require("./trustScoreService");
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -78,6 +79,10 @@ const updateProfile = async (req, res) => {
       updateFields,
       { returnDocument: "after", runValidators: true },
     ).select("-passwordHash");
+    const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+    if (trustResult) {
+      user.trustScore = trustResult.trustScore;
+    }
 
     return res.status(200).json(user);
   } catch (error) {
@@ -107,6 +112,10 @@ const uploadGovernmentId = async (req, res) => {
       },
       { returnDocument: "after", runValidators: true },
     ).select("-passwordHash");
+    const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+    if (trustResult) {
+      user.trustScore = trustResult.trustScore;
+    }
 
     return res.status(200).json({
       message: "Government ID uploaded successfully",

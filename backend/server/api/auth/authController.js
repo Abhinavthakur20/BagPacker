@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../user/userModel");
+const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
 
 const googleClient = process.env.GOOGLE_CLIENT_ID
   ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -66,6 +67,10 @@ const register = async (req, res) => {
       role: normalizedRole,
       authProvider: "local",
     });
+    const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+    if (trustResult) {
+      user.trustScore = trustResult.trustScore;
+    }
 
     return res.status(201).json({
       token: generateToken(user),
@@ -149,6 +154,10 @@ const googleAuth = async (req, res) => {
         googleId: googlePayload.sub,
         avatarUrl: googlePayload.picture,
       });
+      const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+      if (trustResult) {
+        user.trustScore = trustResult.trustScore;
+      }
     } else {
       const shouldUpdate = {};
       if (!user.phone) shouldUpdate.phone = getFallbackPhone(googlePayload.sub);
@@ -161,6 +170,15 @@ const googleAuth = async (req, res) => {
           returnDocument: "after",
           runValidators: true,
         });
+        const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+        if (trustResult) {
+          user.trustScore = trustResult.trustScore;
+        }
+      } else {
+        const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+        if (trustResult) {
+          user.trustScore = trustResult.trustScore;
+        }
       }
     }
 

@@ -4,6 +4,7 @@ const OrganizerFollow = require("./organizerFollowModel");
 const Trip = require("../trip/tripModel");
 const Booking = require("../booking/bookingModel");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
+const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
 
 const DOCUMENT_IMAGE_TRANSFORMATIONS = {
   width: 2000,
@@ -70,6 +71,10 @@ const registerOrganizerProfile = async (req, res) => {
       gstNumber: gstNumber ? gstNumber.trim() : undefined,
       licenseUrl,
       bankAccountDetails: bankAccountDetails ? bankAccountDetails.trim() : null,
+    });
+    await recalculateAndPersistTrustScore(req.user._id, {
+      userDoc: req.user,
+      organizerDoc: organizer,
     });
 
     return res.status(201).json(organizer);

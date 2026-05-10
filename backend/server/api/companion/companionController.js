@@ -4,7 +4,7 @@ const PersonalTripPost = require("./personalTripPostModel");
 const Notification = require("../notification/notificationModel");
 const Booking = require("../booking/bookingModel");
 const Trip = require("../trip/tripModel");
-const { splitExpense } = require("../../utils/haversine");
+const { haversineDistance, splitExpense } = require("../../utils/haversine");
 const {
   buildChatRoomId,
   escapeRegex,
@@ -86,35 +86,169 @@ const parseNonNegativeNumber = (value, fallback = 0) => {
   return parsed;
 };
 
-// Nominatim (OpenStreetMap) geocoding — no API key required
-const getNominatimGeocodedPoint = async (locationText) => {
-  const geocodeUrl = new URL("https://nominatim.openstreetmap.org/search");
-  geocodeUrl.searchParams.set("q", locationText);
-  geocodeUrl.searchParams.set("format", "json");
-  geocodeUrl.searchParams.set("limit", "1");
-
-  const response = await fetch(geocodeUrl.toString(), {
-    headers: {
-      // Nominatim usage policy requires a descriptive User-Agent
-      "User-Agent": "BagPacker/1.0 (thakurabhinav16160@gmail.com)",
-      "Accept-Language": "en",
-    },
-  });
-
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(`Nominatim geocoding failed with status ${response.status}`);
+const getGeoapifyApiKey = () => {
+  const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
+  if (!rawValue) {
+    return "";
   }
 
-  const hit = Array.isArray(payload) ? payload[0] : null;
-  const latitude = Number(hit?.lat);
-  const longitude = Number(hit?.lon);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+  // Accept either the plain API key or a full Geoapify URL containing ?apiKey=...
+  if (rawValue.includes("apiKey=")) {
+    try {
+      const parsedUrl = new URL(rawValue);
+      return String(parsedUrl.searchParams.get("apiKey") || "").trim();
+    } catch (_error) {
+      const match = /[?&]apiKey=([^&]+)/i.exec(rawValue);
+      return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
+    }
+  }
+
+  return rawValue;
+};
+
+const getGeoapifyCountryFilter = () => {
+  const countryCode = String(process.env.GEOAPIFY_COUNTRY_FILTER || "in")
+    .trim()
+    .toLowerCase();
+  return /^[a-z]{2}$/.test(countryCode) ? countryCode : "in";
+};
+
+const pickBestGeoapifyFeature = (features, preferredCountryCode = "") => {
+  const normalizedPreferredCountry = String(preferredCountryCode || "")
+    .trim()
+    .toLowerCase();
+  const preferredTypes = new Set(["city", "locality", "district", "state", "street"]);
+
+  let best = null;
+  let bestScore = -Infinity;
+
+  for (const feature of Array.isArray(features) ? features : []) {
+    const properties = feature?.properties || {};
+    const latitude = Number(properties?.lat);
+    const longitude = Number(properties?.lon);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      continue;
+    }
+
+    const confidence = Number(properties?.rank?.confidence || 0);
+    const resultType = String(properties?.result_type || "").toLowerCase();
+    const countryCode = String(properties?.country_code || "").toLowerCase();
+    const countryScore =
+      normalizedPreferredCountry && countryCode === normalizedPreferredCountry
+        ? 0.2
+        : 0;
+    const typeScore = preferredTypes.has(resultType) ? 0.1 : 0;
+    const score = confidence + countryScore + typeScore;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = { latitude, longitude };
+    }
+  }
+
+  return best;
+};
+
+const getGeocodeCandidates = (payload) => {
+  if (Array.isArray(payload?.features)) {
+    return payload.features;
+  }
+
+  if (Array.isArray(payload?.results)) {
+    return payload.results.map((result) => ({ properties: result }));
+  }
+
+  return [];
+};
+
+const getGeoapifyGeocodedPoint = async (locationText) => {
+  const apiKey = getGeoapifyApiKey();
+  if (!apiKey) {
+    throw new Error("Geoapify API key is not configured");
+  }
+
+  const preferredCountryCode = getGeoapifyCountryFilter();
+  const buildGeocodeUrl = (resultType = "") => {
+    const geocodeUrl = new URL("https://api.geoapify.com/v1/geocode/search");
+    geocodeUrl.searchParams.set("text", locationText);
+    geocodeUrl.searchParams.set("limit", "5");
+    geocodeUrl.searchParams.set("format", "json");
+    geocodeUrl.searchParams.set("apiKey", apiKey);
+    if (preferredCountryCode) {
+      geocodeUrl.searchParams.set("filter", `countrycode:${preferredCountryCode}`);
+    }
+    if (resultType) {
+      geocodeUrl.searchParams.set("type", resultType);
+    }
+    return geocodeUrl;
+  };
+
+  const attemptGeocode = async (resultType = "") => {
+    const response = await fetch(buildGeocodeUrl(resultType).toString());
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.message || `Geoapify geocoding failed with status ${response.status}`);
+    }
+    return pickBestGeoapifyFeature(
+      getGeocodeCandidates(payload),
+      preferredCountryCode,
+    );
+  };
+
+  let bestPoint = null;
+  const resultTypesToTry = ["", "locality", "city", "street"];
+  for (const resultType of resultTypesToTry) {
+    try {
+      bestPoint = await attemptGeocode(resultType);
+      if (bestPoint) {
+        break;
+      }
+    } catch (_error) {
+      // Try the next scoped query strategy.
+    }
+  }
+
+  if (!bestPoint) {
     throw new Error(`Could not geocode location: ${locationText}`);
   }
 
-  return { latitude, longitude };
+  return bestPoint;
+};
+
+const getGeoapifyStreetSnappedPoint = async ({ latitude, longitude }) => {
+  const apiKey = getGeoapifyApiKey();
+  if (!apiKey) {
+    return { latitude, longitude };
+  }
+
+  try {
+    const reverseUrl = new URL("https://api.geoapify.com/v1/geocode/reverse");
+    reverseUrl.searchParams.set("lat", String(latitude));
+    reverseUrl.searchParams.set("lon", String(longitude));
+    reverseUrl.searchParams.set("type", "street");
+    reverseUrl.searchParams.set("format", "json");
+    reverseUrl.searchParams.set("apiKey", apiKey);
+
+    const response = await fetch(reverseUrl.toString());
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { latitude, longitude };
+    }
+
+    const streetPoint = payload?.results?.[0] || null;
+    const snappedLatitude = Number(streetPoint?.lat);
+    const snappedLongitude = Number(streetPoint?.lon);
+    if (!Number.isFinite(snappedLatitude) || !Number.isFinite(snappedLongitude)) {
+      return { latitude, longitude };
+    }
+
+    return {
+      latitude: snappedLatitude,
+      longitude: snappedLongitude,
+    };
+  } catch (_error) {
+    return { latitude, longitude };
+  }
 };
 
 const resolveRouteCoordinates = async ({
@@ -131,56 +265,132 @@ const resolveRouteCoordinates = async ({
     );
 
   if (hasManualCoordinates) {
+    const [snappedSource, snappedDestination] = await Promise.all([
+      getGeoapifyStreetSnappedPoint({
+        latitude: sourceLatitude,
+        longitude: sourceLongitude,
+      }),
+      getGeoapifyStreetSnappedPoint({
+        latitude: destinationLatitude,
+        longitude: destinationLongitude,
+      }),
+    ]);
+
     return {
-      sourceLatitude,
-      sourceLongitude,
-      destinationLatitude,
-      destinationLongitude,
+      sourceLatitude: snappedSource.latitude,
+      sourceLongitude: snappedSource.longitude,
+      destinationLatitude: snappedDestination.latitude,
+      destinationLongitude: snappedDestination.longitude,
     };
   }
 
   const [sourcePoint, destinationPoint] = await Promise.all([
-    getNominatimGeocodedPoint(source),
-    getNominatimGeocodedPoint(destination),
+    getGeoapifyGeocodedPoint(source),
+    getGeoapifyGeocodedPoint(destination),
+  ]);
+
+  const [snappedSource, snappedDestination] = await Promise.all([
+    getGeoapifyStreetSnappedPoint({
+      latitude: sourcePoint.latitude,
+      longitude: sourcePoint.longitude,
+    }),
+    getGeoapifyStreetSnappedPoint({
+      latitude: destinationPoint.latitude,
+      longitude: destinationPoint.longitude,
+    }),
   ]);
 
   return {
-    sourceLatitude: sourcePoint.latitude,
-    sourceLongitude: sourcePoint.longitude,
-    destinationLatitude: destinationPoint.latitude,
-    destinationLongitude: destinationPoint.longitude,
+    sourceLatitude: snappedSource.latitude,
+    sourceLongitude: snappedSource.longitude,
+    destinationLatitude: snappedDestination.latitude,
+    destinationLongitude: snappedDestination.longitude,
   };
 };
 
-// OSRM public routing service — no API key required
-// Coordinate order for OSRM is longitude,latitude (GeoJSON convention)
-const getOSRMDistanceKm = async ({
+const getGeoapifyDistanceKm = async ({
   sourceLatitude,
   sourceLongitude,
   destinationLatitude,
   destinationLongitude,
 }) => {
-  const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${sourceLongitude},${sourceLatitude};${destinationLongitude},${destinationLatitude}?overview=false&steps=false`;
+  const apiKey = getGeoapifyApiKey();
+  if (!apiKey) {
+    throw new Error("Geoapify API key is not configured");
+  }
 
-  const response = await fetch(osrmUrl, {
-    headers: {
-      "User-Agent": "BagPacker/1.0 (thakurabhinav16160@gmail.com)",
-    },
-  });
-  const payload = await response.json().catch(() => null);
+  const baseDirectionsUrl = new URL("https://api.geoapify.com/v1/routing");
+  baseDirectionsUrl.searchParams.set(
+    "waypoints",
+    `${sourceLatitude},${sourceLongitude}|${destinationLatitude},${destinationLongitude}`,
+  );
+  baseDirectionsUrl.searchParams.set("mode", "drive");
+  baseDirectionsUrl.searchParams.set("apiKey", apiKey);
 
-  if (!response.ok || payload?.code !== "Ok") {
-    throw new Error(
-      payload?.message || `OSRM routing request failed with status ${response.status}`,
+  const extractDistanceMeters = (payload) => {
+    const fromGeoJson = Number(payload?.features?.[0]?.properties?.distance);
+    if (Number.isFinite(fromGeoJson) && fromGeoJson > 0) {
+      return fromGeoJson;
+    }
+
+    const geoJsonLegs = Array.isArray(payload?.features?.[0]?.properties?.legs)
+      ? payload.features[0].properties.legs
+      : [];
+    const fromGeoJsonLegs = geoJsonLegs.reduce(
+      (sum, leg) => sum + (Number(leg?.distance) || 0),
+      0,
     );
-  }
+    if (Number.isFinite(fromGeoJsonLegs) && fromGeoJsonLegs > 0) {
+      return fromGeoJsonLegs;
+    }
 
-  const routeDistanceMeters = Number(payload?.routes?.[0]?.distance);
-  if (!Number.isFinite(routeDistanceMeters) || routeDistanceMeters <= 0) {
-    throw new Error("OSRM routing did not return a valid route distance");
-  }
+    const fromJson = Number(payload?.results?.[0]?.distance);
+    if (Number.isFinite(fromJson) && fromJson > 0) {
+      return fromJson;
+    }
 
-  return Number((routeDistanceMeters / 1000).toFixed(2));
+    const jsonLegs = Array.isArray(payload?.results?.[0]?.legs)
+      ? payload.results[0].legs
+      : [];
+    const fromJsonLegs = jsonLegs.reduce(
+      (sum, leg) => sum + (Number(leg?.distance) || 0),
+      0,
+    );
+    if (Number.isFinite(fromJsonLegs) && fromJsonLegs > 0) {
+      return fromJsonLegs;
+    }
+
+    return null;
+  };
+
+  const tryRequest = async (format = null) => {
+    const directionsUrl = new URL(baseDirectionsUrl.toString());
+    if (format) {
+      directionsUrl.searchParams.set("format", format);
+    }
+
+    const response = await fetch(directionsUrl.toString());
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(
+        payload?.message || `Geoapify routing request failed with status ${response.status}`,
+      );
+    }
+
+    const routeDistanceMeters = extractDistanceMeters(payload);
+    if (!Number.isFinite(routeDistanceMeters) || routeDistanceMeters <= 0) {
+      throw new Error("Geoapify routing did not return a valid route distance");
+    }
+
+    return Number((routeDistanceMeters / 1000).toFixed(2));
+  };
+
+  try {
+    return await tryRequest(null);
+  } catch (_geoJsonError) {
+    return tryRequest("json");
+  }
 };
 
 const buildExpenseEstimate = async ({
@@ -206,12 +416,33 @@ const buildExpenseEstimate = async ({
     };
   }
 
-  const distanceKm = await getOSRMDistanceKm({
-    sourceLatitude,
-    sourceLongitude,
-    destinationLatitude,
-    destinationLongitude,
-  });
+  let distanceKm = null;
+  try {
+    distanceKm = await getGeoapifyDistanceKm({
+      sourceLatitude,
+      sourceLongitude,
+      destinationLatitude,
+      destinationLongitude,
+    });
+  } catch (routeError) {
+    const fallbackDistance = Number(
+      haversineDistance(
+        sourceLatitude,
+        sourceLongitude,
+        destinationLatitude,
+        destinationLongitude,
+      ).toFixed(2),
+    );
+    distanceKm = Number.isFinite(fallbackDistance) ? Math.max(0, fallbackDistance) : null;
+  }
+
+  if (typeof distanceKm !== "number") {
+    return {
+      distanceKm: null,
+      estimatedFuelCost: null,
+      estimatedCostPerPerson: null,
+    };
+  }
 
   if (typeof fuelPricePerLitre !== "number" || typeof mileage !== "number") {
     return {
@@ -254,14 +485,14 @@ const mapBookingMatch = ({ booking, request, selectedDate, userId }) => {
     matchLabel: getClosenessLabel(dateDiffDays),
     request: request
       ? {
-          id: request._id,
-          status: request.status,
-          direction: resolveRequestDirection(request, userId),
-          chatRoomId: request.chatRoomId || null,
-          seatsRequested: Number(request.seatsRequested || 1),
-          genderPreference: request.genderPreference || "Any",
-          vehicleType: request.vehicleType || null,
-        }
+        id: request._id,
+        status: request.status,
+        direction: resolveRequestDirection(request, userId),
+        chatRoomId: request.chatRoomId || null,
+        seatsRequested: Number(request.seatsRequested || 1),
+        genderPreference: request.genderPreference || "Any",
+        vehicleType: request.vehicleType || null,
+      }
       : null,
   };
 };
@@ -307,21 +538,21 @@ const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false
           vehicleTypeResolved: { $ifNull: ["$vehicleType", null] },
           sourceMatchesQuery: source
             ? {
-                $regexMatch: {
-                  input: "$source",
-                  regex: escapeRegex(source),
-                  options: "i",
-                },
-              }
+              $regexMatch: {
+                input: "$source",
+                regex: escapeRegex(source),
+                options: "i",
+              },
+            }
             : true,
           destinationMatchesQuery: destination
             ? {
-                $regexMatch: {
-                  input: "$destination",
-                  regex: escapeRegex(destination),
-                  options: "i",
-                },
-              }
+              $regexMatch: {
+                input: "$destination",
+                regex: escapeRegex(destination),
+                options: "i",
+              },
+            }
             : true,
         },
       },
@@ -338,43 +569,43 @@ const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false
       },
       ...(dateWindow
         ? [
-            {
-              $match: {
-                travelDate: { $gte: dateWindow.start, $lte: dateWindow.end },
-              },
+          {
+            $match: {
+              travelDate: { $gte: dateWindow.start, $lte: dateWindow.end },
             },
-            {
-              $addFields: {
-                dateDiffDays: {
-                  $abs: {
-                    $dateDiff: {
-                      startDate: "$travelDate",
-                      endDate: dateWindow.selectedDate,
-                      unit: "day",
-                    },
+          },
+          {
+            $addFields: {
+              dateDiffDays: {
+                $abs: {
+                  $dateDiff: {
+                    startDate: "$travelDate",
+                    endDate: dateWindow.selectedDate,
+                    unit: "day",
                   },
                 },
               },
             },
-          ]
+          },
+        ]
         : [
-            {
-              $addFields: {
-                dateDiffDays: null,
-              },
+          {
+            $addFields: {
+              dateDiffDays: null,
             },
-          ]),
+          },
+        ]),
       ...(hasExplicitGenderPreference
         ? [
-            {
-              $match: {
-                $or: [
-                  { genderPreferenceResolved: "Any" },
-                  { genderPreferenceResolved: genderPreference },
-                ],
-              },
+          {
+            $match: {
+              $or: [
+                { genderPreferenceResolved: "Any" },
+                { genderPreferenceResolved: genderPreference },
+              ],
             },
-          ]
+          },
+        ]
         : []),
       {
         $lookup: {
@@ -426,60 +657,60 @@ const executePersonalTripSearch = async (req, res, { legacyArrayResponse = false
           routeScore:
             source && destination
               ? {
+                $cond: [
+                  { $and: ["$sourceMatchesQuery", "$destinationMatchesQuery"] },
+                  50,
+                  0,
+                ],
+              }
+              : source || destination
+                ? {
                   $cond: [
                     { $and: ["$sourceMatchesQuery", "$destinationMatchesQuery"] },
-                    50,
+                    25,
                     0,
                   ],
                 }
-              : source || destination
-                ? {
-                    $cond: [
-                      { $and: ["$sourceMatchesQuery", "$destinationMatchesQuery"] },
-                      25,
-                      0,
-                    ],
-                  }
                 : 0,
           dateScore: dateWindow
             ? {
-                $switch: {
-                  branches: [
-                    { case: { $eq: ["$dateDiffDays", 0] }, then: 30 },
-                    { case: { $eq: ["$dateDiffDays", 1] }, then: 20 },
-                    { case: { $eq: ["$dateDiffDays", 2] }, then: 10 },
-                  ],
-                  default: 0,
-                },
-              }
+              $switch: {
+                branches: [
+                  { case: { $eq: ["$dateDiffDays", 0] }, then: 30 },
+                  { case: { $eq: ["$dateDiffDays", 1] }, then: 20 },
+                  { case: { $eq: ["$dateDiffDays", 2] }, then: 10 },
+                ],
+                default: 0,
+              },
+            }
             : 0,
           genderScore: hasExplicitGenderPreference
             ? {
-                $cond: [
-                  {
-                    $or: [
-                      { $eq: ["$genderPreferenceResolved", "Any"] },
-                      { $eq: ["$genderPreferenceResolved", genderPreference] },
-                    ],
-                  },
-                  10,
-                  0,
-                ],
-              }
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$genderPreferenceResolved", "Any"] },
+                    { $eq: ["$genderPreferenceResolved", genderPreference] },
+                  ],
+                },
+                10,
+                0,
+              ],
+            }
             : 0,
           vehicleScore: hasExplicitVehicleType
             ? {
-                $cond: [
-                  {
-                    $or: [
-                      { $eq: ["$vehicleTypeResolved", vehicleType] },
-                      { $eq: ["$vehicleTypeResolved", null] },
-                    ],
-                  },
-                  5,
-                  0,
-                ],
-              }
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$vehicleTypeResolved", vehicleType] },
+                    { $eq: ["$vehicleTypeResolved", null] },
+                  ],
+                },
+                5,
+                0,
+              ],
+            }
             : 0,
           trustBoost: {
             $divide: [{ $ifNull: ["$owner.trustScore", 0] }, 10],
@@ -893,6 +1124,74 @@ const createPersonalTripPost = async (req, res) => {
       return res.status(400).json({ message: "seatsAvailable must be at least 1" });
     }
 
+    const existingPersonalPost = await PersonalTripPost.findOne({
+      ownerId: req.user._id,
+      status: { $in: ["active", "closed"] },
+      travelDate: { $gte: range.start, $lte: range.end },
+    })
+      .select("_id source destination travelDate status")
+      .lean();
+
+    if (existingPersonalPost) {
+      return res.status(400).json({
+        message:
+          "You already have a personal expedition post on this date. Please use a different date.",
+      });
+    }
+
+    const bookingConflict = await Booking.aggregate([
+      {
+        $match: {
+          travelerId: new mongoose.Types.ObjectId(req.user._id),
+          status: { $in: ["confirmed", "completed"] },
+        },
+      },
+      {
+        $lookup: {
+          from: "trips",
+          localField: "tripId",
+          foreignField: "_id",
+          as: "trip",
+          pipeline: [
+            {
+              $match: {
+                startDate: { $gte: range.start, $lte: range.end },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                title: 1,
+                source: 1,
+                destination: 1,
+                startDate: 1,
+              },
+            },
+          ],
+        },
+      },
+      { $unwind: "$trip" },
+      { $limit: 1 },
+      {
+        $project: {
+          _id: 1,
+          trip: 1,
+        },
+      },
+    ]);
+
+    if (bookingConflict.length > 0) {
+      const conflictingTrip = bookingConflict[0]?.trip || {};
+      const route = [conflictingTrip.source, conflictingTrip.destination]
+        .filter(Boolean)
+        .join(" to ");
+      return res.status(400).json({
+        message: route
+          ? `You already have a booked trip (${route}) on this date.`
+          : "You already have a booked trip on this date.",
+      });
+    }
+
     const hasAnyExpenseInput = [
       req.body.fuelPricePerLitre,
       req.body.mileage,
@@ -1180,7 +1479,7 @@ const getMyPersonalTripPosts = async (req, res) => {
     const skip = (page - 1) * limit;
     const [posts, total] = await Promise.all([
       PersonalTripPost.find({ ownerId: req.user._id })
-      .sort({ createdAt: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),

@@ -1,8 +1,7 @@
-const mongoose = require("mongoose");
 const Booking = require("../booking/bookingModel");
 const Notification = require("../notification/notificationModel");
 const Review = require("./reviewModel");
-const User = require("../user/userModel");
+const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
 
 const createReview = async (req, res) => {
   try {
@@ -58,23 +57,8 @@ const createReview = async (req, res) => {
       comment: comment || null,
     });
 
-    const [reviewStats] = await Review.aggregate([
-      {
-        $match: {
-          revieweeId: new mongoose.Types.ObjectId(organizerUserId),
-        },
-      },
-      {
-        $group: {
-          _id: "$revieweeId",
-          averageRating: { $avg: "$rating" },
-        },
-      },
-    ]);
-
-    const trustScore = reviewStats ? Number(((reviewStats.averageRating / 5) * 100).toFixed(2)) : 0;
-
-    await User.findByIdAndUpdate(organizerUserId, { trustScore });
+    const trustResult = await recalculateAndPersistTrustScore(organizerUserId);
+    const trustScore = trustResult?.trustScore ?? 0;
 
     await Notification.create({
       userId: organizerUserId,

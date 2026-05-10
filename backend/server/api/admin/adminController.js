@@ -6,6 +6,7 @@ const Booking = require("../booking/bookingModel");
 const CompanionRequest = require("../companion/companionRequestModel");
 const Review = require("../review/reviewModel");
 const User = require("../user/userModel");
+const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
 
 const getAllUsers = async (req, res) => {
   try {
@@ -55,6 +56,7 @@ const reviewOrganizerApproval = async (req, res) => {
     organizer.approvalStatus = req.body.approvalStatus;
     organizer.approvedAt = req.body.approvalStatus === "approved" ? new Date() : null;
     await organizer.save();
+    await recalculateAndPersistTrustScore(organizer.userId._id, { organizerDoc: organizer });
 
     await Notification.create({
       userId: organizer.userId._id,
@@ -93,6 +95,10 @@ const updateVerificationStatus = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+    const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+    if (trustResult) {
+      user.trustScore = trustResult.trustScore;
     }
 
     return res.status(200).json(user);
@@ -378,6 +384,38 @@ const toggleUserBan = async (req, res) => {
   }
 };
 
+const recalculateAllTrustScores = async (_req, res) => {
+  try {
+    const users = await User.find().select("_id").lean();
+    let updated = 0;
+    const failures = [];
+
+    for (const user of users) {
+      try {
+        const trustResult = await recalculateAndPersistTrustScore(user._id);
+        if (trustResult) {
+          updated += 1;
+        }
+      } catch (error) {
+        failures.push({
+          userId: String(user._id),
+          message: error.message,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      message: "Trust score backfill completed",
+      totalUsers: users.length,
+      updated,
+      failed: failures.length,
+      failures: failures.slice(0, 25),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getPendingOrganizers,
@@ -392,4 +430,5 @@ module.exports = {
   getJoinActivity,
   getReviewsOverview,
   toggleUserBan,
+  recalculateAllTrustScores,
 };

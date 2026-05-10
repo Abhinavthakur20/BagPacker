@@ -201,17 +201,7 @@ export default function AuthModal() {
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => { if (e.target === backdropRef.current) closeAuthModal(); }}
     >
-      <div className="relative w-full max-w-[920px] animate-[modalSlideIn_0.3s_ease-out] overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface-container-lowest shadow-[0_30px_80px_rgba(15,23,42,0.35)]">
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={closeAuthModal}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant transition hover:bg-surface-container-highest"
-          aria-label="Close"
-        >
-          <span className="material-symbols-outlined text-lg">close</span>
-        </button>
-
+      <div className="relative w-full max-w-[920px] max-h-[94vh] animate-[modalSlideIn_0.3s_ease-out] overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface-container-lowest shadow-[0_30px_80px_rgba(15,23,42,0.35)]">
         <div className="grid lg:grid-cols-[1fr_1.1fr]">
           {/* Side image panel — hidden on mobile */}
           <aside className="hidden overflow-hidden bg-primary lg:block">
@@ -246,22 +236,32 @@ export default function AuthModal() {
           </aside>
 
           {/* Form panel */}
-          <section className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
+          <section className="max-h-[94vh] overflow-y-auto px-6 pb-5 pt-4 sm:px-8 sm:pb-6 sm:pt-5">
             {/* Mode toggle */}
-            <div className="mb-5 flex gap-2 rounded-xl bg-surface-container-low p-1">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex flex-1 gap-2 rounded-xl bg-surface-container-low p-1">
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition ${mode === "login" ? "bg-primary text-white shadow-md" : "text-primary"}`}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("signup")}
+                  className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition ${mode === "signup" ? "bg-primary text-white shadow-md" : "text-primary"}`}
+                >
+                  Sign Up
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setMode("login")}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition ${mode === "login" ? "bg-primary text-white shadow-md" : "text-primary"}`}
+                onClick={closeAuthModal}
+                className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant transition hover:bg-surface-container-highest"
+                aria-label="Close"
               >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition ${mode === "signup" ? "bg-primary text-white shadow-md" : "text-primary"}`}
-              >
-                Sign Up
+                <span className="material-symbols-outlined text-lg">close</span>
               </button>
             </div>
 
@@ -275,15 +275,15 @@ export default function AuthModal() {
               <div>
                 <h1 className="font-headline text-xl font-extrabold text-primary">Welcome Back</h1>
                 <p className="mt-1 text-sm text-on-surface-variant">Continue your journey with BagPacker.</p>
-                <form className="mt-5 space-y-4">
+                <form className="mt-4 space-y-3.5">
                   <input
-                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                     placeholder="Email" type="email" value={loginForm.email}
                     onChange={(e) => setLoginForm((p) => ({ ...p, email: e.target.value }))}
                   />
                   <div className="relative">
                     <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 pr-12 outline-none transition focus:border-primary"
+                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 pr-12 outline-none transition focus:border-primary"
                       placeholder="Password" type={showPassword ? "text" : "password"}
                       value={loginForm.password}
                       onChange={(e) => setLoginForm((p) => ({ ...p, password: e.target.value }))}
@@ -298,7 +298,7 @@ export default function AuthModal() {
                     </button>
                   </div>
                   <button type="button" onClick={onLogin} disabled={isSubmitting}
-                    className="w-full rounded-xl bg-primary py-3 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full rounded-xl bg-primary py-2.5 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isSubmitting ? "Logging in..." : "Login"}
                   </button>
@@ -328,20 +328,20 @@ export default function AuthModal() {
                   </div>
                 </div>
 
-                <form className="mt-5 space-y-3">
+                <form className="mt-4 space-y-2.5">
                   {signupStep === 1 ? (
                     <>
-                      <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                      <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                         placeholder="Full Name" value={userForm.name}
                         onChange={(e) => updateUserField("name", e.target.value)} />
-                      <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                      <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                         placeholder="Phone Number" value={userForm.phone}
                         onChange={(e) => updateUserField("phone", e.target.value)} />
-                      <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 outline-none transition focus:border-primary"
+                      <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                         placeholder="Email Address" type="email" value={userForm.email}
                         onChange={(e) => updateUserField("email", e.target.value)} />
                       <div className="relative">
-                        <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-3 pr-12 outline-none transition focus:border-primary"
+                        <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 pr-12 outline-none transition focus:border-primary"
                           placeholder="Create Password" type={showPassword ? "text" : "password"}
                           value={userForm.password}
                           onChange={(e) => updateUserField("password", e.target.value)} />
@@ -360,7 +360,7 @@ export default function AuthModal() {
                         }
                         setFormError("");
                         setSignupStep(2);
-                      }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-extrabold text-white transition hover:brightness-105">
+                      }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-extrabold text-white transition hover:brightness-105">
                         Next
                         <span className="material-symbols-outlined text-lg">arrow_forward</span>
                       </button>
