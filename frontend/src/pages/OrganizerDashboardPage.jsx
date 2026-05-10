@@ -129,7 +129,7 @@ export default function OrganizerDashboardPage() {
 
   if (!isLoggedIn) {
     return (
-      <MainLayout>
+      <MainLayout hideFooterOnMobile={true}>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">
           <p className="rounded-2xl bg-error-container p-6 font-semibold text-on-error-container">
             Please login to access your organizer dashboard.
@@ -215,7 +215,7 @@ export default function OrganizerDashboardPage() {
   const selectedComposerPreview = composerPreviews[selectedComposerPreviewIndex] || null;
 
   return (
-    <MainLayout>
+    <MainLayout hideFooterOnMobile={true}>
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
         {/* ── Sidebar ── */}
         <aside className="hidden w-72 flex-col border-r border-outline-variant/20 bg-surface-container-low md:flex">
@@ -302,11 +302,11 @@ export default function OrganizerDashboardPage() {
           <div className="mx-auto max-w-6xl space-y-10">
             {/* Header Section */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h1 className="font-headline text-3xl font-black tracking-tight text-on-surface capitalize">
+              <div className="flex-1 min-w-0">
+                <h1 className="font-headline text-2xl sm:text-3xl font-black tracking-tight text-on-surface capitalize">
                   {activeView.replace("_", " ")} <span className="text-secondary">Dashboard</span>
                 </h1>
-                <p className="mt-1 text-sm text-on-surface-variant max-w-xl">
+                <p className="mt-1 text-[11px] sm:text-sm text-on-surface-variant max-w-xl opacity-70">
                   {activeView === "overview" && "High-level metrics and performance overview of your travel business."}
                   {activeView === "trips" && "Manage your posted expeditions, track seat fills, and start trips."}
                   {activeView === "social" && "Publish travel reels and photos to engage your audience."}
@@ -346,26 +346,26 @@ export default function OrganizerDashboardPage() {
                 {activeView === "overview" && (
                   <div className="space-y-10">
                     {/* Stats Grid */}
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                       {dashboard.cards.map((card) => (
                         <article
                           key={card.label}
-                          className="relative overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md"
+                          className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/20 bg-surface p-4 sm:p-6 shadow-sm transition hover:shadow-md"
                         >
-                          <div className="flex items-start justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
+                              <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
                                 {card.label}
                               </p>
-                              <p className="mt-3 font-headline text-2xl font-black text-on-surface">
+                              <p className="mt-2 sm:mt-3 font-headline text-lg sm:text-2xl font-black text-on-surface">
                                 {card.value}
                               </p>
                               {card.helper && (
-                                <p className="mt-1 text-[9px] font-bold text-secondary uppercase tracking-widest">{card.helper}</p>
+                                <p className="mt-1 text-[7px] sm:text-[9px] font-bold text-secondary uppercase tracking-widest">{card.helper}</p>
                               )}
                             </div>
-                            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${card.tone === 'primary' ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'}`}>
-                              <span className="material-symbols-outlined text-[1.4rem]">{card.icon}</span>
+                            <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl ${card.tone === 'primary' ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'} shrink-0`}>
+                              <span className="material-symbols-outlined text-lg sm:text-[1.4rem]">{card.icon}</span>
                             </div>
                           </div>
                         </article>

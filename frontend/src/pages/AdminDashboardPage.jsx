@@ -476,7 +476,7 @@ export default function AdminDashboardPage() {
 
   if (!isLoggedIn) {
     return (
-      <MainLayout>
+      <MainLayout hideFooterOnMobile={true}>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">
           <p className="rounded-2xl bg-error-container p-6 font-semibold text-on-error-container">
             Please login to access the admin dashboard.
@@ -488,7 +488,7 @@ export default function AdminDashboardPage() {
 
   if (user?.role !== "admin") {
     return (
-      <MainLayout>
+      <MainLayout hideFooterOnMobile={true}>
         <div className="mx-auto max-w-4xl px-4 py-20 text-center">
           <p className="rounded-2xl bg-error-container p-6 font-semibold text-on-error-container">
             Admin access is required for this page.
@@ -499,7 +499,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideFooterOnMobile={true}>
       <div className="flex min-h-[calc(100vh-64px)] bg-surface-container-lowest">
         {/* ── Sidebar ── */}
         <aside className="hidden w-72 flex-col border-r border-outline-variant/20 bg-surface-container-low md:flex">
@@ -559,22 +559,46 @@ export default function AdminDashboardPage() {
             </button>
           </div>
         </aside>
++
++        {/* Mobile Tab Navigation */}
++        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
++          <nav className="flex items-center justify-around px-2 py-3">
++            {[
++              ["overview", "grid_view", "Admin"],
++              ["moderation", "gavel", "Mod"],
++              ["operations", "monitoring", "Ops"],
++            ].map(([key, icon, label]) => (
++              <button
++                key={key}
++                onClick={() => setActiveTab(key)}
++                className={`relative flex flex-col items-center gap-1 transition-all ${
++                  activeTab === key ? "text-primary" : "text-on-surface-variant/40"
++                }`}
++              >
++                <span className={`material-symbols-outlined text-[1.4rem] ${activeTab === key ? "font-bold" : ""}`}>
++                  {icon}
++                </span>
++                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
++              </button>
++            ))}
++          </nav>
++        </div>
 
         {/* ── Main Content ── */}
-        <main className="flex-1 overflow-y-auto px-4 py-10 md:px-12">
+        <main className="flex-1 overflow-y-auto px-4 py-10 pb-24 md:px-12 md:pb-10">
           <div className="mx-auto max-w-6xl space-y-10">
             {/* Header Section */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="font-headline text-3xl font-black tracking-tight text-on-surface capitalize">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1 min-w-0">
+                <h1 className="font-headline text-2xl sm:text-3xl font-black tracking-tight text-on-surface capitalize">
                   {activeTab} <span className="text-secondary">Terminal</span>
                 </h1>
-                <p className="mt-1 text-sm text-on-surface-variant">
+                <p className="mt-1 text-[11px] sm:text-sm text-on-surface-variant opacity-70">
                   Real-time platform oversight and administrative management.
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 rounded-full bg-surface-container px-4 py-2 border border-outline-variant/30">
+                <div className="hidden sm:flex items-center gap-2 rounded-full bg-surface-container px-4 py-2 border border-outline-variant/30">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
                   <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant">System Live</span>
                 </div>
@@ -611,27 +635,27 @@ export default function AdminDashboardPage() {
                 {activeTab === "overview" && (
                   <div className="space-y-8">
                     {/* Stats Grid */}
-                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-4 sm:gap-6 grid-cols-2 xl:grid-cols-4">
                       {stats.map(([label, value, icon]) => (
                         <article
                           key={label}
-                          className="relative overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md"
+                          className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/20 bg-surface p-4 sm:p-6 shadow-sm transition hover:shadow-md"
                         >
-                          <div className="flex items-start justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
+                              <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60">
                                 {label}
                               </p>
-                              <p className="mt-3 font-headline text-3xl font-black text-on-surface">
+                              <p className="mt-2 sm:mt-3 font-headline text-lg sm:text-3xl font-black text-on-surface">
                                 {typeof value === "number" ? value.toLocaleString() : value}
                               </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-                              <span className="material-symbols-outlined text-[1.4rem]">{icon}</span>
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-primary/5 text-primary shrink-0">
+                              <span className="material-symbols-outlined text-lg sm:text-[1.4rem]">{icon}</span>
                             </div>
                           </div>
-                          <div className="mt-6 flex items-center gap-2 text-[10px] font-bold text-secondary">
-                            <span className="material-symbols-outlined text-sm">trending_up</span>
+                          <div className="mt-4 sm:mt-6 flex items-center gap-2 text-[8px] sm:text-[10px] font-bold text-secondary">
+                            <span className="material-symbols-outlined text-xs sm:text-sm">trending_up</span>
                             <span>Growth monitored</span>
                           </div>
                         </article>
