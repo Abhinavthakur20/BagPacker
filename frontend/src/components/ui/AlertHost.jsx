@@ -125,30 +125,30 @@ export default function AlertHost() {
         role="alertdialog"
         aria-modal={isConfirm ? "true" : "false"}
         className={`w-full overflow-hidden rounded-3xl bg-surface ring-1 shadow-[0_20px_60px_rgba(15,23,42,0.22)] ${
-          isConfirm ? "max-w-lg" : "max-w-sm"
+          isConfirm ? "max-w-2xl" : "max-w-2xl"
         } ${styles.ring}`}
       >
-        <div className={`relative bg-gradient-to-r ${styles.gradient} px-5 pb-4 pt-4`}>
+        <div className={`relative bg-gradient-to-r ${styles.gradient} px-5 pb-2 pt-2`}>
           <span className={`absolute left-0 top-0 h-full w-1.5 ${styles.accent}`} />
           <div className="ml-1 flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <span
-                className={`material-symbols-outlined mt-0.5 rounded-2xl p-2.5 text-[22px] ${styles.iconWrap}`}
+                className={`material-symbols-outlined mt-0.5 rounded-2xl p-1.5 text-[18px] ${styles.iconWrap}`}
               >
                 {styles.icon}
               </span>
               <div className="min-w-0">
-                <p className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${styles.chip}`}>
+                <p className={`inline-block rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${styles.chip}`}>
                   {styles.label}
                 </p>
-                <h2 className={`mt-1 text-lg font-black leading-tight ${styles.title}`}>
+                <h2 className={`text-base font-black leading-tight ${styles.title}`}>
                   {activeAlert.title}
                 </h2>
               </div>
             </div>
             <button
               onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
-              className="material-symbols-outlined rounded-xl p-1.5 text-on-surface-variant/70 transition hover:bg-black/5 hover:text-on-surface"
+              className="material-symbols-outlined rounded-xl p-1 text-on-surface-variant/70 transition hover:bg-black/5 hover:text-on-surface"
               aria-label="Close alert"
             >
               close
@@ -156,12 +156,12 @@ export default function AlertHost() {
           </div>
         </div>
 
-        <div className="px-5 pb-5 pt-4">
+        <div className="px-5 pb-3 pt-2">
           <p className="text-sm leading-relaxed text-on-surface-variant">
             {activeAlert.text || "Please review this action before continuing."}
           </p>
 
-          <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+          <div className="mt-2 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
             {isConfirm ? (
               <button
                 onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
