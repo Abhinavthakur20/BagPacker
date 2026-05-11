@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
@@ -30,6 +30,15 @@ const statusTone = (status) => {
   return "bg-surface-container-high text-on-surface-variant";
 };
 
+const paymentTone = (paymentStatus) => {
+  const status = String(paymentStatus || "").toLowerCase();
+  if (status === "paid") return "bg-[#858585] text-[#f94a4a]";
+  if (status === "refund_required") return "bg-error-container text-error";
+  if (status === "refunded") return "bg-[#e2e8fb] text-[#858585]";
+  if (status === "failed") return "bg-error-container text-error";
+  return "bg-surface-container-high text-on-surface-variant";
+};
+
 export default function OrganizerTripBuyersPage() {
   const { tripId } = useParams();
   const [payload, setPayload] = useState(null);
@@ -37,28 +46,31 @@ export default function OrganizerTripBuyersPage() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [completingBookingId, setCompletingBookingId] = useState("");
+  const [cancellingBookingId, setCancellingBookingId] = useState("");
+  const [refundingBookingId, setRefundingBookingId] = useState("");
+
+  const loadBookings = useCallback(async () => {
+    if (!tripId) return;
+    try {
+      setIsLoading(true);
+      setError("");
+      const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+      const response = await api.get(`/organizers/me/trips/${tripId}/bookings${query}`, {
+        cacheTtlMs: 5000,
+        forceRefresh: true,
+      });
+      setPayload(response);
+    } catch (fetchError) {
+      setError(fetchError.message);
+      setPayload(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tripId, statusFilter]);
 
   useEffect(() => {
-    const load = async () => {
-      if (!tripId) return;
-      try {
-        setIsLoading(true);
-        setError("");
-        const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
-        const response = await api.get(`/organizers/me/trips/${tripId}/bookings${query}`, {
-          cacheTtlMs: 5000,
-          forceRefresh: true,
-        });
-        setPayload(response);
-      } catch (fetchError) {
-        setError(fetchError.message);
-        setPayload(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [tripId, statusFilter]);
+    loadBookings();
+  }, [loadBookings]);
 
   const summary = payload?.summary || null;
   const trip = payload?.trip || null;
@@ -84,17 +96,58 @@ export default function OrganizerTripBuyersPage() {
       setError("");
       await api.put(`/bookings/${bookingId}/complete`, {});
       await showSuccessAlert("Booking completed", "Traveler booking is now marked as completed.");
-      const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
-      const response = await api.get(`/organizers/me/trips/${tripId}/bookings${query}`, {
-        cacheTtlMs: 5000,
-        forceRefresh: true,
-      });
-      setPayload(response);
+      await loadBookings();
     } catch (requestError) {
       setError(requestError.message);
       await showErrorAlert("Could not complete booking", requestError.message);
     } finally {
       setCompletingBookingId("");
+    }
+  };
+
+  const cancelBookingByOrganizer = async (bookingId) => {
+    const result = await showConfirmAlert({
+      title: "Cancel this booking?",
+      text: "Confirmed paid bookings will move to refund-required status.",
+      confirmButtonText: "Cancel Booking",
+      icon: "warning",
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      setCancellingBookingId(bookingId);
+      setError("");
+      await api.put(`/bookings/${bookingId}/organizer-cancel`, {});
+      await showSuccessAlert("Booking cancelled", "Traveler booking is cancelled.");
+      await loadBookings();
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Could not cancel booking", requestError.message);
+    } finally {
+      setCancellingBookingId("");
+    }
+  };
+
+  const markRefunded = async (bookingId) => {
+    const result = await showConfirmAlert({
+      title: "Mark refund as completed?",
+      text: "Use this after payment team confirms the refund transfer.",
+      confirmButtonText: "Mark Refunded",
+      icon: "warning",
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      setRefundingBookingId(bookingId);
+      setError("");
+      await api.put(`/bookings/${bookingId}/mark-refunded`, {});
+      await showSuccessAlert("Refund marked", "Booking payment status is now refunded.");
+      await loadBookings();
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Could not mark refunded", requestError.message);
+    } finally {
+      setRefundingBookingId("");
     }
   };
 
@@ -120,6 +173,12 @@ export default function OrganizerTripBuyersPage() {
               className="rounded-2xl bg-surface-container-low px-5 py-3 text-sm font-bold text-primary hover:bg-surface-container-high"
             >
               Back to My Trips
+            </Link>
+            <Link
+              to={`/chat?room=${encodeURIComponent(`trip_${tripId}`)}`}
+              className="rounded-2xl border border-primary/20 px-5 py-3 text-sm font-bold text-primary hover:bg-primary hover:text-white"
+            >
+              Open Trip Chat
             </Link>
             <Link
               to={`/trips/${tripId}`}
@@ -174,6 +233,22 @@ export default function OrganizerTripBuyersPage() {
                     {formatINR(safeNumber(summary.revenueTotal))}
                   </p>
                 </div>
+                <div className="rounded-2xl bg-surface-container-low p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-outline">
+                    Refund Queue
+                  </p>
+                  <p className="mt-2 font-manrope text-xl font-black text-primary">
+                    {safeNumber(summary?.paymentBreakdown?.refund_required)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-surface-container-low p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-outline">
+                    Refunded
+                  </p>
+                  <p className="mt-2 font-manrope text-xl font-black text-primary">
+                    {safeNumber(summary?.paymentBreakdown?.refunded)}
+                  </p>
+                </div>
               </div>
             </article>
 
@@ -213,7 +288,9 @@ export default function OrganizerTripBuyersPage() {
                   bookings.map((booking) => {
                     const traveler = booking?.travelerId || {};
                     const paymentLabel =
-                      booking?.paymentStatus === "paid" ? "Paid" : String(booking?.paymentStatus || "created");
+                      booking?.paymentStatus === "paid"
+                        ? "Paid"
+                        : String(booking?.paymentStatus || "created");
                     const bookingStatus = String(booking?.status || "pending");
                     const pickupLabel = booking?.pickupPointId?.location
                       ? `${booking.pickupPointId.location} (${booking.pickupPointId.time || "TBD"})`
@@ -264,11 +341,33 @@ export default function OrganizerTripBuyersPage() {
                             {formatINR(safeNumber(booking.totalAmount))}
                           </p>
                           <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-[#f94a4a]">
-                            {paymentLabel}
+                            <span className={`rounded-full px-2 py-0.5 ${paymentTone(booking?.paymentStatus)}`}>
+                              {paymentLabel}
+                            </span>
                           </p>
                           <p className="mt-1 text-xs text-outline">
                             {booking.paymentCapturedAt ? formatDateTime(booking.paymentCapturedAt) : "—"}
                           </p>
+                          {bookingStatus !== "cancelled" && bookingStatus !== "completed" ? (
+                            <button
+                              type="button"
+                              onClick={() => cancelBookingByOrganizer(String(booking._id))}
+                              disabled={cancellingBookingId === String(booking._id)}
+                              className="mt-2 rounded-lg bg-error-container px-3 py-2 text-[10px] font-black uppercase text-error disabled:opacity-60"
+                            >
+                              {cancellingBookingId === String(booking._id) ? "Updating..." : "Cancel Booking"}
+                            </button>
+                          ) : null}
+                          {String(booking?.paymentStatus) === "refund_required" ? (
+                            <button
+                              type="button"
+                              onClick={() => markRefunded(String(booking._id))}
+                              disabled={refundingBookingId === String(booking._id)}
+                              className="mt-2 rounded-lg bg-surface-container px-3 py-2 text-[10px] font-black uppercase text-on-surface-variant disabled:opacity-60"
+                            >
+                              {refundingBookingId === String(booking._id) ? "Updating..." : "Mark Refunded"}
+                            </button>
+                          ) : null}
                           {bookingStatus === "confirmed" ? (
                             <button
                               type="button"

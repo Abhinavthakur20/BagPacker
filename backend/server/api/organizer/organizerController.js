@@ -3,8 +3,13 @@ const OrganizerPost = require("./organizerPostModel");
 const OrganizerFollow = require("./organizerFollowModel");
 const Trip = require("../trip/tripModel");
 const Booking = require("../booking/bookingModel");
+const {
+  reconcileTripSeatInventory,
+  reconcileTripsSeatInventory,
+} = require("../trip/tripSeatSyncService");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
+const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const DOCUMENT_IMAGE_TRANSFORMATIONS = {
   width: 2000,
@@ -107,18 +112,200 @@ const getMyOrganizerTrips = async (req, res) => {
 
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+    const q = String(req.query.q || "").trim();
+    const status = String(req.query.status || "").trim().toLowerCase();
+    const sortByInput = String(req.query.sortBy || "createdAt").trim().toLowerCase();
+    const sortOrderInput = String(req.query.sortOrder || "desc").trim().toLowerCase();
 
-    const trips = await Trip.find({ organizerId: organizer._id })
+    const filters = { organizerId: organizer._id };
+    if (["active", "completed", "cancelled"].includes(status)) {
+      filters.status = status;
+    }
+    if (q) {
+      const searchRegex = new RegExp(escapeRegex(q), "i");
+      filters.$or = [
+        { title: searchRegex },
+        { source: searchRegex },
+        { destination: searchRegex },
+        { transportType: searchRegex },
+      ];
+    }
+
+    const sortBy = ["createdat", "startdate", "priceperperson", "status"].includes(sortByInput)
+      ? sortByInput
+      : "createdat";
+    const sortFieldMap = {
+      createdat: "createdAt",
+      startdate: "startDate",
+      priceperperson: "pricePerPerson",
+      status: "status",
+    };
+    const sortOrder = sortOrderInput === "asc" ? 1 : -1;
+
+    const trips = await Trip.find(filters)
       .select(
         "title source destination transportType paymentEnabled startedAt startDate endDate pricePerPerson totalSeats availableSeats status images organizerId createdAt",
       )
-      .sort({ startDate: 1, createdAt: -1 })
+      .sort({ [sortFieldMap[sortBy]]: sortOrder, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
+    const reconciledTrips = await reconcileTripsSeatInventory(trips);
 
-    const total = await Trip.countDocuments({ organizerId: organizer._id });
-    return res.status(200).json({ items: trips, pagination: { page, limit, total } });
+    const total = await Trip.countDocuments(filters);
+    return res.status(200).json({
+      items: reconciledTrips,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getMyOrganizerFinance = async (req, res) => {
+  try {
+    const organizer = await getPrimaryOrganizerProfile(req.user._id);
+    if (!organizer) {
+      return res.status(404).json({ message: "Organizer profile not found" });
+    }
+
+    const tripIds = await Trip.find({ organizerId: organizer._id }).distinct("_id");
+    if (!tripIds.length) {
+      return res.status(200).json({
+        totals: {
+          bookingsCount: 0,
+          grossPaid: 0,
+          pendingPayment: 0,
+          refundRequired: 0,
+          refunded: 0,
+          settlementEstimate: 0,
+        },
+        counts: {
+          paymentStatus: {
+            created: 0,
+            paid: 0,
+            failed: 0,
+            refund_required: 0,
+            refunded: 0,
+          },
+          bookingStatus: {
+            pending: 0,
+            confirmed: 0,
+            cancelled: 0,
+            completed: 0,
+          },
+        },
+      });
+    }
+
+    const [statusBreakdown, amountBreakdown] = await Promise.all([
+      Booking.aggregate([
+        { $match: { tripId: { $in: tripIds } } },
+        {
+          $group: {
+            _id: null,
+            created: {
+              $sum: { $cond: [{ $eq: ["$paymentStatus", "created"] }, 1, 0] },
+            },
+            paid: {
+              $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, 1, 0] },
+            },
+            failed: {
+              $sum: { $cond: [{ $eq: ["$paymentStatus", "failed"] }, 1, 0] },
+            },
+            refund_required: {
+              $sum: { $cond: [{ $eq: ["$paymentStatus", "refund_required"] }, 1, 0] },
+            },
+            refunded: {
+              $sum: { $cond: [{ $eq: ["$paymentStatus", "refunded"] }, 1, 0] },
+            },
+            pending: {
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+            },
+            confirmed: {
+              $sum: { $cond: [{ $eq: ["$status", "confirmed"] }, 1, 0] },
+            },
+            cancelled: {
+              $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+            },
+            completed: {
+              $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+            },
+            bookingsCount: { $sum: 1 },
+          },
+        },
+      ]),
+      Booking.aggregate([
+        { $match: { tripId: { $in: tripIds } } },
+        {
+          $group: {
+            _id: null,
+            grossPaid: {
+              $sum: {
+                $cond: [
+                  { $in: ["$paymentStatus", ["paid", "refund_required", "refunded"]] },
+                  "$totalAmount",
+                  0,
+                ],
+              },
+            },
+            pendingPayment: {
+              $sum: {
+                $cond: [{ $eq: ["$paymentStatus", "created"] }, "$totalAmount", 0],
+              },
+            },
+            refundRequired: {
+              $sum: {
+                $cond: [{ $eq: ["$paymentStatus", "refund_required"] }, "$totalAmount", 0],
+              },
+            },
+            refunded: {
+              $sum: {
+                $cond: [{ $eq: ["$paymentStatus", "refunded"] }, "$totalAmount", 0],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const counts = statusBreakdown[0] || {};
+    const amounts = amountBreakdown[0] || {};
+
+    const grossPaid = Number(amounts.grossPaid || 0);
+    const refunded = Number(amounts.refunded || 0);
+    const refundRequired = Number(amounts.refundRequired || 0);
+
+    return res.status(200).json({
+      totals: {
+        bookingsCount: Number(counts.bookingsCount || 0),
+        grossPaid,
+        pendingPayment: Number(amounts.pendingPayment || 0),
+        refundRequired,
+        refunded,
+        settlementEstimate: Math.max(0, grossPaid - refunded - refundRequired),
+      },
+      counts: {
+        paymentStatus: {
+          created: Number(counts.created || 0),
+          paid: Number(counts.paid || 0),
+          failed: Number(counts.failed || 0),
+          refund_required: Number(counts.refund_required || 0),
+          refunded: Number(counts.refunded || 0),
+        },
+        bookingStatus: {
+          pending: Number(counts.pending || 0),
+          confirmed: Number(counts.confirmed || 0),
+          cancelled: Number(counts.cancelled || 0),
+          completed: Number(counts.completed || 0),
+        },
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -300,14 +487,18 @@ const getMyTripBookings = async (req, res) => {
     const status = String(req.query.status || "").trim();
 
     const trip = await Trip.findOne({ _id: tripId, organizerId: organizer._id })
-      .select("title source destination startDate endDate pricePerPerson totalSeats availableSeats status organizerId")
+      .select("_id organizerId")
       .lean();
 
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
     }
+    const reconciledTrip = await reconcileTripSeatInventory(trip._id);
+    if (!reconciledTrip || String(reconciledTrip.organizerId) !== String(organizer._id)) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
 
-    const bookingQuery = { tripId: trip._id };
+    const bookingQuery = { tripId: reconciledTrip._id };
     if (status) {
       bookingQuery.status = status;
     }
@@ -331,15 +522,48 @@ const getMyTripBookings = async (req, res) => {
     const revenueTotal = bookings
       .filter((booking) => booking?.paymentStatus === "paid" && booking?.status === "confirmed")
       .reduce((sum, booking) => sum + Math.max(0, Number(booking?.totalAmount || 0)), 0);
+    const paymentBreakdown = bookings.reduce(
+      (acc, booking) => {
+        const key = String(booking?.paymentStatus || "");
+        if (Object.prototype.hasOwnProperty.call(acc, key)) {
+          acc[key] += 1;
+        }
+        return acc;
+      },
+      {
+        created: 0,
+        paid: 0,
+        failed: 0,
+        refund_required: 0,
+        refunded: 0,
+      },
+    );
+    const bookingBreakdown = bookings.reduce(
+      (acc, booking) => {
+        const key = String(booking?.status || "");
+        if (Object.prototype.hasOwnProperty.call(acc, key)) {
+          acc[key] += 1;
+        }
+        return acc;
+      },
+      {
+        pending: 0,
+        confirmed: 0,
+        cancelled: 0,
+        completed: 0,
+      },
+    );
 
     return res.status(200).json({
-      trip,
+      trip: reconciledTrip,
       summary: {
         seatsBookedTotal,
-        seatsFilled: Math.max(0, Number(trip.totalSeats || 0) - Number(trip.availableSeats || 0)),
-        totalSeats: Number(trip.totalSeats || 0),
+        seatsFilled: Math.max(0, Number(reconciledTrip.totalSeats || 0) - Number(reconciledTrip.availableSeats || 0)),
+        totalSeats: Number(reconciledTrip.totalSeats || 0),
         revenueTotal,
         bookingsCount: bookings.length,
+        paymentBreakdown,
+        bookingBreakdown,
       },
       bookings,
     });
@@ -353,6 +577,7 @@ module.exports = {
   registerOrganizerProfile,
   getMyOrganizerProfile,
   getMyTripBookings,
+  getMyOrganizerFinance,
   getPublicOrganizerProfileByUserId,
   createOrganizerPost,
   getMyOrganizerPosts,

@@ -180,6 +180,14 @@ function App() {
               }
             />
             <Route
+              path="organizer/trips"
+              element={
+                <RoleRoute allowedRoles={["organizer"]}>
+                  <OrganizerDashboardPage />
+                </RoleRoute>
+              }
+            />
+            <Route
               path="organizer/trips/:tripId"
               element={
                 <RoleRoute allowedRoles={["organizer"]}>

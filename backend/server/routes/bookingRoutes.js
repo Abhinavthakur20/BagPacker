@@ -2,9 +2,11 @@ const express = require("express");
 const { body, param, query } = require("express-validator");
 const {
   cancelBooking,
+  cancelBookingByOrganizer,
   completeBooking,
   initiateBookingPayment,
   getMyBookings,
+  markBookingRefundedByOrganizer,
   verifyBookingPayment,
 } = require("../api/booking/bookingController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -65,6 +67,24 @@ router.put(
     validateRequest,
   ],
   completeBooking,
+);
+router.put(
+  "/:id/organizer-cancel",
+  [
+    roleMiddleware(["organizer"]),
+    param("id").isMongoId().withMessage("Valid booking id is required"),
+    validateRequest,
+  ],
+  cancelBookingByOrganizer,
+);
+router.put(
+  "/:id/mark-refunded",
+  [
+    roleMiddleware(["organizer"]),
+    param("id").isMongoId().withMessage("Valid booking id is required"),
+    validateRequest,
+  ],
+  markBookingRefundedByOrganizer,
 );
 
 module.exports = router;

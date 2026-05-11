@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { io } from "socket.io-client";
 import ReactMarkdown from "react-markdown";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api } from "../lib/api";
@@ -31,6 +31,7 @@ const getSocketUrl = () => {
 };
 
 export default function ChatPage() {
+  const [searchParams] = useSearchParams();
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = Boolean(token);
@@ -46,6 +47,7 @@ export default function ChatPage() {
   const [isMobileRoomsOpen, setIsMobileRoomsOpen] = useState(false);
   const socketRef = useRef(null);
   const loadedRoomsRef = useRef(new Set());
+  const requestedRoomId = String(searchParams.get("room") || "").trim();
   // Ref to track selectedRoomId inside socket event callbacks without stale closure
   const selectedRoomIdRef = useRef(selectedRoomId);
   useEffect(() => {
@@ -140,7 +142,19 @@ export default function ChatPage() {
       try {
         setIsLoading(true);
         setError("");
-        const companionResponse = await api.get("/companions/my");
+        let companionResponse = { sent: [], received: [] };
+        try {
+          companionResponse = await api.get("/companions/my");
+        } catch (companionError) {
+          const companionMessage = String(companionError?.message || "");
+          const shouldIgnoreCompanionError =
+            user?.role !== "traveler" ||
+            companionMessage.includes("not allowed") ||
+            companionMessage.includes("Route not found");
+          if (!shouldIgnoreCompanionError) {
+            throw companionError;
+          }
+        }
         let tripGroups = [];
         try {
           tripGroups = await api.get("/group-chats/my");
@@ -191,7 +205,15 @@ export default function ChatPage() {
           }, {}),
         );
         if (combinedContacts.length) {
-          setSelectedRoomId((current) => current || combinedContacts[0].id);
+          const hasRequestedRoom = requestedRoomId
+            ? combinedContacts.some((contact) => contact.id === requestedRoomId)
+            : false;
+          setSelectedRoomId((current) => {
+            if (hasRequestedRoom) {
+              return requestedRoomId;
+            }
+            return current || combinedContacts[0].id;
+          });
         }
       } catch (fetchError) {
         setError(fetchError.message);
@@ -203,7 +225,17 @@ export default function ChatPage() {
     // Reset loaded-rooms cache so switching accounts / re-login fetches fresh history
     loadedRoomsRef.current = new Set();
     loadRooms();
-  }, [isLoggedIn, user?._id]);
+  }, [isLoggedIn, requestedRoomId, user?._id, user?.role]);
+
+  useEffect(() => {
+    if (!requestedRoomId || !contacts.length) {
+      return;
+    }
+    const hasRequestedRoom = contacts.some((contact) => contact.id === requestedRoomId);
+    if (hasRequestedRoom) {
+      setSelectedRoomId(requestedRoomId);
+    }
+  }, [contacts, requestedRoomId]);
 
   useEffect(() => {
     // Emit join_room whenever the room changes AND the socket is ready.

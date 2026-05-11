@@ -4,6 +4,7 @@ const PickupPoint = require("../trip/pickupPointModel");
 const Trip = require("../trip/tripModel");
 const Organizer = require("../organizer/organizerModel");
 const { ensureTripGroupChat, addMemberToTripGroup } = require("../groupChat/groupChatController");
+const { reconcileTripsSeatInventory } = require("../trip/tripSeatSyncService");
 const { emitSeatUpdate } = require("../../socket/socket");
 const { sendMail } = require("../../utils/mailer");
 const crypto = require("crypto");
@@ -183,7 +184,9 @@ const getBookingTripAndPickup = async ({ tripId, pickupPointId }) => {
     throw new Error("Payments are disabled for this trip");
   }
 
-  return { trip, pickupPoint };
+  const [reconciledTrip] = await reconcileTripsSeatInventory([trip.toObject()]);
+
+  return { trip: reconciledTrip || trip.toObject(), pickupPoint };
 };
 
 const reserveTripSeats = async ({ tripId, seatsBooked }) =>
@@ -472,6 +475,110 @@ const cancelBooking = async (req, res) => {
   }
 };
 
+const getOrganizerBookingAndTrip = async ({ bookingId, organizerUserId }) => {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) {
+    return { error: { status: 404, message: "Booking not found" } };
+  }
+
+  const trip = await Trip.findById(booking.tripId).select("title organizerId");
+  if (!trip) {
+    return { error: { status: 404, message: "Trip not found" } };
+  }
+
+  const organizer = await Organizer.findById(trip.organizerId).select("userId");
+  if (!organizer || String(organizer.userId) !== String(organizerUserId)) {
+    return { error: { status: 403, message: "Only the trip organizer can perform this action" } };
+  }
+
+  return { booking, trip };
+};
+
+const cancelBookingByOrganizer = async (req, res) => {
+  try {
+    const payload = await getOrganizerBookingAndTrip({
+      bookingId: req.params.id,
+      organizerUserId: req.user._id,
+    });
+    if (payload.error) {
+      return res.status(payload.error.status).json({ message: payload.error.message });
+    }
+    const { booking, trip } = payload;
+
+    if (booking.status === "cancelled") {
+      return res.status(400).json({ message: "Booking is already cancelled" });
+    }
+    if (booking.status === "completed") {
+      return res.status(400).json({ message: "Completed bookings cannot be cancelled" });
+    }
+
+    const shouldReleaseSeats = booking.status === "confirmed";
+    if (booking.status === "confirmed" && booking.paymentStatus === "paid") {
+      booking.paymentStatus = "refund_required";
+    }
+
+    booking.status = "cancelled";
+    await booking.save();
+
+    const updatedTrip = shouldReleaseSeats
+      ? await Trip.findByIdAndUpdate(
+          booking.tripId,
+          { $inc: { availableSeats: booking.seatsBooked } },
+          { returnDocument: "after" },
+        )
+      : null;
+
+    await Notification.create({
+      userId: booking.travelerId,
+      type: "booking_cancelled",
+      message: `Your booking for ${trip?.title || "this trip"} was cancelled by the organizer.`,
+    });
+
+    if (updatedTrip) {
+      emitSeatUpdate(updatedTrip._id, updatedTrip.availableSeats);
+    }
+
+    const populatedBooking = await populateBookingForTraveler(Booking.findById(booking._id));
+    return res.status(200).json(populatedBooking);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const markBookingRefundedByOrganizer = async (req, res) => {
+  try {
+    const payload = await getOrganizerBookingAndTrip({
+      bookingId: req.params.id,
+      organizerUserId: req.user._id,
+    });
+    if (payload.error) {
+      return res.status(payload.error.status).json({ message: payload.error.message });
+    }
+    const { booking, trip } = payload;
+
+    if (booking.paymentStatus === "refunded") {
+      return res.status(400).json({ message: "Booking is already marked as refunded" });
+    }
+    if (booking.paymentStatus !== "refund_required") {
+      return res.status(400).json({ message: "Only refund-required bookings can be marked as refunded" });
+    }
+
+    booking.paymentStatus = "refunded";
+    await booking.save();
+
+    await Notification.create({
+      userId: booking.travelerId,
+      type: "trip_alert",
+      message: `Refund for your ${trip?.title || "trip"} booking has been marked as completed.`,
+    });
+
+    const populatedBooking = await populateBookingForTraveler(Booking.findById(booking._id));
+    return res.status(200).json(populatedBooking);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 const completeBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -529,5 +636,7 @@ module.exports = {
   verifyBookingPayment,
   getMyBookings,
   cancelBooking,
+  cancelBookingByOrganizer,
+  markBookingRefundedByOrganizer,
   completeBooking,
 };
