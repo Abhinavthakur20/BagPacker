@@ -3,6 +3,7 @@ const { param, query } = require("express-validator");
 const {
   getNotifications,
   markNotificationRead,
+  markAllNotificationsRead,
 } = require("../api/notification/notificationController");
 const authMiddleware = require("../middleware/authMiddleware");
 const validateRequest = require("../middleware/validateRequest");
@@ -32,5 +33,6 @@ router.put(
   [param("id").isMongoId().withMessage("Valid notification id is required"), validateRequest],
   markNotificationRead,
 );
+router.put("/read-all", markAllNotificationsRead);
 
 module.exports = router;

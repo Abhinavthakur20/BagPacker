@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { setUser } from "../store/authSlice";
 
@@ -41,6 +41,47 @@ const getOrganizerUserId = (booking) => {
   const organizer = booking?.tripId?.organizerId;
   const userId = organizer?.userId;
   return userId?._id || userId || organizer?._id || organizer || null;
+};
+
+const getTicketLifecycle = (booking) => {
+  const now = Date.now();
+  const bookingStatus = String(booking?.status || "").toLowerCase();
+  const tripStatus = String(booking?.tripId?.status || "").toLowerCase();
+  const startTs = new Date(booking?.tripId?.startDate || 0).getTime();
+  const endTs = new Date(booking?.tripId?.endDate || 0).getTime();
+
+  if (bookingStatus === "cancelled" || tripStatus === "cancelled") {
+    return {
+      label: "Cancelled",
+      badgeClass: "bg-error-container text-error",
+    };
+  }
+
+  if (bookingStatus === "completed" || tripStatus === "completed") {
+    return {
+      label: "Completed",
+      badgeClass: "bg-primary/10 text-primary",
+    };
+  }
+
+  if (Number.isFinite(endTs) && endTs < now) {
+    return {
+      label: "Expired",
+      badgeClass: "bg-warning-container text-on-warning-container",
+    };
+  }
+
+  if (Number.isFinite(startTs) && startTs <= now) {
+    return {
+      label: "In Progress",
+      badgeClass: "bg-secondary text-on-secondary",
+    };
+  }
+
+  return {
+    label: "Active",
+    badgeClass: "bg-secondary text-on-secondary",
+  };
 };
 
 export default function TravelerDashboardPage() {
@@ -144,13 +185,7 @@ export default function TravelerDashboardPage() {
   const markAllNotificationsRead = async () => {
     try {
       setError("");
-      // Using Promise.all to mark all unread as read if there is no bulk endpoint
-      // Assuming api.put(`/notifications/read-all`, {}) exists or just looping
-      const unread = notifications.filter((n) => !n.isRead);
-      if (unread.length === 0) return;
-
-      await Promise.all(unread.map((n) => api.put(`/notifications/${n._id}/read`, {})));
-
+      await api.put("/notifications/read-all", {});
       setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
     } catch (requestError) {
       setError(requestError.message);
@@ -519,6 +554,7 @@ export default function TravelerDashboardPage() {
                   <section className="grid gap-8 lg:grid-cols-2">
                     {confirmedTickets.map((booking) => {
                       const ticketCode = getTicketCode(booking);
+                      const ticketLifecycle = getTicketLifecycle(booking);
                       return (
                         <article key={booking._id} className="relative overflow-hidden rounded-[2.5rem] border border-outline-variant/20 bg-surface p-8 shadow-sm">
                           <div className="flex items-start justify-between">
@@ -526,7 +562,9 @@ export default function TravelerDashboardPage() {
                               <h4 className="truncate font-headline text-lg font-black text-on-surface">{booking.tripId?.title}</h4>
                               <p className="text-xs font-bold text-primary uppercase tracking-widest mt-1">{booking.tripId?.source} → {booking.tripId?.destination}</p>
                             </div>
-                            <div className="rounded-full bg-secondary px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-secondary">Ticket Active</div>
+                            <div className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest ${ticketLifecycle.badgeClass}`}>
+                              {ticketLifecycle.label}
+                            </div>
                           </div>
 
                           <div className="mt-8 grid grid-cols-2 gap-6 border-y border-outline-variant/10 py-6">
@@ -553,7 +591,9 @@ export default function TravelerDashboardPage() {
                               <span className="material-symbols-outlined text-secondary">verified</span>
                               <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Digital Boarding Pass</p>
                             </div>
-                            <button className="rounded-xl bg-primary/5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition">Download PDF</button>
+                            <span className="rounded-xl bg-surface-container-low px-3 py-2 text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                              PDF coming soon
+                            </span>
                           </div>
                         </article>
                       );
@@ -593,8 +633,8 @@ export default function TravelerDashboardPage() {
                     {recommendedTrips.map((trip) => (
                       <article key={trip._id} className="group overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface transition hover:shadow-xl">
                         <div className="aspect-[4/3] bg-surface-container-high overflow-hidden">
-                          {trip.media?.length > 0 ? (
-                            <img src={trip.media[0]} alt={trip.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+                          {trip.images?.length > 0 ? (
+                            <img src={resolveMediaUrl(trip.images[0])} alt={trip.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
                           ) : (
                             <div className="flex h-full items-center justify-center text-outline-variant">
                               <span className="material-symbols-outlined text-5xl">image</span>

@@ -107,14 +107,57 @@ const updateVerificationStatus = async (req, res) => {
   }
 };
 
-const getReports = async (_req, res) => {
+const getReports = async (req, res) => {
   try {
-    const reports = await Report.find()
-      .sort({ createdAt: -1 })
-      .populate("reportedBy", "name")
-      .populate("reportedUserId", "name");
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
+    const skip = (page - 1) * limit;
+    const query = {};
 
-    return res.status(200).json(reports);
+    if (req.query.status) {
+      query.status = String(req.query.status).trim();
+    }
+
+    const [reports, total, statusSummary] = await Promise.all([
+      Report.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("reportedBy", "name email")
+        .populate("reportedUserId", "name email"),
+      Report.countDocuments(query),
+      Report.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const summary = statusSummary.reduce(
+      (acc, item) => {
+        const status = String(item?._id || "unknown");
+        acc.byStatus[status] = Number(item?.count || 0);
+        if (status !== "resolved") {
+          acc.open += Number(item?.count || 0);
+        }
+        return acc;
+      },
+      { byStatus: {}, open: 0 },
+    );
+
+    return res.status(200).json({
+      items: reports,
+      summary,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

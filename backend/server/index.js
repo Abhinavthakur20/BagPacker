@@ -23,6 +23,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 const { initSocket } = require("./socket/socket");
 
 const app = express();
@@ -120,6 +121,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (_req, res) => {

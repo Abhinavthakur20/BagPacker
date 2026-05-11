@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
   const [moderationSection, setModerationSection] = useState("users");
   const [users, setUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
-  const [userLimit, setUserLimit] = useState(50);
+  const [userLimit] = useState(50);
   const [userPagination, setUserPagination] = useState({
     page: 1,
     limit: 50,
@@ -64,13 +64,20 @@ export default function AdminDashboardPage() {
   const [verificationPage, setVerificationPage] = useState(1);
   const [reports, setReports] = useState([]);
   const [reportPage, setReportPage] = useState(1);
+  const [reportStatusFilter, setReportStatusFilter] = useState("all");
+  const [reportPagination, setReportPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+  });
+  const [reportSummary, setReportSummary] = useState({ byStatus: {}, open: 0 });
   const [tripListings, setTripListings] = useState([]);
   const [paymentMonitor, setPaymentMonitor] = useState({ items: [], summary: {} });
   const [joinActivity, setJoinActivity] = useState({
     companionRequests: [],
     bookingStatusSummary: {},
   });
-  const [reviewsOverview, setReviewsOverview] = useState({ items: [], summary: {} });
   const [operationsSection, setOperationsSection] = useState("trips");
   const [opsLoaded, setOpsLoaded] = useState(false);
   const [opsLoading, setOpsLoading] = useState(false);
@@ -89,19 +96,12 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const loadAdminData = async () => {
+  const loadUsersData = useCallback(async () => {
     if (!isLoggedIn) return;
-
     try {
       setIsLoading(true);
       setError("");
-      const [allUsers, organizers, verifications, userReports] = await Promise.all([
-          api.get(`/admin/users?page=${userPage}&limit=${userLimit}`),
-          api.get("/admin/organizers/pending"),
-          api.get("/admin/verifications/pending"),
-          api.get("/admin/reports"),
-        ]);
-
+      const allUsers = await api.get(`/admin/users?page=${userPage}&limit=${userLimit}`);
       setUsers(Array.isArray(allUsers?.items) ? allUsers.items : []);
       setUserPagination({
         page: Number(allUsers?.pagination?.page || userPage),
@@ -109,19 +109,63 @@ export default function AdminDashboardPage() {
         total: Number(allUsers?.pagination?.total || 0),
         totalPages: Math.max(1, Number(allUsers?.pagination?.totalPages || 1)),
       });
-      setPendingOrganizers(Array.isArray(organizers) ? organizers : []);
-      setPendingVerifications(Array.isArray(verifications) ? verifications : []);
-      setReports(Array.isArray(userReports) ? userReports : []);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoggedIn, userPage, userLimit]);
+
+  const loadModerationData = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      setIsLoading(true);
+      setError("");
+      const reportQuery = new URLSearchParams({
+        page: String(reportPage),
+        limit: String(reportPagination.limit),
+      });
+      if (reportStatusFilter !== "all") {
+        reportQuery.set("status", reportStatusFilter);
+      }
+      const [organizers, verifications, userReports] = await Promise.all([
+        api.get("/admin/organizers/pending"),
+        api.get("/admin/verifications/pending"),
+        api.get(`/admin/reports?${reportQuery.toString()}`),
+      ]);
+
+      setPendingOrganizers(Array.isArray(organizers) ? organizers : []);
+      setPendingVerifications(Array.isArray(verifications) ? verifications : []);
+      setReports(Array.isArray(userReports?.items) ? userReports.items : []);
+      setReportPagination({
+        page: Number(userReports?.pagination?.page || reportPage),
+        limit: Number(userReports?.pagination?.limit || reportPagination.limit),
+        total: Number(userReports?.pagination?.total || 0),
+        totalPages: Math.max(1, Number(userReports?.pagination?.totalPages || 1)),
+      });
+      setReportSummary(
+        userReports?.summary && typeof userReports.summary === "object"
+          ? userReports.summary
+          : { byStatus: {}, open: 0 },
+      );
+    } catch (fetchError) {
+      setError(fetchError.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoggedIn, reportPage, reportPagination.limit, reportStatusFilter]);
+
+  const loadAdminData = useCallback(async () => {
+    await Promise.all([loadUsersData(), loadModerationData()]);
+  }, [loadModerationData, loadUsersData]);
 
   useEffect(() => {
-    loadAdminData();
-  }, [isLoggedIn, userPage, userLimit]);
+    loadUsersData();
+  }, [loadUsersData]);
+
+  useEffect(() => {
+    loadModerationData();
+  }, [loadModerationData]);
 
   const moderationLimit = 20;
   const organizerSlice = useMemo(
@@ -131,10 +175,6 @@ export default function AdminDashboardPage() {
   const verificationSlice = useMemo(
     () => paginateItems(pendingVerifications, verificationPage, moderationLimit),
     [pendingVerifications, verificationPage],
-  );
-  const reportSlice = useMemo(
-    () => paginateItems(reports, reportPage, moderationLimit),
-    [reports, reportPage],
   );
 
   useEffect(() => {
@@ -146,17 +186,21 @@ export default function AdminDashboardPage() {
   }, [verificationSlice.totalPages]);
 
   useEffect(() => {
-    setReportPage((current) => Math.min(current, reportSlice.totalPages));
-  }, [reportSlice.totalPages]);
+    setReportPage((current) => Math.min(current, reportPagination.totalPages));
+  }, [reportPagination.totalPages]);
+
+  useEffect(() => {
+    setReportPage(1);
+  }, [reportStatusFilter]);
 
   const stats = useMemo(
     () => [
       ["Users", userPagination.total, "groups"],
       ["Pending Organizers", pendingOrganizers.length, "pending_actions"],
-      ["Open Reports", reports.filter((item) => item.status !== "resolved").length, "gavel"],
+      ["Open Reports", safeNumber(reportSummary?.open), "gavel"],
       ["Paid Bookings", safeNumber(paymentMonitor?.summary?.paid?.count), "payments"],
     ],
-    [userPagination.total, pendingOrganizers, reports, paymentMonitor],
+    [userPagination.total, pendingOrganizers, reportSummary, paymentMonitor],
   );
 
   const updateOrganizerStatus = async (id, approvalStatus) => {
@@ -212,7 +256,7 @@ export default function AdminDashboardPage() {
       await api.put(`/admin/reports/${id}/resolve`, { adminAction });
       setSuccessMessage(`Report resolved with action: ${adminAction}.`);
       await showSuccessAlert("Report resolved", `Action applied: ${adminAction}.`);
-      await loadAdminData();
+      await Promise.all([loadModerationData(), loadUsersData()]);
     } catch (requestError) {
       setError(requestError.message);
       await showErrorAlert("Action failed", requestError.message);
@@ -231,7 +275,7 @@ export default function AdminDashboardPage() {
       await api.put(`/admin/trip-listings/${id}/lifecycle`, { action });
       setSuccessMessage(`Trip updated with action: ${action}.`);
       await showSuccessAlert("Trip updated", `Action applied: ${action}.`);
-      await loadAdminData();
+      await Promise.all([loadAdminData(), loadOperationsData()]);
     } catch (requestError) {
       setError(requestError.message);
       await showErrorAlert("Action failed", requestError.message);
@@ -349,13 +393,13 @@ export default function AdminDashboardPage() {
   const fromTs = toTimestamp(operationsFrom ? `${operationsFrom}T00:00:00` : null);
   const toTs = toTimestamp(operationsTo ? `${operationsTo}T23:59:59.999` : null);
 
-  const isInDateRange = (value) => {
+  const isInDateRange = useCallback((value) => {
     const timestamp = toTimestamp(value);
     if ((fromTs || toTs) && timestamp === null) return false;
     if (fromTs && timestamp < fromTs) return false;
     if (toTs && timestamp > toTs) return false;
     return true;
-  };
+  }, [fromTs, toTs]);
 
   const filteredTrips = useMemo(
     () =>
@@ -388,7 +432,7 @@ export default function AdminDashboardPage() {
           .toLowerCase();
         return haystack.includes(operationsQuery);
       }),
-    [tripListings, tripStatusFilter, tripPaymentFilter, operationsQuery, fromTs, toTs],
+    [tripListings, tripStatusFilter, tripPaymentFilter, operationsQuery, isInDateRange],
   );
 
   const filteredJoinRequests = useMemo(
@@ -418,7 +462,7 @@ export default function AdminDashboardPage() {
           .toLowerCase();
         return haystack.includes(operationsQuery);
       }),
-    [joinActivity, joinStatusFilter, operationsQuery, fromTs, toTs],
+    [joinActivity, joinStatusFilter, operationsQuery, isInDateRange],
   );
 
   const filteredPayments = useMemo(
@@ -447,7 +491,7 @@ export default function AdminDashboardPage() {
           .toLowerCase();
         return haystack.includes(operationsQuery);
       }),
-    [paymentMonitor, paymentStatusFilter, operationsQuery, fromTs, toTs],
+    [paymentMonitor, paymentStatusFilter, operationsQuery, isInDateRange],
   );
 
   const tripSlice = useMemo(() => paginateItems(filteredTrips, tripPage, 20), [filteredTrips, tripPage]);
@@ -603,7 +647,19 @@ export default function AdminDashboardPage() {
                   <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant">System Live</span>
                 </div>
                 <button
-                  onClick={loadAdminData}
+                  onClick={() => {
+                    if (activeTab === "operations") {
+                      loadOperationsData();
+                      return;
+                    }
+                    if (activeTab === "moderation") {
+                      loadModerationData();
+                      loadUsersData();
+                      return;
+                    }
+                    loadAdminData();
+                    loadOperationsData();
+                  }}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition hover:bg-surface-container-highest"
                   title="Refresh Data"
                 >
@@ -901,101 +957,281 @@ export default function AdminDashboardPage() {
 
                     {/* Section: Organizers */}
                     {moderationSection === "organizers" && (
-                      <div className="grid gap-6 sm:grid-cols-2">
-                        {pendingOrganizers.map((org) => (
-                          <article key={org._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
-                            <div className="flex gap-4">
-                              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-                                <span className="material-symbols-outlined text-[2rem]">store</span>
+                      <div className="space-y-6">
+                        <div className="grid gap-6 sm:grid-cols-2">
+                          {organizerSlice.items.map((org) => (
+                            <article key={org._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                              <div className="flex gap-4">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+                                  <span className="material-symbols-outlined text-[2rem]">store</span>
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="truncate text-lg font-black text-on-surface">{org.businessName}</h4>
+                                  <p className="text-xs text-on-surface-variant">{org.userId?.name}</p>
+                                  <p className="text-[10px] text-on-surface-variant/50">{org.userId?.email}</p>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <h4 className="truncate text-lg font-black text-on-surface">{org.businessName}</h4>
-                                <p className="text-xs text-on-surface-variant">{org.userId?.name}</p>
-                                <p className="text-[10px] text-on-surface-variant/50">{org.userId?.email}</p>
+                              <div className="mt-8 flex gap-3">
+                                <button
+                                  onClick={() => updateOrganizerStatus(org._id, "approved")}
+                                  className="flex-1 rounded-2xl bg-primary py-3.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-lg transition hover:scale-[1.02]"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => updateOrganizerStatus(org._id, "rejected")}
+                                  className="rounded-2xl border border-error/20 bg-error-container/20 px-6 py-3.5 text-xs font-black uppercase tracking-widest text-error hover:bg-error-container/40 transition"
+                                >
+                                  Reject
+                                </button>
                               </div>
+                            </article>
+                          ))}
+                          {organizerSlice.total === 0 && (
+                            <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-outline-variant/40">
+                              <span className="material-symbols-outlined text-5xl text-outline-variant">inventory_2</span>
+                              <p className="mt-4 text-sm font-bold text-on-surface-variant/50 uppercase tracking-widest">No Pending Approvals</p>
                             </div>
-                            <div className="mt-8 flex gap-3">
-                              <button
-                                onClick={() => updateOrganizerStatus(org._id, "approved")}
-                                className="flex-1 rounded-2xl bg-primary py-3.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-lg transition hover:scale-[1.02]"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => updateOrganizerStatus(org._id, "rejected")}
-                                className="rounded-2xl border border-error/20 bg-error-container/20 px-6 py-3.5 text-xs font-black uppercase tracking-widest text-error hover:bg-error-container/40 transition"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </article>
-                        ))}
-                        {pendingOrganizers.length === 0 && (
-                          <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-outline-variant/40">
-                            <span className="material-symbols-outlined text-5xl text-outline-variant">inventory_2</span>
-                            <p className="mt-4 text-sm font-bold text-on-surface-variant/50 uppercase tracking-widest">No Pending Approvals</p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                            Page {organizerSlice.page} of {organizerSlice.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setOrganizerPage((current) => Math.max(1, current - 1))}
+                              disabled={organizerSlice.page <= 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() =>
+                                setOrganizerPage((current) =>
+                                  Math.min(organizerSlice.totalPages, current + 1),
+                                )
+                              }
+                              disabled={organizerSlice.page >= organizerSlice.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Next
+                            </button>
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
 
                     {/* Section: Verifications */}
                     {moderationSection === "verifications" && (
-                      <div className="grid gap-6 lg:grid-cols-2">
-                        {pendingVerifications.map((v) => (
-                          <article key={v._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
-                            <div className="flex items-start justify-between">
-                              <div className="min-w-0">
-                                <h4 className="truncate text-lg font-black text-on-surface">{v.name}</h4>
-                                <p className="text-xs text-on-surface-variant">{v.email}</p>
+                      <div className="space-y-6">
+                        <div className="grid gap-6 lg:grid-cols-2">
+                          {verificationSlice.items.map((v) => (
+                            <article key={v._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                              <div className="flex items-start justify-between">
+                                <div className="min-w-0">
+                                  <h4 className="truncate text-lg font-black text-on-surface">{v.name}</h4>
+                                  <p className="text-xs text-on-surface-variant">{v.email}</p>
+                                </div>
+                                <span className="rounded-full bg-blue-100 px-3 py-1 text-[9px] font-black uppercase text-blue-700">Identity Audit</span>
                               </div>
-                              <span className="rounded-full bg-blue-100 px-3 py-1 text-[9px] font-black uppercase text-blue-700">Identity Audit</span>
-                            </div>
 
-                            <div className="mt-6 overflow-hidden rounded-2xl bg-surface-container border border-outline-variant/10">
-                              {v.governmentIdUrl ? (
-                                <div className="relative group aspect-video">
-                                  <img
-                                    src={resolveMediaUrl(v.governmentIdUrl)}
-                                    alt="User ID"
-                                    className="h-full w-full object-cover transition duration-500 blur-sm group-hover:blur-0"
-                                  />
-                                  <div className="absolute inset-0 flex items-center justify-center bg-on-surface/40 opacity-100 transition group-hover:opacity-0">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-white">Click to inspect document</p>
+                              <div className="mt-6 overflow-hidden rounded-2xl bg-surface-container border border-outline-variant/10">
+                                {v.governmentIdUrl ? (
+                                  <div className="relative group aspect-video">
+                                    <img
+                                      src={resolveMediaUrl(v.governmentIdUrl)}
+                                      alt="User ID"
+                                      className="h-full w-full object-cover transition duration-500 blur-sm group-hover:blur-0"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-on-surface/40 opacity-100 transition group-hover:opacity-0">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-white">Click to inspect document</p>
+                                    </div>
+                                    <a
+                                      href={resolveMediaUrl(v.governmentIdUrl)}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="absolute bottom-4 right-4 rounded-xl bg-surface/90 p-2 text-primary shadow-xl hover:bg-white"
+                                    >
+                                      <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                    </a>
                                   </div>
-                                  <a
-                                    href={resolveMediaUrl(v.governmentIdUrl)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="absolute bottom-4 right-4 rounded-xl bg-surface/90 p-2 text-primary shadow-xl hover:bg-white"
-                                  >
-                                    <span className="material-symbols-outlined text-sm">open_in_new</span>
-                                  </a>
-                                </div>
-                              ) : (
-                                <div className="flex h-48 items-center justify-center">
-                                  <p className="text-xs font-bold text-on-surface-variant/40 italic">No document image provided</p>
-                                </div>
-                              )}
-                            </div>
+                                ) : (
+                                  <div className="flex h-48 items-center justify-center">
+                                    <p className="text-xs font-bold text-on-surface-variant/40 italic">No document image provided</p>
+                                  </div>
+                                )}
+                              </div>
 
-                            <div className="mt-6 flex gap-3">
-                              <button
-                                onClick={() => updateVerificationStatus(v._id, "verified")}
-                                className="flex-1 rounded-2xl bg-secondary py-3.5 text-xs font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
-                              >
-                                Confirm Verification
-                              </button>
-                              <button
-                                onClick={() => updateVerificationStatus(v._id, "rejected")}
-                                className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-6 py-3.5 text-xs font-black uppercase tracking-widest text-on-surface hover:bg-surface-container-high transition"
-                              >
-                                Reject
-                              </button>
+                              <div className="mt-6 flex gap-3">
+                                <button
+                                  onClick={() => updateVerificationStatus(v._id, "verified")}
+                                  className="flex-1 rounded-2xl bg-secondary py-3.5 text-xs font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
+                                >
+                                  Confirm Verification
+                                </button>
+                                <button
+                                  onClick={() => updateVerificationStatus(v._id, "rejected")}
+                                  className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-6 py-3.5 text-xs font-black uppercase tracking-widest text-on-surface hover:bg-surface-container-high transition"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                          {verificationSlice.total === 0 && (
+                            <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-outline-variant/40">
+                              <span className="material-symbols-outlined text-5xl text-outline-variant">fact_check</span>
+                              <p className="mt-4 text-sm font-bold text-on-surface-variant/50 uppercase tracking-widest">No Pending Verification Docs</p>
                             </div>
-                          </article>
-                        ))}
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                            Page {verificationSlice.page} of {verificationSlice.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setVerificationPage((current) => Math.max(1, current - 1))}
+                              disabled={verificationSlice.page <= 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() =>
+                                setVerificationPage((current) =>
+                                  Math.min(verificationSlice.totalPages, current + 1),
+                                )
+                              }
+                              disabled={verificationSlice.page >= verificationSlice.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    )}
+
+                    {/* Section: Reports */}
+                    {moderationSection === "reports" && (
+                      <section className="space-y-6">
+                        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 p-4">
+                          <select
+                            value={reportStatusFilter}
+                            onChange={(event) => setReportStatusFilter(event.target.value)}
+                            className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-2 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          >
+                            <option value="all">All statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="under_review">Under review</option>
+                            <option value="resolved">Resolved</option>
+                          </select>
+                          <button
+                            onClick={() =>
+                              exportRows(
+                                "admin-reports.csv",
+                                ["Reported At", "Reporter", "Reported User", "Status", "Admin Action", "Reason"],
+                                reports.map((item) => [
+                                  new Date(item.createdAt).toISOString(),
+                                  item.reportedBy?.email || item.reportedBy?.name || "Unknown",
+                                  item.reportedUserId?.email || item.reportedUserId?.name || "Unknown",
+                                  item.status || "",
+                                  item.adminAction || "",
+                                  item.reason || "",
+                                ]),
+                              )
+                            }
+                            className="rounded-xl bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-primary/20"
+                          >
+                            Export CSV
+                          </button>
+                          <div className="ml-auto flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                            <span>Open:</span>
+                            <span className="rounded-full bg-warning-container px-2 py-0.5 text-on-warning-container">
+                              {safeNumber(reportSummary?.open)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {reports.map((item) => (
+                            <article key={item._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-5 shadow-sm">
+                              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="rounded-full bg-surface-container-high px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                                      {item.status || "pending"}
+                                    </span>
+                                    {item.adminAction && (
+                                      <span className="rounded-full bg-primary/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-primary">
+                                        {item.adminAction}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-3 text-sm font-bold text-on-surface">
+                                    {item.reportedBy?.name || "Unknown Reporter"} reported {item.reportedUserId?.name || "Unknown User"}
+                                  </p>
+                                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                                    {item.reportedBy?.email || "No reporter email"} • {item.reportedUserId?.email || "No reported email"}
+                                  </p>
+                                  <p className="mt-4 rounded-2xl bg-surface-container-low p-4 text-sm text-on-surface-variant">
+                                    {item.reason}
+                                  </p>
+                                </div>
+                                {item.status !== "resolved" && (
+                                  <div className="grid shrink-0 grid-cols-2 gap-2 md:w-52">
+                                    {["warning", "suspension", "ban", "dismissed"].map((action) => (
+                                      <button
+                                        key={action}
+                                        onClick={() => resolveReport(item._id, action)}
+                                        className="rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-2 text-[9px] font-black uppercase tracking-widest text-on-surface transition hover:bg-surface-container-high"
+                                      >
+                                        {action}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </article>
+                          ))}
+                          {reports.length === 0 && (
+                            <div className="rounded-3xl border border-dashed border-outline-variant/30 py-16 text-center">
+                              <span className="material-symbols-outlined text-5xl text-outline-variant">flag</span>
+                              <p className="mt-3 text-xs font-black uppercase tracking-widest text-on-surface-variant/50">
+                                No reports found
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                            Page {reportPagination.page} of {reportPagination.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setReportPage((current) => Math.max(1, current - 1))}
+                              disabled={reportPagination.page <= 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() =>
+                                setReportPage((current) =>
+                                  Math.min(reportPagination.totalPages, current + 1),
+                                )
+                              }
+                              disabled={reportPagination.page >= reportPagination.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </section>
                     )}
                   </div>
                 )}
@@ -1028,28 +1264,72 @@ export default function AdminDashboardPage() {
                     {/* Section: Trip Lifecycle */}
                     {operationsSection === "trips" && (
                       <div className="space-y-6">
-                        <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-surface-container-low/50 p-6 border border-outline-variant/10">
-                          <div className="relative flex-1 min-w-[240px]">
+                        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-outline-variant/10 bg-surface-container-low/50 p-5">
+                          <div className="relative min-w-[220px] flex-1">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">search</span>
                             <input
                               type="text"
                               value={operationsSearch}
-                              onChange={(e) => setOperationsSearch(e.target.value)}
-                              placeholder="Search by trip code, title, or destination..."
-                              className="w-full rounded-2xl bg-surface py-3 pl-12 pr-6 text-sm text-on-surface outline-none border border-outline-variant/20 focus:border-primary/40 shadow-sm transition"
+                              onChange={(event) => setOperationsSearch(event.target.value)}
+                              placeholder="Search trips, route, organizer..."
+                              className="w-full rounded-2xl border border-outline-variant/20 bg-surface py-3 pl-12 pr-4 text-sm text-on-surface outline-none transition focus:border-primary/40"
                             />
                           </div>
                           <select
                             value={tripStatusFilter}
-                            onChange={(e) => setTripStatusFilter(e.target.value)}
-                            className="rounded-2xl bg-surface px-5 py-3 text-xs font-black uppercase text-on-surface-variant outline-none border border-outline-variant/20 shadow-sm"
+                            onChange={(event) => setTripStatusFilter(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
                           >
-                            <option value="all">Every State</option>
-                            {tripStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            <option value="all">All lifecycle</option>
+                            {tripStatusOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
                           </select>
+                          <select
+                            value={tripPaymentFilter}
+                            onChange={(event) => setTripPaymentFilter(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          >
+                            <option value="all">Payment all</option>
+                            <option value="enabled">Payment enabled</option>
+                            <option value="disabled">Payment disabled</option>
+                          </select>
+                          <input
+                            type="date"
+                            value={operationsFrom}
+                            onChange={(event) => setOperationsFrom(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          />
+                          <input
+                            type="date"
+                            value={operationsTo}
+                            onChange={(event) => setOperationsTo(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          />
+                          <button
+                            onClick={() =>
+                              exportRows(
+                                "trip-lifecycle.csv",
+                                ["Created At", "Trip", "Route", "Status", "Payment", "Organizer"],
+                                filteredTrips.map((trip) => [
+                                  new Date(trip.createdAt || trip.startedAt || Date.now()).toISOString(),
+                                  trip.title || "",
+                                  `${trip.source || ""} -> ${trip.destination || ""}`,
+                                  trip.status || "",
+                                  trip.paymentEnabled === false ? "disabled" : "enabled",
+                                  trip.organizerId?.businessName || "",
+                                ]),
+                              )
+                            }
+                            className="rounded-2xl bg-primary/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-primary/20"
+                          >
+                            Export CSV
+                          </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                           {tripSlice.items.map((trip) => (
                             <article key={trip._id} className="rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-sm transition hover:shadow-md">
                               <div className="flex items-start justify-between">
@@ -1098,13 +1378,260 @@ export default function AdminDashboardPage() {
                               </div>
                             </article>
                           ))}
+                          {tripSlice.items.length === 0 && (
+                            <div className="col-span-full rounded-3xl border border-dashed border-outline-variant/30 py-16 text-center">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                                No trips match filters
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                            Page {tripSlice.page} of {tripSlice.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setTripPage((current) => Math.max(1, current - 1))}
+                              disabled={tripSlice.page <= 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() => setTripPage((current) => Math.min(tripSlice.totalPages, current + 1))}
+                              disabled={tripSlice.page >= tripSlice.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Next
+                            </button>
+                          </div>
                         </div>
                       </div>
+                    )}
+
+                    {/* Section: Community Activity */}
+                    {operationsSection === "join" && (
+                      <section className="space-y-6">
+                        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-outline-variant/10 bg-surface-container-low/50 p-5">
+                          <div className="relative min-w-[220px] flex-1">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">search</span>
+                            <input
+                              type="text"
+                              value={operationsSearch}
+                              onChange={(event) => setOperationsSearch(event.target.value)}
+                              placeholder="Search companion requests..."
+                              className="w-full rounded-2xl border border-outline-variant/20 bg-surface py-3 pl-12 pr-4 text-sm text-on-surface outline-none transition focus:border-primary/40"
+                            />
+                          </div>
+                          <select
+                            value={joinStatusFilter}
+                            onChange={(event) => setJoinStatusFilter(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          >
+                            <option value="all">All statuses</option>
+                            {joinStatusOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="date"
+                            value={operationsFrom}
+                            onChange={(event) => setOperationsFrom(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          />
+                          <input
+                            type="date"
+                            value={operationsTo}
+                            onChange={(event) => setOperationsTo(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          />
+                          <button
+                            onClick={() =>
+                              exportRows(
+                                "community-activity.csv",
+                                ["Requested At", "Requester", "Receiver", "Route", "Travel Date", "Status"],
+                                filteredJoinRequests.map((item) => [
+                                  new Date(item.createdAt || Date.now()).toISOString(),
+                                  item.requesterId?.email || item.requesterId?.name || "",
+                                  item.receiverId?.email || item.receiverId?.name || "",
+                                  `${item.source || ""} -> ${item.destination || ""}`,
+                                  item.travelDate ? new Date(item.travelDate).toISOString() : "",
+                                  item.status || "",
+                                ]),
+                              )
+                            }
+                            className="rounded-2xl bg-primary/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-primary/20"
+                          >
+                            Export CSV
+                          </button>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          {Object.entries(joinActivity?.bookingStatusSummary || {}).map(([status, count]) => (
+                            <article key={status} className="rounded-2xl border border-outline-variant/10 bg-surface p-4">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                                Booking {status}
+                              </p>
+                              <p className="mt-2 font-headline text-2xl font-black text-primary">{safeNumber(count)}</p>
+                            </article>
+                          ))}
+                        </div>
+
+                        <div className="hidden overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface shadow-sm md:block">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                              <thead className="bg-surface-container-low/50">
+                                <tr>
+                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Requester</th>
+                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Receiver</th>
+                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Route</th>
+                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Travel Date</th>
+                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-outline-variant/5">
+                                {joinSlice.items.map((item) => (
+                                  <tr key={item._id} className="transition hover:bg-surface-container-lowest">
+                                    <td className="px-6 py-4">
+                                      <p className="text-sm font-bold text-on-surface">{item.requesterId?.name || "Unknown"}</p>
+                                      <p className="text-[10px] text-on-surface-variant/60">{item.requesterId?.email || ""}</p>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <p className="text-sm font-bold text-on-surface">{item.receiverId?.name || "Unknown"}</p>
+                                      <p className="text-[10px] text-on-surface-variant/60">{item.receiverId?.email || ""}</p>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm font-bold text-on-surface-variant">
+                                      {item.source} → {item.destination}
+                                    </td>
+                                    <td className="px-6 py-4 text-xs font-bold text-on-surface-variant">
+                                      {item.travelDate ? new Date(item.travelDate).toLocaleDateString() : "TBD"}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <span className="rounded-full bg-surface-container-high px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                                        {item.status || "pending"}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 md:hidden">
+                          {joinSlice.items.map((item) => (
+                            <article key={item._id} className="rounded-3xl border border-outline-variant/10 bg-surface p-5 shadow-sm">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-on-surface">{item.source} → {item.destination}</p>
+                                <span className="rounded-full bg-surface-container-high px-3 py-1 text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                                  {item.status || "pending"}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                                {item.travelDate ? new Date(item.travelDate).toLocaleDateString() : "Travel date TBD"}
+                              </p>
+                              <p className="mt-4 text-xs text-on-surface-variant">
+                                {item.requesterId?.name || "Unknown"} → {item.receiverId?.name || "Unknown"}
+                              </p>
+                            </article>
+                          ))}
+                        </div>
+
+                        {joinSlice.items.length === 0 && (
+                          <div className="rounded-3xl border border-dashed border-outline-variant/30 py-16 text-center">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                              No community requests match filters
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                            Page {joinSlice.page} of {joinSlice.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setJoinPage((current) => Math.max(1, current - 1))}
+                              disabled={joinSlice.page <= 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() => setJoinPage((current) => Math.min(joinSlice.totalPages, current + 1))}
+                              disabled={joinSlice.page >= joinSlice.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </section>
                     )}
 
                     {/* Section: Payments Ledger */}
                     {operationsSection === "payments" && (
                       <section className="space-y-4">
+                        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-outline-variant/10 bg-surface-container-low/50 p-5">
+                          <div className="relative min-w-[220px] flex-1">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">search</span>
+                            <input
+                              type="text"
+                              value={operationsSearch}
+                              onChange={(event) => setOperationsSearch(event.target.value)}
+                              placeholder="Search traveler, trip, payment..."
+                              className="w-full rounded-2xl border border-outline-variant/20 bg-surface py-3 pl-12 pr-4 text-sm text-on-surface outline-none transition focus:border-primary/40"
+                            />
+                          </div>
+                          <select
+                            value={paymentStatusFilter}
+                            onChange={(event) => setPaymentStatusFilter(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          >
+                            <option value="all">All payment status</option>
+                            {paymentStatusOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="date"
+                            value={operationsFrom}
+                            onChange={(event) => setOperationsFrom(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          />
+                          <input
+                            type="date"
+                            value={operationsTo}
+                            onChange={(event) => setOperationsTo(event.target.value)}
+                            className="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3 text-xs font-black uppercase text-on-surface-variant outline-none"
+                          />
+                          <button
+                            onClick={() =>
+                              exportRows(
+                                "payment-ledger.csv",
+                                ["Created At", "Traveler", "Trip", "Amount", "Currency", "Payment Status", "Booking Status"],
+                                filteredPayments.map((item) => [
+                                  new Date(item.createdAt || Date.now()).toISOString(),
+                                  item.travelerId?.email || item.travelerId?.name || "",
+                                  item.tripId?.title || "",
+                                  safeNumber(item.totalAmount),
+                                  item.currency || "",
+                                  item.paymentStatus || "",
+                                  item.status || "",
+                                ]),
+                              )
+                            }
+                            className="rounded-2xl bg-primary/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-primary/20"
+                          >
+                            Export CSV
+                          </button>
+                        </div>
                         <div className="hidden md:block rounded-3xl border border-outline-variant/20 bg-surface shadow-sm overflow-hidden">
                           <div className="overflow-x-auto">
                             <table className="w-full text-left">
@@ -1151,7 +1678,7 @@ export default function AdminDashboardPage() {
                         <div className="grid gap-4 md:hidden">
                           {paymentSlice.items.map((p) => (
                             <article key={p._id} className="rounded-3xl border border-outline-variant/10 bg-surface p-5 shadow-sm">
-                              <div className="flex items-center justify-between mb-4">
+                              <div className="mb-4 flex items-center justify-between">
                                 <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${
                                   p.paymentStatus === "paid" ? "bg-green-100 text-green-700" :
                                   p.paymentStatus === "failed" ? "bg-red-100 text-red-700" :
@@ -1167,7 +1694,7 @@ export default function AdminDashboardPage() {
                                   <p className="text-xs font-bold text-on-surface">{p.travelerId?.name}</p>
                                   <p className="text-[9px] text-on-surface-variant/60">{p.travelerId?.email}</p>
                                 </div>
-                                <div className="pt-3 border-t border-outline-variant/5">
+                                <div className="border-t border-outline-variant/5 pt-3">
                                   <p className="text-[8px] font-black uppercase text-on-surface-variant/40">Service</p>
                                   <p className="text-xs font-bold text-on-surface-variant">{p.tripId?.title}</p>
                                   <p className="text-[9px] text-on-surface-variant/40">{p.tripId?.source} → {p.tripId?.destination}</p>
@@ -1180,6 +1707,28 @@ export default function AdminDashboardPage() {
                               <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">No payment records</p>
                             </div>
                           )}
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+                            Page {paymentSlice.page} of {paymentSlice.totalPages}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setPaymentPage((current) => Math.max(1, current - 1))}
+                              disabled={paymentSlice.page <= 1}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              onClick={() => setPaymentPage((current) => Math.min(paymentSlice.totalPages, current + 1))}
+                              disabled={paymentSlice.page >= paymentSlice.totalPages}
+                              className="rounded-lg border border-outline-variant/20 bg-surface px-3 py-1.5 text-[10px] font-bold text-on-surface-variant disabled:opacity-30"
+                            >
+                              Next
+                            </button>
+                          </div>
                         </div>
                       </section>
                     )}

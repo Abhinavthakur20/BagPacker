@@ -58,7 +58,28 @@ const markNotificationRead = async (req, res) => {
   }
 };
 
+const markAllNotificationsRead = async (req, res) => {
+  try {
+    const result = await Notification.updateMany(
+      {
+        userId: req.user._id,
+        isRead: false,
+      },
+      {
+        $set: { isRead: true },
+      },
+    );
+
+    return res.status(200).json({
+      updatedCount: Number(result.modifiedCount || 0),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getNotifications,
   markNotificationRead,
+  markAllNotificationsRead,
 };
