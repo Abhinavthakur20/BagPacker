@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
@@ -6,6 +6,18 @@ import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { getDashboardPath, loadGoogleScript } from "../lib/auth";
 import { setAuth } from "../store/authSlice";
 import { useAuthModal } from "../context/AuthModalContext";
+
+const INITIAL_LOGIN_FORM = { email: "", password: "" };
+const INITIAL_USER_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  password: "",
+  role: "traveler",
+  isVerified: false,
+};
+const INITIAL_ORGANIZER_FORM = { businessName: "", businessDesc: "" };
+const INITIAL_TRAVELER_FORM = { govIDVerified: false, preferences: "" };
 
 export default function AuthModal() {
   const dispatch = useDispatch();
@@ -16,12 +28,10 @@ export default function AuthModal() {
   const [role, setRole] = useState("traveler");
   const [signupStep, setSignupStep] = useState(1);
 
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [userForm, setUserForm] = useState({
-    name: "", email: "", phone: "", password: "", role: "traveler", isVerified: false,
-  });
-  const [organizerForm, setOrganizerForm] = useState({ businessName: "", businessDesc: "" });
-  const [travelerForm, setTravelerForm] = useState({ govIDVerified: false, preferences: "" });
+  const [loginForm, setLoginForm] = useState(INITIAL_LOGIN_FORM);
+  const [userForm, setUserForm] = useState(INITIAL_USER_FORM);
+  const [organizerForm, setOrganizerForm] = useState(INITIAL_ORGANIZER_FORM);
+  const [travelerForm, setTravelerForm] = useState(INITIAL_TRAVELER_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState("");
@@ -32,15 +42,24 @@ export default function AuthModal() {
 
   const roleLabel = role === "organizer" ? "organizer" : "traveler";
 
+  const resetAuthForms = useCallback(() => {
+    setRole("traveler");
+    setSignupStep(1);
+    setLoginForm(INITIAL_LOGIN_FORM);
+    setUserForm(INITIAL_USER_FORM);
+    setOrganizerForm(INITIAL_ORGANIZER_FORM);
+    setTravelerForm(INITIAL_TRAVELER_FORM);
+    setFormError("");
+    setShowPassword(false);
+  }, []);
+
   // Sync initial mode when modal opens
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
-      setSignupStep(1);
-      setFormError("");
-      setShowPassword(false);
+      resetAuthForms();
     }
-  }, [isOpen, initialMode]);
+  }, [isOpen, initialMode, resetAuthForms]);
 
   useEffect(() => {
     setShowPassword(false);
@@ -139,13 +158,14 @@ export default function AuthModal() {
   useEffect(() => {
     if (!isOpen) return;
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!googleButtonRef.current || !googleClientId) return undefined;
+    const googleButtonEl = googleButtonRef.current;
+    if (!googleButtonEl || !googleClientId) return undefined;
     let isActive = true;
 
     const initializeGoogle = async () => {
       try {
         const google = await loadGoogleScript(googleClientId);
-        if (!isActive || !googleButtonRef.current) return;
+        if (!isActive || !googleButtonEl) return;
         google.accounts.id.initialize({
           client_id: googleClientId,
           callback: async (response) => {
@@ -169,7 +189,7 @@ export default function AuthModal() {
             }
           },
         });
-        google.accounts.id.renderButton(googleButtonRef.current, {
+        google.accounts.id.renderButton(googleButtonEl, {
           theme: "outline", size: "large",
           text: mode === "signup" ? "signup_with" : "signin_with",
           shape: "pill", width: googleButtonWidth,
@@ -181,7 +201,7 @@ export default function AuthModal() {
     initializeGoogle();
     return () => {
       isActive = false;
-      if (googleButtonRef.current) googleButtonRef.current.innerHTML = "";
+      googleButtonEl.innerHTML = "";
     };
   }, [isOpen, googleButtonWidth, mode, navigate, closeAuthModal, dispatch]);
 
@@ -275,19 +295,21 @@ export default function AuthModal() {
               <div>
                 <h1 className="font-headline text-xl font-extrabold text-primary">Welcome Back</h1>
                 <p className="mt-1 text-sm text-on-surface-variant">Continue your journey with BagPacker.</p>
-                <form className="mt-4 space-y-3.5">
-                  <input
-                    className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
-                    placeholder="Email" type="email" value={loginForm.email}
-                    onChange={(e) => setLoginForm((p) => ({ ...p, email: e.target.value }))}
-                  />
-                  <div className="relative">
+                <form autoComplete="off" className="mt-4 space-y-3.5">
                     <input
-                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 pr-12 outline-none transition focus:border-primary"
-                      placeholder="Password" type={showPassword ? "text" : "password"}
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm((p) => ({ ...p, password: e.target.value }))}
+                      className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
+                      placeholder="Email" type="email" value={loginForm.email}
+                      autoComplete="off"
+                      onChange={(e) => setLoginForm((p) => ({ ...p, email: e.target.value }))}
                     />
+                  <div className="relative">
+                      <input
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 pr-12 outline-none transition focus:border-primary"
+                        placeholder="Password" type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        value={loginForm.password}
+                        onChange={(e) => setLoginForm((p) => ({ ...p, password: e.target.value }))}
+                      />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-on-surface-variant/70 transition hover:text-primary"
                       aria-label={showPassword ? "Hide password" : "Show password"}
@@ -328,21 +350,25 @@ export default function AuthModal() {
                   </div>
                 </div>
 
-                <form className="mt-4 space-y-2.5">
+                <form autoComplete="off" className="mt-4 space-y-2.5">
                   {signupStep === 1 ? (
                     <>
                       <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                         placeholder="Full Name" value={userForm.name}
+                        autoComplete="off"
                         onChange={(e) => updateUserField("name", e.target.value)} />
                       <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                         placeholder="Phone Number" value={userForm.phone}
+                        autoComplete="off"
                         onChange={(e) => updateUserField("phone", e.target.value)} />
                       <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"
                         placeholder="Email Address" type="email" value={userForm.email}
+                        autoComplete="off"
                         onChange={(e) => updateUserField("email", e.target.value)} />
                       <div className="relative">
                         <input className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 pr-12 outline-none transition focus:border-primary"
                           placeholder="Create Password" type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
                           value={userForm.password}
                           onChange={(e) => updateUserField("password", e.target.value)} />
                         <button type="button" onClick={() => setShowPassword(!showPassword)}
