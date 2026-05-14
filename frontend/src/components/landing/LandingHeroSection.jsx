@@ -22,8 +22,8 @@ const heroSlides = [
   },
   {
     image: "https://images.pexels.com/photos/5185614/pexels-photo-5185614.jpeg",
-    label: "Desert Adventures",
-    eyebrow: "Jaisalmer, Rajasthan",
+    label: "Beach Adventures",
+    eyebrow: "Mumbai, Maharashtra",
     note: "Curated desert trails with ready-to-join crews",
   },
 ];
