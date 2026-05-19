@@ -4,6 +4,7 @@ const ChatMessage = require("../api/chat/chatMessageModel");
 const { canAccessChatRoom } = require("../api/chat/chatAccess");
 const User = require("../api/user/userModel");
 const jwt = require("jsonwebtoken");
+const { escapeHtml } = require("../utils/text");
 
 const initSocket = (io) => {
   ioInstance = io;
@@ -91,11 +92,13 @@ const initSocket = (io) => {
         const resolvedClientMessageId =
           sanitizedClientId || `${socket.id.slice(0, 12)}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
+        const sanitizedMessage = escapeHtml(trimmedMessage);
+
         const savedMessage = await ChatMessage.create({
           roomId,
           senderId: authenticatedUserId,
           senderName: authenticatedUserName,
-          message: trimmedMessage,
+          message: sanitizedMessage,
           sentAt: new Date(),
           clientMessageId: resolvedClientMessageId,
         });

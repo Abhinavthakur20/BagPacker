@@ -1,7 +1,6 @@
 const { buildCopilotPrompt, buildTripAutofillPrompt, callGroqCopilot, extractTripSearchFilters } = require("./aiService");
 const Trip = require("../trip/tripModel");
-
-const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const { escapeRegex } = require("../../utils/text");
 
 const normalizeIntent = (value) => {
   const normalized = String(value || "qa").trim().toLowerCase();

@@ -58,6 +58,10 @@ export default function ChatPage() {
     const socket = io(getSocketUrl(), {
       transports: ["polling", "websocket"],
       withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 5000,
       auth: {
         token,
       },
