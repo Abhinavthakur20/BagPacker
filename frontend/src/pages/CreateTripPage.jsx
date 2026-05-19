@@ -224,7 +224,7 @@ export default function CreateTripPage() {
       ...(activeCropFile ? [fileSignature(activeCropFile)] : []),
     ]);
     const occupiedSlots =
-      tripImages.length + pendingCropFiles.length + (activeCropFile ? 1 : 0);
+      existingImages.length + tripImages.length + pendingCropFiles.length + (activeCropFile ? 1 : 0);
     const remainingSlots = Math.max(0, 10 - occupiedSlots);
     const filesToQueue = [];
 
@@ -532,6 +532,10 @@ export default function CreateTripPage() {
 
   const removeTripImage = (indexToRemove) => {
     setTripImages((previous) => previous.filter((_, index) => index !== indexToRemove));
+  };
+
+  const removeExistingImage = (indexToRemove) => {
+    setExistingImages((previous) => previous.filter((_, index) => index !== indexToRemove));
   };
 
   const autofillTripWithAI = async () => {
