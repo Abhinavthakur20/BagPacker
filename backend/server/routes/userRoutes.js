@@ -13,14 +13,11 @@ const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
 
-// Public routes (no auth required)
-router.get("/:id", getPublicProfileById);
-
-// Protected routes (auth required)
-router.use(authMiddleware);
-router.get("/profile", getProfile);
+// Concrete / Protected routes (must be placed before dynamic parameters)
+router.get("/profile", authMiddleware, getProfile);
 router.put(
   "/profile",
+  authMiddleware,
   [
     body("name").trim().notEmpty().withMessage("Name is required"),
     body("phone").trim().notEmpty().withMessage("Phone is required"),
@@ -28,6 +25,10 @@ router.put(
   ],
   updateProfile,
 );
-router.post("/upload-id", upload.single("governmentId"), uploadGovernmentId);
-router.post("/upload-avatar", upload.single("avatar"), uploadAvatar);
+router.post("/upload-id", authMiddleware, upload.single("governmentId"), uploadGovernmentId);
+router.post("/upload-avatar", authMiddleware, upload.single("avatar"), uploadAvatar);
+
+// Dynamic routes (fallback for specific parameters)
+router.get("/:id", getPublicProfileById);
+
 module.exports = router;
