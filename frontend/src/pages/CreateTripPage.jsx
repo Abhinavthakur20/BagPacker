@@ -1073,103 +1073,111 @@ export default function CreateTripPage() {
                         <div>
                           <h3 className="font-headline text-lg font-black tracking-tight">Expedition <span className="text-secondary">Visuals</span></h3>
                           <p className="mt-1 text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
-                            {isEditMode ? `${existingImages.length} saved images` : `${tripImages.length}/10 selected`}
+                            {existingImages.length + tripImages.length}/10 selected
                           </p>
                         </div>
                       </div>
 
-                      {!isEditMode ? (
-                        <div className="space-y-8">
-                          <label className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-outline-variant/30 bg-surface-container-lowest py-12 text-on-surface-variant transition hover:bg-surface-container">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
-                              <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-sm font-black uppercase tracking-widest">Choose Local Files</p>
-                              <p className="mt-1 text-[10px] font-bold opacity-60">High resolution JPG/PNG/WEBP (Max 10)</p>
-                            </div>
-                            <input
-                              type="file"
-                              accept=".jpg,.jpeg,.png,.webp"
-                              multiple
-                              onChange={onSelectTripImages}
-                              className="hidden"
-                            />
-                          </label>
-
-                          <div className="flex flex-col gap-3 md:flex-row">
-                            <input
-                              type="url"
-                              value={onlineImageUrl}
-                              onChange={(e) => setOnlineImageUrl(e.target.value)}
-                              placeholder="Or paste an online image URL..."
-                              className="flex-1 rounded-[2rem] border border-outline-variant/20 bg-surface px-6 py-4 text-xs font-bold outline-none focus:border-primary/40"
-                            />
-                            <button
-                              type="button"
-                              onClick={addTripImageByUrl}
-                              disabled={isAddingImageUrl || !onlineImageUrl}
-                              className="rounded-full bg-surface-container-high px-8 py-4 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-surface-container-highest disabled:opacity-30"
-                            >
-                              {isAddingImageUrl ? "Syncing..." : "Sync URL"}
-                            </button>
+                      <div className="space-y-8">
+                        <label className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-outline-variant/30 bg-surface-container-lowest py-12 text-on-surface-variant transition hover:bg-surface-container">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+                            <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
                           </div>
+                          <div className="text-center">
+                            <p className="text-sm font-black uppercase tracking-widest">Choose Local Files</p>
+                            <p className="mt-1 text-[10px] font-bold opacity-60">High resolution JPG/PNG/WEBP (Max 10)</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.webp"
+                            multiple
+                            onChange={onSelectTripImages}
+                            className="hidden"
+                          />
+                        </label>
 
-                          {previewUrls.length > 0 && (
-                            <div className="space-y-6">
-                              <div className="relative aspect-video overflow-hidden rounded-[2.5rem] bg-surface-container-low shadow-xl">
-                                <img
-                                  src={previewUrls[previewIndex]}
-                                  alt="Expedition preview"
-                                  className="h-full w-full object-cover"
-                                />
-                                {previewUrls.length > 1 && (
-                                  <div className="absolute inset-0 flex items-center justify-between px-6">
-                                    <button
-                                      onClick={() => setPreviewIndex(c => c === 0 ? previewUrls.length - 1 : c - 1)}
-                                      className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md"
-                                    >
-                                      <span className="material-symbols-outlined">chevron_left</span>
-                                    </button>
-                                    <button
-                                      onClick={() => setPreviewIndex(c => (c + 1) % previewUrls.length)}
-                                      className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md"
-                                    >
-                                      <span className="material-symbols-outlined">chevron_right</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex gap-3 overflow-x-auto pb-4">
-                                {previewUrls.map((url, idx) => (
-                                  <div key={idx} className="group relative shrink-0">
-                                    <button
-                                      onClick={() => setPreviewIndex(idx)}
-                                      className={`h-20 w-24 overflow-hidden rounded-2xl border-4 transition-all ${idx === previewIndex ? 'border-primary' : 'border-transparent'}`}
-                                    >
-                                      <img src={url} className="h-full w-full object-cover" />
-                                    </button>
-                                    <button
-                                      onClick={() => removeTripImage(idx)}
-                                      className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-error text-on-error shadow-lg"
-                                    >
-                                      <span className="material-symbols-outlined text-sm">close</span>
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                        <div className="flex flex-col gap-3 md:flex-row">
+                          <input
+                            type="url"
+                            value={onlineImageUrl}
+                            onChange={(e) => setOnlineImageUrl(e.target.value)}
+                            placeholder="Or paste an online image URL..."
+                            className="flex-1 rounded-[2rem] border border-outline-variant/20 bg-surface px-6 py-4 text-xs font-bold outline-none focus:border-primary/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={addTripImageByUrl}
+                            disabled={isAddingImageUrl || !onlineImageUrl}
+                            className="rounded-full bg-surface-container-high px-8 py-4 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-surface-container-highest disabled:opacity-30"
+                          >
+                            {isAddingImageUrl ? "Syncing..." : "Sync URL"}
+                          </button>
                         </div>
-                      ) : (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                          {existingImages.map((image, idx) => (
-                            <div key={idx} className="aspect-square overflow-hidden rounded-3xl bg-surface-container-low">
-                              <img src={optimizeCloudinaryImage(image, "f_auto,q_auto,w_600")} className="h-full w-full object-cover" />
+
+                        {existingImages.length > 0 ? (
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {existingImages.map((image, idx) => (
+                              <div key={image} className="group relative aspect-square overflow-hidden rounded-3xl bg-surface-container-low">
+                                <img src={optimizeCloudinaryImage(image, "f_auto,q_auto,w_600")} className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeExistingImage(idx)}
+                                  className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-error text-on-error shadow-lg"
+                                >
+                                  <span className="material-symbols-outlined text-sm">close</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {previewUrls.length > 0 && (
+                          <div className="space-y-6">
+                            <div className="relative aspect-video overflow-hidden rounded-[2.5rem] bg-surface-container-low shadow-xl">
+                              <img
+                                src={previewUrls[previewIndex]}
+                                alt="Expedition preview"
+                                className="h-full w-full object-cover"
+                              />
+                              {previewUrls.length > 1 && (
+                                <div className="absolute inset-0 flex items-center justify-between px-6">
+                                  <button
+                                    onClick={() => setPreviewIndex(c => c === 0 ? previewUrls.length - 1 : c - 1)}
+                                    className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md"
+                                  >
+                                    <span className="material-symbols-outlined">chevron_left</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setPreviewIndex(c => (c + 1) % previewUrls.length)}
+                                    className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md"
+                                  >
+                                    <span className="material-symbols-outlined">chevron_right</span>
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          ))}
+                            <div className="flex gap-3 overflow-x-auto pb-4">
+                              {previewUrls.map((url, idx) => (
+                                <div key={url} className="group relative shrink-0">
+                                  <button
+                                    onClick={() => setPreviewIndex(idx)}
+                                    className={`h-20 w-24 overflow-hidden rounded-2xl border-4 transition-all ${idx === previewIndex ? 'border-primary' : 'border-transparent'}`}
+                                  >
+                                    <img src={url} className="h-full w-full object-cover" />
+                                  </button>
+                                  <button
+                                    onClick={() => removeTripImage(idx)}
+                                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-error text-on-error shadow-lg"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">close</span>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         </div>
-                      )}
+                      </div>
                     </article>
 
                     <article className="rounded-[2.5rem] bg-primary p-10 text-on-primary shadow-2xl shadow-primary/20">

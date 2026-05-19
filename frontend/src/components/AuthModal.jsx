@@ -131,12 +131,17 @@ export default function AuthModal() {
         password: userForm.password,
         role,
       });
-      dispatch(setAuth({ token: response.token, user: response.user }));
+      let resolvedUser = response.user;
+      dispatch(setAuth({ token: response.token, user: resolvedUser }));
       if (role === "organizer") {
-        await api.post("/organizers", {
+        const organizerResponse = await api.post("/organizers", {
           businessName: organizerForm.businessName,
           businessDesc: organizerForm.businessDesc || "",
         }, { token: response.token });
+        if (organizerResponse?.user) {
+          resolvedUser = organizerResponse.user;
+          dispatch(setAuth({ token: response.token, user: resolvedUser }));
+        }
       }
       await showSuccessAlert(
         "Account created",
@@ -145,7 +150,7 @@ export default function AuthModal() {
           : "Your traveler account is ready.",
       );
       closeAuthModal();
-      navigate(getDashboardPath(response.user?.role));
+      navigate(getDashboardPath(resolvedUser?.role));
     } catch (error) {
       setFormError(error.message);
       await showErrorAlert("Signup failed", error.message);

@@ -29,7 +29,7 @@ const getPublicProfileById = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.status(200).json(user);
+    return res.status(200).json(sanitizeUser(user));
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -105,7 +105,7 @@ const uploadGovernmentId = async (req, res) => {
 
     return res.status(200).json({
       message: "Government ID uploaded successfully",
-      user,
+      user: sanitizeUser(user),
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -141,7 +141,7 @@ const uploadAvatar = async (req, res) => {
 
     return res.status(200).json({
       message: "Profile photo updated successfully",
-      user,
+      user: sanitizeUser(user),
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
