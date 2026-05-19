@@ -22,7 +22,8 @@ export default function TopNav() {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setIsMobileMenuOpen(false);
+    const timerId = window.setTimeout(() => setIsMobileMenuOpen(false), 0);
+    return () => window.clearTimeout(timerId);
   }, [location.pathname]);
 
   const resolvedNavLinks = (() => {

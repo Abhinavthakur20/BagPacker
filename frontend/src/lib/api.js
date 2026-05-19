@@ -61,7 +61,7 @@ const getPersistedData = (key) => {
             return null;
         }
         return parsed.data;
-    } catch (e) {
+    } catch {
         return null;
     }
 };
@@ -73,7 +73,7 @@ const setPersistedData = (key, data, ttl) => {
             expireAt: Date.now() + ttl,
         };
         localStorage.setItem(`api_cache_${key}`, JSON.stringify(cacheValue));
-    } catch (e) {
+    } catch {
         // LocalStorage might be full
     }
 };

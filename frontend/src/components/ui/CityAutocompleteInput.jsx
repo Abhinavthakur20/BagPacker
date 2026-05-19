@@ -66,9 +66,11 @@ export default function CityAutocompleteInput({
   useEffect(() => {
     const query = String(value || "").trim();
     if (query.length < minChars) {
-      setSuggestions([]);
-      setActiveIndex(-1);
-      return undefined;
+      const timerId = window.setTimeout(() => {
+        setSuggestions([]);
+        setActiveIndex(-1);
+      }, 0);
+      return () => window.clearTimeout(timerId);
     }
 
     let isCancelled = false;
@@ -82,7 +84,7 @@ export default function CityAutocompleteInput({
           setSuggestions(Array.isArray(response?.items) ? response.items : []);
           setActiveIndex(-1);
         }
-      } catch (_error) {
+      } catch {
         if (!isCancelled) {
           setSuggestions([]);
           setActiveIndex(-1);

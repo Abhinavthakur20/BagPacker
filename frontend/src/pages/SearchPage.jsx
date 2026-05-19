@@ -27,7 +27,7 @@ const getTripDuration = (startDate, endDate) => {
   return `${totalDays} Days, ${totalNights} Nights`;
 };
 
-const mapTrip = (trip, index) => ({
+const mapTrip = (trip) => ({
   images:
     Array.isArray(trip.images) && trip.images.length
       ? trip.images

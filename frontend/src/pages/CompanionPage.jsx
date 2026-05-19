@@ -49,10 +49,10 @@ export default function CompanionPage() {
   // Search State
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
-  const [travelDate, setTravelDate] = useState("");
-  const [requestedSeats, setRequestedSeats] = useState(1);
-  const [searchGenderPreference, setSearchGenderPreference] = useState("Any");
-  const [searchVehicleType, setSearchVehicleType] = useState("");
+  const [travelDate] = useState("");
+  const [requestedSeats] = useState(1);
+  const [searchGenderPreference] = useState("Any");
+  const [searchVehicleType] = useState("");
 
   // Post State
   const [postSource, setPostSource] = useState("");
@@ -226,23 +226,6 @@ export default function CompanionPage() {
   useEffect(() => {
     loadCompanionData();
   }, [loggedIn]);
-
-  const resetSearchFilters = async () => {
-    setSource("");
-    setDestination("");
-    setTravelDate("");
-    setRequestedSeats(1);
-    setSearchGenderPreference("Any");
-    setSearchVehicleType("");
-    await loadCompanionData({
-      source: "",
-      destination: "",
-      travelDate: "",
-      requestedSeats: 1,
-      searchGenderPreference: "Any",
-      searchVehicleType: "",
-    });
-  };
 
   const discoverItems = useMemo(() => {
     const bookingItems = (matches || []).map((item) => ({
