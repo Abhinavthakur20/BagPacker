@@ -27,6 +27,8 @@ const CreateTripPage = lazy(() => import("./pages/CreateTripPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 
 function DashboardRedirect() {
   const user = useSelector((state) => state.auth.user);
@@ -143,6 +145,8 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthRedirect />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
           <Route path="/trips">
             <Route index element={<Navigate to="search" replace />} />
             <Route path="search" element={<SearchPage />} />

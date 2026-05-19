@@ -112,6 +112,26 @@ export default function AuthModal() {
     }
   };
 
+  const onForgotPassword = async () => {
+    if (!loginForm.email) {
+      setFormError("Enter your email address first.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFormError("");
+      const response = await api.post("/auth/forgot-password", { email: loginForm.email });
+      await showSuccessAlert("Reset email sent", response.message);
+    } catch (error) {
+      setFormError(error.message);
+      await showErrorAlert("Password reset failed", error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
   const onSignUp = async () => {
     if (!userForm.name || !userForm.email || !userForm.phone || !userForm.password) {
       setFormError("Please complete all required fields.");
@@ -328,6 +348,14 @@ export default function AuthModal() {
                     className="w-full rounded-xl bg-primary py-2.5 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isSubmitting ? "Logging in..." : "Login"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onForgotPassword}
+                    disabled={isSubmitting}
+                    className="w-full text-center text-xs font-bold text-primary hover:underline disabled:opacity-60"
+                  >
+                    Forgot password?
                   </button>
                 </form>
               </div>
