@@ -70,7 +70,7 @@ const updateProfile = async (req, res) => {
       user.trustScore = trustResult.trustScore;
     }
 
-    return res.status(200).json(user);
+    return res.status(200).json(sanitizeUser(user));
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
