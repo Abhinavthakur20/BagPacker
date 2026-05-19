@@ -1176,7 +1176,6 @@ export default function CreateTripPage() {
                             </div>
                           </div>
                         )}
-                        </div>
                       </div>
                     </article>
 
