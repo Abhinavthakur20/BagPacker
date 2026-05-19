@@ -1,8 +1,11 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../user/userModel");
 const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
+const { sendMail } = require("../../utils/mailer");
+const sanitizeUser = require("../../utils/sanitizeUser");
 
 const googleClient = process.env.GOOGLE_CLIENT_ID
   ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -17,29 +20,33 @@ const sanitizeGooglePayload = (payload) => ({
 
 const getFallbackPhone = (googleSub) => `google-${googleSub.slice(-10)}`;
 
-const sanitizeUser = (user) => ({
-  _id: user._id,
-  name: user.name,
-  email: user.email,
-  phone: user.phone,
-  role: user.role,
-  authProvider: user.authProvider,
-  avatarUrl: user.avatarUrl,
-  verificationStatus: user.verificationStatus,
-  governmentIdUrl: user.governmentIdUrl,
-  trustScore: user.trustScore,
-  createdAt: user.createdAt,
-  updatedAt: user.updatedAt,
-});
-
 const generateToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || "7d",
   });
 
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+const createRawToken = () => crypto.randomBytes(32).toString("hex");
+const getClientUrl = () => String(process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+
+const sendVerificationEmail = async (user) => {
+  const token = createRawToken();
+  user.emailVerificationTokenHash = hashToken(token);
+  user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await user.save();
+
+  const verifyUrl = `${getClientUrl()}/auth/verify-email?token=${token}`;
+  return sendMail({
+    to: user.email,
+    subject: "Verify your BagPacker email",
+    text: `Verify your BagPacker email by opening this link: ${verifyUrl}`,
+    html: `<p>Verify your BagPacker email by opening this link:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
+  });
+};
+
 const register = async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body;
+    const { name, email, phone, password } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedPhone = phone.trim();
@@ -57,14 +64,13 @@ const register = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const normalizedRole = ["traveler", "organizer"].includes(role) ? role : "traveler";
 
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       phone: normalizedPhone,
       passwordHash,
-      role: normalizedRole,
+      role: "traveler",
       authProvider: "local",
     });
     const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
@@ -72,9 +78,21 @@ const register = async (req, res) => {
       user.trustScore = trustResult.trustScore;
     }
 
+    let emailVerification = { delivered: false, skipped: true, reason: "Not attempted" };
+    try {
+      emailVerification = await sendVerificationEmail(user);
+    } catch (mailError) {
+      emailVerification = {
+        delivered: false,
+        skipped: false,
+        reason: String(mailError?.message || "Email verification delivery failed"),
+      };
+    }
+
     return res.status(201).json({
       token: generateToken(user),
       user: sanitizeUser(user),
+      emailVerification,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -137,33 +155,35 @@ const googleAuth = async (req, res) => {
     }
 
     const googlePayload = sanitizeGooglePayload(payload);
-    const normalizedRole = ["traveler", "organizer"].includes(req.body.role)
-      ? req.body.role
-      : "traveler";
-
     let user = await User.findOne({ email: googlePayload.email });
 
     if (!user) {
       user = await User.create({
         name: googlePayload.name,
         email: googlePayload.email,
-        role: normalizedRole,
+        role: "traveler",
         phone: getFallbackPhone(googlePayload.sub),
         passwordHash: null,
         authProvider: "google",
         googleId: googlePayload.sub,
         avatarUrl: googlePayload.picture,
+        isEmailVerified: Boolean(payload.email_verified),
       });
       const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
       if (trustResult) {
         user.trustScore = trustResult.trustScore;
       }
     } else {
+      if (user.verificationStatus === "rejected" || user.isBanned) {
+        return res.status(403).json({ message: "This account has been suspended. Please contact support." });
+      }
+
       const shouldUpdate = {};
       if (!user.phone) shouldUpdate.phone = getFallbackPhone(googlePayload.sub);
       if (!user.googleId) shouldUpdate.googleId = googlePayload.sub;
       if (user.authProvider !== "google") shouldUpdate.authProvider = "google";
       if (!user.avatarUrl && googlePayload.picture) shouldUpdate.avatarUrl = googlePayload.picture;
+      if (payload.email_verified && !user.isEmailVerified) shouldUpdate.isEmailVerified = true;
 
       if (Object.keys(shouldUpdate).length) {
         user = await User.findByIdAndUpdate(user._id, shouldUpdate, {
@@ -191,8 +211,89 @@ const googleAuth = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const normalizedEmail = String(req.body.email || "").toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (user && user.passwordHash && !user.isBanned && user.verificationStatus !== "rejected") {
+      const token = createRawToken();
+      user.passwordResetTokenHash = hashToken(token);
+      user.passwordResetExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await user.save();
+
+      const resetUrl = `${getClientUrl()}/auth/reset-password?token=${token}`;
+      await sendMail({
+        to: user.email,
+        subject: "Reset your BagPacker password",
+        text: `Reset your BagPacker password by opening this link: ${resetUrl}`,
+        html: `<p>Reset your BagPacker password by opening this link:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
+      });
+    }
+
+    return res.status(200).json({
+      message: "If an account exists for this email, a reset link has been sent.",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const token = String(req.body.token || "").trim();
+    const password = String(req.body.password || "");
+    const user = await User.findOne({
+      passwordResetTokenHash: hashToken(token),
+      passwordResetExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Password reset link is invalid or expired" });
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 10);
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpiresAt = null;
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  try {
+    const token = String(req.body.token || req.query.token || "").trim();
+    const user = await User.findOne({
+      emailVerificationTokenHash: hashToken(token),
+      emailVerificationExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Email verification link is invalid or expired" });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationTokenHash = null;
+    user.emailVerificationExpiresAt = null;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Email verified successfully",
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
+  forgotPassword,
+  resetPassword,
   register,
   login,
   googleAuth,
+  verifyEmail,
 };

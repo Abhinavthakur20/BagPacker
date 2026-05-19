@@ -48,6 +48,12 @@ const io = new Server(server, {
     origin: checkOrigin,
     credentials: true,
   },
+  pingInterval: 25_000,
+  pingTimeout: 20_000,
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    skipMiddlewares: true,
+  },
 });
 
 app.use(helmet());
@@ -98,7 +104,7 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "..", "uploads"), {

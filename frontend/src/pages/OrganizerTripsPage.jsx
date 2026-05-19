@@ -26,7 +26,7 @@ export default function OrganizerTripsPage() {
         setIsLoading(true);
         setError("");
         const organizerTrips = await api.get("/organizers/me/trips");
-        setTrips(Array.isArray(organizerTrips) ? organizerTrips : []);
+        setTrips(Array.isArray(organizerTrips?.items) ? organizerTrips.items : Array.isArray(organizerTrips) ? organizerTrips : []);
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {

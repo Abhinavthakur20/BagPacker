@@ -1,6 +1,13 @@
 const express = require("express");
 const { body } = require("express-validator");
-const { login, register, googleAuth } = require("../api/auth/authController");
+const {
+  forgotPassword,
+  googleAuth,
+  login,
+  register,
+  resetPassword,
+  verifyEmail,
+} = require("../api/auth/authController");
 const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
@@ -40,6 +47,30 @@ router.post(
     validateRequest,
   ],
   googleAuth,
+);
+
+router.post(
+  "/forgot-password",
+  [body("email").isEmail().withMessage("Valid email is required"), validateRequest],
+  forgotPassword,
+);
+
+router.post(
+  "/reset-password",
+  [
+    body("token").trim().notEmpty().withMessage("Reset token is required"),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters long"),
+    validateRequest,
+  ],
+  resetPassword,
+);
+
+router.post(
+  "/verify-email",
+  [body("token").trim().notEmpty().withMessage("Verification token is required"), validateRequest],
+  verifyEmail,
 );
 
 module.exports = router;

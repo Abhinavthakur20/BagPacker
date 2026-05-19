@@ -13,9 +13,12 @@ const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
 
+// Public routes (no auth required)
+router.get("/:id", getPublicProfileById);
+
+// Protected routes (auth required)
 router.use(authMiddleware);
 router.get("/profile", getProfile);
-router.get("/:id", getPublicProfileById);
 router.put(
   "/profile",
   [

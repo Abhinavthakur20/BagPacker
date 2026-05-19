@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../api/user/userModel");
 
-const AUTH_USER_CACHE_TTL_MS = 5 * 1000;
+const AUTH_USER_CACHE_TTL_MS = 60 * 1000;
 const authUserCache = new Map();
 
 const getCachedUser = (userId) => {

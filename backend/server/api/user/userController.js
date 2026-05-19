@@ -1,21 +1,7 @@
 const User = require("./userModel");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 const { recalculateAndPersistTrustScore } = require("./trustScoreService");
-
-const sanitizeUser = (user) => ({
-  _id: user._id,
-  name: user.name,
-  email: user.email,
-  phone: user.phone,
-  role: user.role,
-  authProvider: user.authProvider,
-  avatarUrl: user.avatarUrl,
-  verificationStatus: user.verificationStatus,
-  governmentIdUrl: user.governmentIdUrl,
-  trustScore: user.trustScore,
-  createdAt: user.createdAt,
-  updatedAt: user.updatedAt,
-});
+const sanitizeUser = require("../../utils/sanitizeUser");
 
 const DOCUMENT_IMAGE_TRANSFORMATIONS = {
   width: 2000,
