@@ -1,10 +1,16 @@
-import { getAuthToken } from "./auth";
+import { getAuthToken, clearAuth } from "./auth";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 const API_ORIGIN = API_BASE_URL.startsWith("http") ? new URL(API_BASE_URL).origin : "";
 const responseCache = new Map();
 const inFlightRequests = new Map();
 const RESPONSE_CACHE_MAX_ENTRIES = 200;
+
+// Will be set by the Redux store after it initialises
+let _reduxLogout = null;
+export function setLogoutDispatcher(fn) {
+    _reduxLogout = typeof fn === "function" ? fn : null;
+}
 
 const cloneData = (value) => {
     if (typeof structuredClone === "function") {
@@ -140,6 +146,16 @@ async function request(path, options = {}) {
                 typeof data === "object" && data?.message
                     ? data.message
                     : "Request failed. Please try again.";
+
+            // Auto-logout on 401: expired or invalid token
+            if (response.status === 401) {
+                clearAuth();
+                responseCache.clear();
+                if (_reduxLogout) {
+                    _reduxLogout();
+                }
+            }
+
             throw new Error(errorMessage);
         }
 

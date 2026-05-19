@@ -126,7 +126,13 @@ export default function TravelerDashboardPage() {
         setRecommendedTrips(Array.isArray(trips?.items) ? trips.items.slice(0, 3) : []);
         setNotifications(Array.isArray(userNotifications?.items) ? userNotifications.items : []);
       } catch (fetchError) {
-        setError(fetchError.message);
+        // Auth errors (401) are handled by api.js auto-logout; suppress misleading banners
+        const isAuthError =
+          fetchError.message?.toLowerCase().includes('authorization') ||
+          fetchError.message?.toLowerCase().includes('token');
+        if (!isAuthError) {
+          setError(fetchError.message);
+        }
       } finally {
         setIsLoading(false);
       }

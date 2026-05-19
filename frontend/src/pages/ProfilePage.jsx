@@ -50,7 +50,15 @@ export default function ProfilePage() {
               : [],
         );
       } catch (fetchError) {
-        setError(fetchError.message);
+        // 401 errors are handled by api.js (auto-logout + Redux clear).
+        // Avoid showing a confusing "Invalid authorization token" banner;
+        // the component will re-render to the "Please login" view instead.
+        const isAuthError =
+          fetchError.message?.toLowerCase().includes("authorization") ||
+          fetchError.message?.toLowerCase().includes("token");
+        if (!isAuthError) {
+          setError(fetchError.message);
+        }
       } finally {
         setIsLoading(false);
       }
