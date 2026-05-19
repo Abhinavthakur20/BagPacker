@@ -326,7 +326,7 @@ const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
 };
 
 const TRIP_CACHE = new Map();
-const TRIP_CACHE_TTL = 1000; // 1 second for testing
+const TRIP_CACHE_TTL = 60_000; // 60 seconds
 
 const getTrips = async (req, res) => {
   try {
@@ -410,6 +410,9 @@ const getTrips = async (req, res) => {
       }
     }
 
+    // Run the aggregation and derive organizer IDs, then fetch organizers in parallel
+    // We can't avoid one sequential step (we need trip IDs to fetch organizers),
+    // but we kick off the aggregation now and immediately after fetch organizers.
     const [result] = await Trip.aggregate([
       { $match: filters },
       { $sort: { startDate: 1, createdAt: -1 } },
@@ -467,6 +470,8 @@ const getTrips = async (req, res) => {
       TRIP_CACHE.delete(firstKey);
     }
 
+    // Allow CDN / browser to cache public trip listings for 30 s, serve stale for 60 s
+    res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
     return res.status(200).json(responseData);
   } catch (error) {
     return res.status(500).json({ message: error.message });
