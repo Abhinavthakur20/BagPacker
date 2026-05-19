@@ -107,6 +107,7 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware(["organizer"]),
+  upload.array("tripImages", 10),
   [
     param("id").isMongoId().withMessage("Valid trip id is required"),
     body("title").optional().trim().notEmpty().withMessage("Title is required"),
@@ -136,6 +137,10 @@ router.put(
       .optional()
       .custom((value) => isNonEmptyArrayPayload(value))
       .withMessage("pickupPoints must be a non-empty array"),
+    body("existingImages")
+      .optional()
+      .custom((value) => Array.isArray(value) || typeof value === "string")
+      .withMessage("existingImages must be an array"),
     validateRequest,
   ],
   updateTrip,

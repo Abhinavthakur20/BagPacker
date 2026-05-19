@@ -3,13 +3,15 @@ const OrganizerPost = require("./organizerPostModel");
 const OrganizerFollow = require("./organizerFollowModel");
 const Trip = require("../trip/tripModel");
 const Booking = require("../booking/bookingModel");
+const User = require("../user/userModel");
 const {
   reconcileTripSeatInventory,
   reconcileTripsSeatInventory,
 } = require("../trip/tripSeatSyncService");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
-const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const { escapeRegex } = require("../../utils/text");
+const sanitizeUser = require("../../utils/sanitizeUser");
 
 const DOCUMENT_IMAGE_TRANSFORMATIONS = {
   width: 2000,
@@ -77,12 +79,23 @@ const registerOrganizerProfile = async (req, res) => {
       licenseUrl,
       bankAccountDetails: bankAccountDetails ? bankAccountDetails.trim() : null,
     });
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { role: "organizer" },
+      { returnDocument: "after", runValidators: true },
+    ).select("-passwordHash");
+    if (req.user) {
+      req.user.role = "organizer";
+    }
     await recalculateAndPersistTrustScore(req.user._id, {
-      userDoc: req.user,
+      userDoc: updatedUser || req.user,
       organizerDoc: organizer,
     });
 
-    return res.status(201).json(organizer);
+    return res.status(201).json({
+      ...organizer.toObject(),
+      user: updatedUser ? sanitizeUser(updatedUser) : undefined,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
