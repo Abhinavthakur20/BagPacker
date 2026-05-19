@@ -5,6 +5,9 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { api, optimizeCloudinaryImage, resolveMediaUrl } from "../lib/api";
 
+const STAR_INDEXES = [0, 1, 2, 3, 4];
+const REVIEWS_PAGE_SIZE = 20;
+
 export default function PublicProfilePage() {
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
@@ -13,6 +16,12 @@ export default function PublicProfilePage() {
   const [organizerProfile, setOrganizerProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [reviewsPagination, setReviewsPagination] = useState({
+    page: 1,
+    limit: REVIEWS_PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
   const [following, setFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [postsCount, setPostsCount] = useState(0);
@@ -20,6 +29,7 @@ export default function PublicProfilePage() {
   const [selectedPostIndex, setSelectedPostIndex] = useState(-1);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReviewsLoading, setIsReviewsLoading] = useState(false);
   const [isFollowingBusy, setIsFollowingBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,7 +40,7 @@ export default function PublicProfilePage() {
         setError("");
         const [organizerResponse, userReviews] = await Promise.all([
           api.get(`/organizers/public/user/${id}`),
-          api.get(`/reviews/${id}?page=1&limit=20`),
+          api.get(`/reviews/${id}?page=1&limit=${REVIEWS_PAGE_SIZE}`),
         ]);
         setOrganizerProfile(organizerResponse.organizer);
         const nextPosts = Array.isArray(organizerResponse?.posts) ? organizerResponse.posts : [];
@@ -44,6 +54,12 @@ export default function PublicProfilePage() {
               ? userReviews
               : [],
         );
+        setReviewsPagination({
+          page: Number(userReviews?.pagination?.page || 1),
+          limit: Number(userReviews?.pagination?.limit || REVIEWS_PAGE_SIZE),
+          total: Number(userReviews?.pagination?.total || 0),
+          totalPages: Number(userReviews?.pagination?.totalPages || 1),
+        });
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {
@@ -105,6 +121,30 @@ export default function PublicProfilePage() {
       }
     } finally {
       setIsFollowingBusy(false);
+    }
+  };
+
+  const loadMoreReviews = async () => {
+    if (isReviewsLoading || reviewsPagination.page >= reviewsPagination.totalPages) {
+      return;
+    }
+
+    try {
+      setIsReviewsLoading(true);
+      const nextPage = reviewsPagination.page + 1;
+      const response = await api.get(`/reviews/${id}?page=${nextPage}&limit=${REVIEWS_PAGE_SIZE}`);
+      const nextReviews = Array.isArray(response?.items) ? response.items : [];
+      setReviews((current) => [...current, ...nextReviews]);
+      setReviewsPagination({
+        page: Number(response?.pagination?.page || nextPage),
+        limit: Number(response?.pagination?.limit || REVIEWS_PAGE_SIZE),
+        total: Number(response?.pagination?.total || reviewsPagination.total),
+        totalPages: Number(response?.pagination?.totalPages || reviewsPagination.totalPages),
+      });
+    } catch (loadError) {
+      setError(loadError.message);
+    } finally {
+      setIsReviewsLoading(false);
     }
   };
 
@@ -300,7 +340,7 @@ export default function PublicProfilePage() {
                             </div>
                           </div>
                           <div className="flex gap-0.5 text-secondary">
-                            {[...Array(5)].map((_, i) => (
+                            {STAR_INDEXES.map((i) => (
                               <span key={i} className="material-symbols-outlined text-xs">
                                 {i < review.rating ? "star" : "star_outline"}
                               </span>
@@ -319,6 +359,18 @@ export default function PublicProfilePage() {
                       This organizer hasn't received any public reviews yet.
                     </div>
                   )}
+                  {reviewsPagination.page < reviewsPagination.totalPages ? (
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={loadMoreReviews}
+                        disabled={isReviewsLoading}
+                        className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isReviewsLoading ? "Loading..." : "Load More"}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </article>
