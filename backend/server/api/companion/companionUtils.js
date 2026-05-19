@@ -1,6 +1,5 @@
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const { escapeRegex } = require("../../utils/text");
 
 const normalizeText = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
 

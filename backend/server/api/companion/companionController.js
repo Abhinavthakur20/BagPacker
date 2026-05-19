@@ -5,6 +5,7 @@ const Notification = require("../notification/notificationModel");
 const Booking = require("../booking/bookingModel");
 const Trip = require("../trip/tripModel");
 const { haversineDistance, splitExpense } = require("../../utils/haversine");
+const { getGeoapifyApiKey } = require("../../utils/geoapify");
 const {
   buildChatRoomId,
   escapeRegex,
@@ -84,26 +85,6 @@ const parseNonNegativeNumber = (value, fallback = 0) => {
   }
 
   return parsed;
-};
-
-const getGeoapifyApiKey = () => {
-  const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
-  if (!rawValue) {
-    return "";
-  }
-
-  // Accept either the plain API key or a full Geoapify URL containing ?apiKey=...
-  if (rawValue.includes("apiKey=")) {
-    try {
-      const parsedUrl = new URL(rawValue);
-      return String(parsedUrl.searchParams.get("apiKey") || "").trim();
-    } catch (_error) {
-      const match = /[?&]apiKey=([^&]+)/i.exec(rawValue);
-      return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
-    }
-  }
-
-  return rawValue;
 };
 
 const getGeoapifyCountryFilter = () => {

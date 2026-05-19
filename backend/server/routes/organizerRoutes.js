@@ -31,7 +31,6 @@ router.get(
 router.post(
   "/",
   authMiddleware,
-  roleMiddleware(["organizer"]),
   upload.single("license"),
   [
     body("businessName").trim().notEmpty().withMessage("Business name is required"),
