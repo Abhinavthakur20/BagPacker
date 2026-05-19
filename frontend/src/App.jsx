@@ -7,6 +7,7 @@ import LocomotiveScroll from "locomotive-scroll";
 import "locomotive-scroll/dist/locomotive-scroll.css";
 import AlertHost from "./components/ui/AlertHost";
 import LoadingPanel from "./components/ui/LoadingPanel";
+import ErrorBoundary from "./components/ErrorBoundary";
 import RoleRoute from "./components/RoleRoute";
 import AuthModal from "./components/AuthModal";
 import { AuthModalProvider } from "./context/AuthModalContext";
@@ -25,6 +26,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const CreateTripPage = lazy(() => import("./pages/CreateTripPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function DashboardRedirect() {
   const user = useSelector((state) => state.auth.user);
@@ -130,6 +132,7 @@ function App() {
   return (
     <AuthModalProvider>
     <div ref={scrollContainerRef} data-scroll-container>
+      <ErrorBoundary>
       <Suspense
         fallback={
           <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
@@ -237,9 +240,10 @@ function App() {
             }
           />
           <Route path="/users/:id" element={<PublicProfilePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
       <AuthModal />
       <AlertHost />
     </div>
