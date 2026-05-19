@@ -5,6 +5,10 @@ const { recalculateAndPersistTrustScore } = require("../user/trustScoreService")
 
 const createReview = async (req, res) => {
   try {
+    if (!req.user?.isEmailVerified) {
+      return res.status(403).json({ message: "Please verify your email before reviewing a trip" });
+    }
+
     const { revieweeId, bookingId, rating, comment } = req.body;
 
     const booking = await Booking.findOne({

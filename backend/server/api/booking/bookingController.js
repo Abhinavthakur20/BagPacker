@@ -204,6 +204,10 @@ const reserveTripSeats = async ({ tripId, seatsBooked }) =>
 
 const initiateBookingPayment = async (req, res) => {
   try {
+    if (!req.user?.isEmailVerified) {
+      return res.status(403).json({ message: "Please verify your email before booking a trip" });
+    }
+
     const { tripId, pickupPointId, seatsBooked } = req.body;
     const normalizedSeats = Number(seatsBooked);
     if (!Number.isInteger(normalizedSeats) || normalizedSeats < 1) {
@@ -245,7 +249,9 @@ const initiateBookingPayment = async (req, res) => {
           keyId: String(process.env.RAZORPAY_KEY_ID || "").trim(),
         });
       }
-      // Expired order — fall through and create a new one
+      existingPending.status = "cancelled";
+      existingPending.paymentStatus = "failed";
+      await existingPending.save();
     }
 
     const draftBooking = await Booking.create({

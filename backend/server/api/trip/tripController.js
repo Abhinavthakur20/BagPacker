@@ -6,8 +6,8 @@ const Trip = require("./tripModel");
 const GroupChat = require("../groupChat/groupChatModel");
 const { ensureTripGroupChat } = require("../groupChat/groupChatController");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
-
-const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const { getGeoapifyApiKey } = require("../../utils/geoapify");
+const { escapeRegex } = require("../../utils/text");
 
 const getDayRange = (value) => {
   const date = new Date(value);
@@ -80,20 +80,6 @@ const parseBooleanInput = (value, fallback = false) => {
 };
 
 const normalizeCityName = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
-const getGeoapifyApiKey = () => {
-  const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
-  if (!rawValue) return "";
-  if (rawValue.includes("apiKey=")) {
-    try {
-      const parsedUrl = new URL(rawValue);
-      return String(parsedUrl.searchParams.get("apiKey") || "").trim();
-    } catch (_error) {
-      const match = /[?&]apiKey=([^&]+)/i.exec(rawValue);
-      return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
-    }
-  }
-  return rawValue;
-};
 
 const buildSuggestionValue = ({ city, state, country }) =>
   normalizeCityName([city, state, country].filter(Boolean).join(", "));
@@ -327,6 +313,23 @@ const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
 
 const TRIP_CACHE = new Map();
 const TRIP_CACHE_TTL = 60_000; // 60 seconds
+const clearTripCache = () => TRIP_CACHE.clear();
+
+const uploadTripImages = async (files = []) =>
+  Array.isArray(files)
+    ? Promise.all(
+        files.map(async (file) => {
+          const uploadedImage = await uploadBufferToCloudinary({
+            buffer: file.buffer,
+            originalname: file.originalname,
+            folder: "bagpacker/trip-images",
+            resourceType: "image",
+            transformations: TRIP_IMAGE_TRANSFORMATIONS,
+          });
+          return uploadedImage.secure_url;
+        }),
+      )
+    : [];
 
 const getTrips = async (req, res) => {
   try {
@@ -542,20 +545,7 @@ const createTrip = async (req, res) => {
       return res.status(400).json({ message: arrayValidationMessage });
     }
 
-    const tripImages = Array.isArray(req.files)
-      ? await Promise.all(
-          req.files.map(async (file) => {
-            const uploadedImage = await uploadBufferToCloudinary({
-              buffer: file.buffer,
-              originalname: file.originalname,
-              folder: "bagpacker/trip-images",
-              resourceType: "image",
-              transformations: TRIP_IMAGE_TRANSFORMATIONS,
-            });
-            return uploadedImage.secure_url;
-          }),
-        )
-      : [];
+    const tripImages = await uploadTripImages(req.files);
 
     const trip = await Trip.create({
       organizerId: organizer._id,
@@ -592,6 +582,7 @@ const createTrip = async (req, res) => {
     );
 
     await ensureTripGroupChat({ tripId: trip._id, organizerUserId: req.user._id });
+    clearTripCache();
 
     return res.status(201).json({
       ...trip.toObject(),
@@ -659,6 +650,17 @@ const updateTrip = async (req, res) => {
 
       trip.totalSeats = req.body.totalSeats;
       trip.availableSeats = req.body.totalSeats - bookedSeats;
+    }
+
+    const retainedImages =
+      req.body.existingImages !== undefined ? parseJsonArray(req.body.existingImages) : undefined;
+    const uploadedImages = await uploadTripImages(req.files);
+    if (retainedImages !== undefined || uploadedImages.length) {
+      const nextImages = [
+        ...(Array.isArray(retainedImages) ? retainedImages.map((image) => String(image || "").trim()).filter(Boolean) : trip.images || []),
+        ...uploadedImages,
+      ].slice(0, 10);
+      trip.images = nextImages;
     }
 
     await trip.save();
