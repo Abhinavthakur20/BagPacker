@@ -493,7 +493,10 @@ const getOrganizerFollowStatus = async (req, res) => {
 
 const getMyTripBookings = async (req, res) => {
   try {
-    const organizer = await getPrimaryOrganizerProfile(req.user._id);
+    const organizer = await Organizer.findOne({ userId: req.user._id })
+      .sort({ approvalStatus: 1, approvedAt: -1, createdAt: -1 })
+      .select("_id")
+      .lean();
     if (!organizer) {
       return res.status(404).json({ message: "Organizer profile not found" });
     }
