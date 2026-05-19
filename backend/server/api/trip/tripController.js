@@ -696,6 +696,8 @@ const updateTrip = async (req, res) => {
       createdPickupPoints ?? PickupPoint.find({ tripId: trip._id }).sort({ sequence: 1 }),
     ]);
 
+    clearTripCache();
+
     return res.status(200).json({
       ...trip.toObject(),
       itinerary: finalItinerary,
@@ -720,21 +722,42 @@ const deleteTrip = async (req, res) => {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    const confirmedBookings = await Booking.countDocuments({ tripId: trip._id, status: "confirmed" });
-    if (confirmedBookings > 0) {
+    const protectedBookings = await Booking.countDocuments({
+      tripId: trip._id,
+      $or: [
+        { status: { $in: ["confirmed", "completed"] } },
+        { paymentStatus: { $in: ["paid", "refund_required"] } },
+      ],
+    });
+    if (protectedBookings > 0) {
       return res.status(400).json({
-        message: "Cannot delete a trip with confirmed bookings. Cancel the trip instead.",
+        message: "Cannot delete a trip with paid or completed bookings. Cancel the trip instead.",
       });
     }
+
+    await Booking.updateMany(
+      {
+        tripId: trip._id,
+        status: "pending",
+        paymentStatus: "created",
+      },
+      {
+        $set: {
+          status: "cancelled",
+          paymentStatus: "failed",
+        },
+      },
+    );
 
     await trip.deleteOne();
 
     await Promise.all([
       Itinerary.deleteMany({ tripId: trip._id }),
       PickupPoint.deleteMany({ tripId: trip._id }),
-      Booking.deleteMany({ tripId: trip._id }),
       GroupChat.deleteMany({ tripId: trip._id }),
     ]);
+
+    clearTripCache();
 
     return res.status(200).json({ message: "Trip deleted successfully" });
   } catch (error) {
@@ -764,6 +787,7 @@ const startTrip = async (req, res) => {
 
     trip.startedAt = new Date();
     await trip.save();
+    clearTripCache();
 
     return res.status(200).json(trip);
   } catch (error) {
