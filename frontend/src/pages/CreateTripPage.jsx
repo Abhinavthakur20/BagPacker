@@ -634,40 +634,30 @@ export default function CreateTripPage() {
         sequence: Number(item.sequence || index + 1),
       }));
 
+      const payload = new FormData();
+      payload.append("title", tripForm.title);
+      payload.append("source", tripForm.source);
+      payload.append("destination", tripForm.destination);
+      payload.append("transportType", tripForm.transportType);
+      payload.append("startDate", tripForm.startDate);
+      payload.append("endDate", tripForm.endDate);
+      payload.append("totalSeats", String(Number(tripForm.totalSeats)));
+      payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
+      payload.append("paymentEnabled", String(Boolean(tripForm.paymentEnabled)));
+      payload.append("description", tripForm.description);
+      payload.append("itinerary", JSON.stringify(normalizedItinerary));
+      payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
       if (isEditMode) {
-        await api.put(`/trips/${tripId}`, {
-          title: tripForm.title,
-          source: tripForm.source,
-          destination: tripForm.destination,
-          transportType: tripForm.transportType,
-          startDate: tripForm.startDate,
-          endDate: tripForm.endDate,
-          totalSeats: Number(tripForm.totalSeats),
-          pricePerPerson: Number(tripForm.pricePerPerson),
-          paymentEnabled: Boolean(tripForm.paymentEnabled),
-          description: tripForm.description,
-          status: tripForm.status,
-          itinerary: normalizedItinerary,
-          pickupPoints: normalizedPickupPoints,
-        });
-      } else {
-        const payload = new FormData();
-        payload.append("title", tripForm.title);
-        payload.append("source", tripForm.source);
-        payload.append("destination", tripForm.destination);
-        payload.append("transportType", tripForm.transportType);
-        payload.append("startDate", tripForm.startDate);
-        payload.append("endDate", tripForm.endDate);
-        payload.append("totalSeats", String(Number(tripForm.totalSeats)));
-        payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
-        payload.append("paymentEnabled", String(Boolean(tripForm.paymentEnabled)));
-        payload.append("description", tripForm.description);
-        payload.append("itinerary", JSON.stringify(normalizedItinerary));
-        payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
-        tripImages.forEach((image) => {
-          payload.append("tripImages", image);
-        });
+        payload.append("status", tripForm.status);
+        payload.append("existingImages", JSON.stringify(existingImages));
+      }
+      tripImages.forEach((image) => {
+        payload.append("tripImages", image);
+      });
 
+      if (isEditMode) {
+        await api.put(`/trips/${tripId}`, payload);
+      } else {
         await api.post("/trips", payload);
       }
 
