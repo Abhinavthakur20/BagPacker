@@ -3,6 +3,8 @@ const User = require("../api/user/userModel");
 
 const AUTH_USER_CACHE_TTL_MS = 60 * 1000;
 const authUserCache = new Map();
+const PRIVATE_USER_FIELDS =
+  "-passwordHash -passwordResetTokenHash -passwordResetExpiresAt -emailVerificationTokenHash -emailVerificationExpiresAt";
 
 const getCachedUser = (userId) => {
   const cacheEntry = authUserCache.get(String(userId));
@@ -44,7 +46,7 @@ const authMiddleware = async (req, res, next) => {
       return next();
     }
 
-    const user = await User.findById(decoded.id).select("-passwordHash").lean();
+    const user = await User.findById(decoded.id).select(PRIVATE_USER_FIELDS).lean();
 
     if (!user) {
       return res.status(401).json({ message: "Invalid authorization token" });

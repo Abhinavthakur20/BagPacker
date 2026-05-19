@@ -33,13 +33,15 @@ const ORGANIZER_POST_VIDEO_TRANSFORMATIONS = {
   quality: "auto:good",
   fetch_format: "auto",
 };
+const PRIVATE_USER_FIELDS =
+  "-passwordHash -passwordResetTokenHash -passwordResetExpiresAt -emailVerificationTokenHash -emailVerificationExpiresAt";
 
 const getPrimaryOrganizerProfile = (userId) =>
   Organizer.findOne({ userId })
     .sort({ approvalStatus: 1, approvedAt: -1, createdAt: -1 })
     .populate({
       path: "userId",
-      select: "-passwordHash",
+      select: PRIVATE_USER_FIELDS,
     });
 
 const getOrganizerEngagement = async (organizerId) => {
@@ -83,7 +85,7 @@ const registerOrganizerProfile = async (req, res) => {
       req.user._id,
       { role: "organizer" },
       { returnDocument: "after", runValidators: true },
-    ).select("-passwordHash");
+    ).select(PRIVATE_USER_FIELDS);
     if (req.user) {
       req.user.role = "organizer";
     }

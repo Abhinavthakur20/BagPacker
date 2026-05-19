@@ -8,6 +8,9 @@ const Review = require("../review/reviewModel");
 const User = require("../user/userModel");
 const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
 
+const PRIVATE_USER_FIELDS =
+  "-passwordHash -passwordResetTokenHash -passwordResetExpiresAt -emailVerificationTokenHash -emailVerificationExpiresAt";
+
 const getAllUsers = async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page || 1));
@@ -15,7 +18,7 @@ const getAllUsers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const [users, total] = await Promise.all([
-      User.find().select("-passwordHash").sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.find().select(PRIVATE_USER_FIELDS).sort({ createdAt: -1 }).skip(skip).limit(limit),
       User.countDocuments(),
     ]);
 
@@ -37,7 +40,7 @@ const getPendingOrganizers = async (_req, res) => {
   try {
     const organizers = await Organizer.find({ approvalStatus: "pending" })
       .sort({ createdAt: -1 })
-      .populate("userId", "-passwordHash");
+      .populate("userId", PRIVATE_USER_FIELDS);
 
     return res.status(200).json(organizers);
   } catch (error) {
@@ -76,7 +79,7 @@ const getPendingVerifications = async (_req, res) => {
       verificationStatus: "pending",
       governmentIdUrl: { $nin: [null, ""] },
     })
-      .select("-passwordHash")
+      .select(PRIVATE_USER_FIELDS)
       .sort({ createdAt: -1 });
 
     return res.status(200).json(users);
@@ -91,7 +94,7 @@ const updateVerificationStatus = async (req, res) => {
       req.params.id,
       { verificationStatus: req.body.verificationStatus },
       { returnDocument: "after", runValidators: true },
-    ).select("-passwordHash");
+    ).select(PRIVATE_USER_FIELDS);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
