@@ -509,15 +509,15 @@ export default function OrganizerDashboardPage() {
   return (
     <MainLayout hideFooterOnMobile={true}>
       <div className="flex min-h-[calc(100vh-64px)] bg-[#f8fafc]">
-        <aside className="hidden w-64 flex-col border-r border-[#e2e8f0] bg-white md:flex">
-          <div className="p-6 border-b border-[#e2e8f0]/60">
+        <aside className="hidden w-64 flex-col border-r border-outline-variant/30 bg-surface md:flex">
+          <div className="p-6 border-b border-outline-variant/30">
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-primary text-xl font-medium">business_center</span>
               <div>
                 <h2 className="text-sm font-semibold tracking-tight text-on-surface">
                   Organizer Console
                 </h2>
-                <p className="text-[10px] font-medium text-on-surface-variant/50">BagPacker Business</p>
+                <p className="text-[10px] font-medium text-on-surface-variant/55">BagPacker Business</p>
               </div>
             </div>
           </div>
@@ -534,10 +534,10 @@ export default function OrganizerDashboardPage() {
               <button
                 key={key}
                 onClick={() => setActiveView(key)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold transition-all duration-150 ${
+                className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-bold transition-all duration-150 ${
                   activeView === key
-                    ? "bg-primary/5 text-primary border-l-4 border-primary"
-                    : "text-on-surface-variant/80 hover:bg-surface-container-low hover:text-on-surface"
+                    ? "bg-white text-primary border-l-4 border-primary shadow-sm"
+                    : "text-on-surface-variant/80 hover:bg-surface-container hover:text-on-surface"
                 }`}
               >
                 <span className="material-symbols-outlined text-[1.15rem]">{icon}</span>
@@ -546,19 +546,25 @@ export default function OrganizerDashboardPage() {
             ))}
           </nav>
 
-          <div className="mx-4 mb-6 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+          <div className="mx-4 mb-6 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 font-bold text-primary text-sm">
                 {organizer?.businessName?.charAt(0) || user?.name?.charAt(0) || "O"}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-on-surface">{organizer?.businessName || user?.name || "Organizer"}</p>
-                <div className={`mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${approvalTone}`}>
+                <div className={`mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                  organizer?.approvalStatus === "approved"
+                    ? "bg-secondary-fixed/20 text-[#4f6f16]"
+                    : organizer?.approvalStatus === "rejected"
+                      ? "bg-error/10 text-error"
+                      : "bg-surface-container-high text-on-surface-variant"
+                }`}>
                   {organizer?.approvalStatus || "pending"}
                 </div>
               </div>
             </div>
-            <div className="mt-3.5 space-y-1.5 border-t border-[#e2e8f0] pt-3 text-[10px] font-medium text-on-surface-variant/70">
+            <div className="mt-3.5 space-y-1.5 border-t border-outline-variant/30 pt-3 text-[10px] font-semibold text-on-surface-variant/70">
               <p className="truncate">GST: {organizer?.gstNumber || "N/A"}</p>
               <p className="truncate">Email: {user?.email || "N/A"}</p>
             </div>
