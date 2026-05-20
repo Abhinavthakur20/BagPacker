@@ -1179,18 +1179,18 @@ export default function CreateTripPage() {
                       </div>
                     </article>
 
-                    <article className="rounded-[2.5rem] bg-primary p-10 text-on-primary shadow-2xl shadow-primary/20">
-                      <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <article className="rounded-xl border border-outline-variant/30 bg-surface p-6 shadow-sm">
+                      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="font-headline text-2xl font-black">{isEditMode ? "Finalize Changes" : "Ready for Launch?"}</h3>
-                          <p className="mt-2 text-sm font-bold opacity-80 max-w-md">
+                          <h3 className="font-headline text-lg font-black text-on-surface">{isEditMode ? "Finalize Changes" : "Ready for Launch?"}</h3>
+                          <p className="mt-1 text-sm font-semibold text-on-surface-variant max-w-md">
                             By publishing, you confirm that all logistics and safety measures are accurately represented for travelers.
                           </p>
                         </div>
                         <button
                           onClick={submitTrip}
                           disabled={isSubmitting}
-                          className="rounded-[2rem] bg-secondary px-10 py-5 text-xs font-black uppercase tracking-[0.2em] text-on-secondary shadow-xl transition hover:scale-[1.03] disabled:opacity-50"
+                          className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-sm hover:opacity-90 transition duration-200 disabled:opacity-50"
                         >
                           {isSubmitting ? (isEditMode ? "Updating..." : "Launching...") : (isEditMode ? "Save Evolution" : "Publish Expedition")}
                         </button>
