@@ -101,6 +101,9 @@ export default function PaymentPage() {
 
   const pickupOptions = useMemo(() => tripDetails?.pickupPoints || [], [tripDetails]);
   const trip = tripDetails;
+  const isDeparted = useMemo(() => {
+    return trip?.startDate && new Date(trip.startDate) < new Date();
+  }, [trip]);
   const subtotal = (trip?.pricePerPerson || 0) * seats;
   const taxes = Math.round(subtotal * 0.05);
   const total = subtotal + taxes;
@@ -114,6 +117,12 @@ export default function PaymentPage() {
     if (!trip || !pickupPointId) {
       setError("Please select a trip and pickup point.");
       await showErrorAlert("Booking incomplete", "Please select a trip and pickup point.");
+      return;
+    }
+    if (isDeparted) {
+      const message = "This trip has already departed and can no longer be booked.";
+      setError(message);
+      await showErrorAlert("Booking closed", message);
       return;
     }
     if (!isRazorpayReady || !window.Razorpay) {
@@ -326,6 +335,12 @@ export default function PaymentPage() {
                   <span className="font-bold text-primary">{selectedPickupPoint.time}</span>
                 </div>
               ) : null}
+
+              {isDeparted ? (
+                <div className="mt-6 rounded-2xl bg-error-container p-4 text-sm font-semibold text-on-error-container">
+                  Warning: This trip departed on {new Date(trip.startDate).toLocaleDateString("en-IN")}. Bookings are closed.
+                </div>
+              ) : null}
             </section>
 
             <aside className="rounded-xl bg-primary p-5 text-white shadow-xl sm:p-8">
@@ -350,7 +365,7 @@ export default function PaymentPage() {
               <button
                 onClick={submitBooking}
                 disabled={
-                  isSubmitting || !pickupPointId || trip.availableSeats < 1 || !isRazorpayReady
+                  isSubmitting || !pickupPointId || trip.availableSeats < 1 || !isRazorpayReady || isDeparted
                 }
                 className="mt-6 w-full rounded-2xl bg-secondary px-5 py-4 font-manrope text-lg font-extrabold text-[#2d2000] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -358,7 +373,9 @@ export default function PaymentPage() {
                   ? "Processing..."
                   : !isRazorpayReady
                     ? "Loading Payment..."
-                    : "Pay & Confirm Booking"}
+                    : isDeparted
+                      ? "Trip Departed"
+                      : "Pay & Confirm Booking"}
               </button>
 
               <p className="mt-4 text-xs text-white/75">

@@ -175,10 +175,13 @@ const getBookingTripAndPickup = async ({ tripId, pickupPointId }) => {
   }
 
   const trip = await Trip.findOne({ _id: tripId, status: "active" }).select(
-    "organizerId title pricePerPerson availableSeats status paymentEnabled",
+    "organizerId title pricePerPerson availableSeats status paymentEnabled startDate endDate",
   );
   if (!trip) {
     throw new Error("Trip is unavailable");
+  }
+  if (trip.startDate && new Date(trip.startDate) < new Date()) {
+    throw new Error("This trip has already departed");
   }
   if (!trip.paymentEnabled) {
     throw new Error("Payments are disabled for this trip");
@@ -188,7 +191,6 @@ const getBookingTripAndPickup = async ({ tripId, pickupPointId }) => {
 
   return { trip: reconciledTrip || trip.toObject(), pickupPoint };
 };
-
 const reserveTripSeats = async ({ tripId, seatsBooked }) =>
   Trip.findOneAndUpdate(
     {

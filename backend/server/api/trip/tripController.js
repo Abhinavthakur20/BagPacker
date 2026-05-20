@@ -397,6 +397,8 @@ const getTrips = async (req, res) => {
       if (range) {
         filters.startDate = { $gte: range.start, $lte: range.end };
       }
+    } else if (req.query.includePast !== "true") {
+      filters.startDate = { $gte: new Date() };
     }
 
     if (req.query.priceMax !== undefined) {

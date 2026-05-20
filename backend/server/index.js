@@ -25,6 +25,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const { initSocket } = require("./socket/socket");
+const { runTripMaintenanceJob } = require("./jobs/tripMaintenanceJob");
 
 const app = express();
 const server = http.createServer(app);
@@ -141,6 +142,19 @@ app.get("/api/health", (_req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Run initial trip maintenance cleanup
+    runTripMaintenanceJob()
+      .then((res) => console.log("Initial trip maintenance completed:", res))
+      .catch((err) => console.error("Initial trip maintenance failed:", err.message));
+
+    // Schedule periodic trip maintenance (every 6 hours)
+    setInterval(() => {
+      runTripMaintenanceJob()
+        .then((res) => console.log("Periodic trip maintenance completed:", res))
+        .catch((err) => console.error("Periodic trip maintenance failed:", err.message));
+    }, 6 * 60 * 60 * 1000);
+
     initSocket(io);
     server.listen(port, () => {
       console.log(`Server listening on port ${port}`);
