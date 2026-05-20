@@ -745,9 +745,9 @@ export default function CreateTripPage() {
               <button
                 key={step.id}
                 onClick={() => setCurrentStep(step.id)}
-                className={`flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left transition-all duration-300 ${
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all duration-200 ${
                   currentStep === step.id
-                    ? "bg-primary text-on-primary shadow-xl shadow-primary/20"
+                    ? "bg-primary text-on-primary shadow-[0_4px_12px_rgba(1,45,29,0.12)] font-semibold"
                     : "text-on-surface-variant hover:bg-surface-container-high"
                 }`}
               >
@@ -812,9 +812,9 @@ export default function CreateTripPage() {
                 {currentStep === 1 && (
                   <div className="grid gap-6">
                     <div className="group relative">
-                      <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Expedition Title</label>
+                      <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Expedition Title</label>
                       <input
-                        className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                         placeholder="e.g., Hidden Gems of Spiti Valley"
                         value={tripForm.title}
                         onChange={(e) => updateTripField("title", e.target.value)}
@@ -823,18 +823,18 @@ export default function CreateTripPage() {
 
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Source City</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Source City</label>
                         <CityAutocompleteInput
-                          className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                           placeholder="Departure from..."
                           value={tripForm.source}
                           onChange={(e) => updateTripField("source", e.target.value)}
                         />
                       </div>
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Destination</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Destination</label>
                         <CityAutocompleteInput
-                          className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                           placeholder="Arrival at..."
                           value={tripForm.destination}
                           onChange={(e) => updateTripField("destination", e.target.value)}
@@ -844,10 +844,10 @@ export default function CreateTripPage() {
 
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Transport Mode</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Transport Mode</label>
                         <div className="relative">
                           <select
-                            className="w-full appearance-none rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                            className="w-full appearance-none rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                             value={tripForm.transportType}
                             onChange={(e) => updateTripField("transportType", e.target.value)}
                           >
@@ -858,7 +858,7 @@ export default function CreateTripPage() {
                             <option value="flight">Aviation / Flight</option>
                             <option value="other">Other Mode</option>
                           </select>
-                          <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none">expand_more</span>
+                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none">expand_more</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 px-4 py-2">
@@ -881,19 +881,19 @@ export default function CreateTripPage() {
 
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Start Date</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Start Date</label>
                         <input
                           type="date"
-                          className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                           value={tripForm.startDate}
                           onChange={(e) => updateTripField("startDate", e.target.value)}
                         />
                       </div>
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">End Date</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">End Date</label>
                         <input
                           type="date"
-                          className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                           value={tripForm.endDate}
                           onChange={(e) => updateTripField("endDate", e.target.value)}
                         />
@@ -907,12 +907,12 @@ export default function CreateTripPage() {
                   <div className="grid gap-6">
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Price Per Seat (INR)</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Price Per Seat (INR)</label>
                         <div className="relative">
-                          <span className="absolute left-6 top-1/2 -translate-y-1/2 text-sm font-black text-on-surface/40">₹</span>
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-on-surface/40">₹</span>
                           <input
                             type="number"
-                            className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface py-5 pl-12 pr-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                            className="w-full rounded-xl border border-outline-variant/30 bg-surface py-3.5 pl-10 pr-4 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                             placeholder="0"
                             value={tripForm.pricePerPerson}
                             onWheel={preventWheelNumberChange}
@@ -921,10 +921,10 @@ export default function CreateTripPage() {
                         </div>
                       </div>
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Total Inventory (Seats)</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Total Inventory (Seats)</label>
                         <input
                           type="number"
-                          className="w-full rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                           placeholder="1"
                           value={tripForm.totalSeats}
                           onWheel={preventWheelNumberChange}
@@ -933,7 +933,7 @@ export default function CreateTripPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-[2.5rem] border border-outline-variant/20 bg-surface p-6 shadow-sm">
+                    <div className="flex items-center justify-between rounded-2xl border border-outline-variant/20 bg-surface p-6 shadow-sm">
                       <div className="flex items-center gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
                           <span className="material-symbols-outlined">payments</span>
@@ -954,10 +954,10 @@ export default function CreateTripPage() {
 
                     {isEditMode && (
                       <div className="group relative">
-                        <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Expedition Status</label>
+                        <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Expedition Status</label>
                         <div className="relative">
                           <select
-                            className="w-full appearance-none rounded-[2rem] border border-outline-variant/20 bg-surface p-5 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                            className="w-full appearance-none rounded-xl border border-outline-variant/30 bg-surface px-4 py-3.5 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                             value={tripForm.status}
                             onChange={(e) => updateTripField("status", e.target.value)}
                           >
@@ -965,16 +965,16 @@ export default function CreateTripPage() {
                             <option value="completed">Expedition Completed</option>
                             <option value="cancelled">Cancelled</option>
                           </select>
-                          <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none">expand_more</span>
+                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none">expand_more</span>
                         </div>
                       </div>
                     )}
 
                     <div className="group relative">
-                      <label className="mb-2.5 block text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 ml-4">Full Description</label>
+                      <label className="mb-1.5 block text-xs font-bold text-on-surface-variant/80 ml-1">Full Description</label>
                       <textarea
                         rows={6}
-                        className="w-full rounded-[2.5rem] border border-outline-variant/20 bg-surface p-8 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                        className="w-full rounded-xl border border-outline-variant/30 bg-surface p-4 text-sm font-semibold text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/10"
                         placeholder="Tell the story of this trip..."
                         value={tripForm.description}
                         onChange={(e) => updateTripField("description", e.target.value)}
@@ -1204,7 +1204,7 @@ export default function CreateTripPage() {
                   <button
                     onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
                     disabled={currentStep === 1}
-                    className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-on-surface-variant hover:text-primary disabled:opacity-20"
+                    className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-on-surface-variant hover:text-primary transition disabled:opacity-20"
                   >
                     <span className="material-symbols-outlined text-sm">arrow_back</span>
                     Back
@@ -1217,7 +1217,7 @@ export default function CreateTripPage() {
                   <button
                     onClick={() => setCurrentStep(prev => Math.min(4, prev + 1))}
                     disabled={currentStep === 4}
-                    className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-primary hover:underline disabled:opacity-20"
+                    className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-primary hover:opacity-85 transition disabled:opacity-20"
                   >
                     Next Step
                     <span className="material-symbols-outlined text-sm">arrow_forward</span>
