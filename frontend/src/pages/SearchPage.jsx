@@ -41,6 +41,7 @@ const mapTrip = (trip) => ({
   route: `${trip.source} -> ${trip.destination}`,
   location: trip.destination,
   date: trip.startDate,
+  dateRange: `${new Date(trip.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} - ${new Date(trip.endDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`,
   duration: getTripDuration(trip.startDate, trip.endDate),
   seatsLeft: trip.availableSeats,
   price: trip.pricePerPerson,
@@ -437,9 +438,14 @@ export default function SearchPage() {
                         {trip.title}
                       </h2>
 
-                      <div className="hidden sm:flex items-center gap-2 text-xs text-on-surface-variant">
+                      <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                         <span className="material-symbols-outlined text-sm text-primary">route</span>
                         {trip.route}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                        <span className="material-symbols-outlined text-sm text-primary">calendar_month</span>
+                        <span>{trip.dateRange}</span>
                       </div>
 
                       {/* Seat fill bar */}
