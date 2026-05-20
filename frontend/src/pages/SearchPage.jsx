@@ -220,14 +220,14 @@ export default function SearchPage() {
     <MainLayout>
       <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8">
         {/* ── Hero banner ── */}
-        <div className="mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0d3a28] via-[#14503a] to-[#1a6e50] p-8 md:p-10">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50">Discover</p>
-              <h1 className="mt-2 font-headline text-3xl font-black tracking-tight text-white md:text-4xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-secondary">Discover</p>
+              <h1 className="mt-2 font-headline text-3xl font-black tracking-tight text-on-surface md:text-4xl">
                 Explore Trips
               </h1>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-white/70">
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-on-surface-variant">
                 {visibleTrips.length} curated adventures handpicked by verified organizers across India.
               </p>
             </div>
@@ -236,18 +236,18 @@ export default function SearchPage() {
               <button
                 type="button"
                 onClick={() => setShowMobileFilters(true)}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white backdrop-blur-sm md:hidden"
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-lowest px-4 py-2 text-sm font-bold text-on-surface shadow-[0_2px_8px_rgba(0,0,0,0.04)] md:hidden"
               >
                 <span className="material-symbols-outlined text-base">tune</span>
                 Filters
               </button>
-              <label className="hidden text-xs font-bold uppercase tracking-widest text-white/50 md:block">
-                Sort
+              <label className="hidden text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 md:block">
+                Sort by
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-white backdrop-blur-sm outline-none [&>option]:text-black"
+                className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest px-4 py-2.5 text-sm font-bold text-on-surface shadow-[0_2px_8px_rgba(0,0,0,0.04)] outline-none transition focus:border-primary"
               >
                 <option value="recommended">Recommended</option>
                 <option value="price_low">Price: Low → High</option>
@@ -255,7 +255,7 @@ export default function SearchPage() {
                 <option value="upcoming">Upcoming Soon</option>
               </select>
             </div>
-          </div>
+
         </div>
 
         {/* ── Floating Filter Bar (Desktop) ── */}
