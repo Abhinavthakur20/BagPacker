@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
@@ -102,6 +102,14 @@ export default function OrganizerDashboardPage() {
     },
   ]);
   const [aiIsLoading, setAiIsLoading] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [aiChat, aiIsLoading]);
 
   // Settlements
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
@@ -528,7 +536,6 @@ export default function OrganizerDashboardPage() {
               ["trips", "My Posted Trips", "inventory_2"],
               ["travelers", "Traveler Registry", "group"],
               ["analytics", "Visual Analytics", "analytics"],
-              ["ai_copilot", "AI Copilot Helper", "smart_toy"],
               ["social", "Social Profile", "photo_library"],
             ].map(([key, label, icon]) => (
               <button
@@ -578,7 +585,6 @@ export default function OrganizerDashboardPage() {
               ["trips", "inventory_2", "Trips"],
               ["travelers", "group", "Travelers"],
               ["analytics", "analytics", "Charts"],
-              ["ai_copilot", "smart_toy", "AI"],
               ["social", "photo_library", "Social"],
             ].map(([key, icon, label]) => (
               <button
@@ -1351,120 +1357,6 @@ export default function OrganizerDashboardPage() {
                   </section>
                 )}
 
-                {activeView === "ai_copilot" && (
-                  <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
-                    <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-bold text-on-surface">Prompt Templates</h4>
-                          <p className="text-[10px] font-semibold text-on-surface-variant/50 uppercase tracking-wide mt-0.5">
-                            Preloaded system tasks
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {[
-                            {
-                              label: "Itinerary Safety Audit",
-                              text: "Audit my trip itinerary to ensure we have emergency contingency plans and clear group safety guidelines.",
-                              intent: "safety",
-                            },
-                            {
-                              label: "Traveler Announcement",
-                              text: "Draft a departures announcement for our passenger chat room specifying meeting details, rules, and timings.",
-                              intent: "qa",
-                            },
-                            {
-                              label: "Instagram Caption",
-                              text: "Create a highly engaging Instagram caption promoting my group travel trip with local adventure details and tags.",
-                              intent: "qa",
-                            },
-                            {
-                              label: "Packing Checklist",
-                              text: "Generate a recommended packing list for my travelers based on the destination's climate.",
-                              intent: "packing",
-                            },
-                          ].map((tmpl) => (
-                            <button
-                              key={tmpl.label}
-                              type="button"
-                              onClick={() => {
-                                setAiIntent(tmpl.intent);
-                                setAiQuestion(tmpl.text);
-                              }}
-                              className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] hover:bg-primary/[0.02] hover:border-primary/20 p-3 text-left text-xs font-semibold text-on-surface-variant transition duration-150"
-                            >
-                              {tmpl.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col h-[520px] rounded-lg border border-[#e2e8f0] bg-white">
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll">
-                          {aiChat.map((msg, idx) => (
-                            <div
-                              key={idx}
-                              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                            >
-                              <div
-                                className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-xs leading-relaxed ${
-                                  msg.role === "user"
-                                    ? "bg-primary text-on-primary rounded-tr-none font-medium"
-                                    : "bg-[#f8fafc] text-on-surface border border-[#e2e8f0] rounded-tl-none copilot-markdown"
-                                }`}
-                              >
-                                {msg.role === "user" ? (
-                                  msg.content
-                                ) : (
-                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                          {aiIsLoading && (
-                            <div className="flex justify-start">
-                              <div className="flex items-center gap-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] px-3.5 py-2.5 text-xs text-on-surface-variant font-semibold">
-                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary" />
-                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary [animation-delay:0.2s]" />
-                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary [animation-delay:0.4s]" />
-                                Thinking...
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <form onSubmit={handleAskAICopilot} className="border-t border-[#e2e8f0] p-3 bg-[#f8fafc] rounded-b-lg">
-                          <div className="flex gap-2">
-                            <select
-                              value={aiIntent}
-                              onChange={(e) => setAiIntent(e.target.value)}
-                              className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-xs text-on-surface outline-none"
-                            >
-                              <option value="qa">Instant Q&A</option>
-                              <option value="packing">Packing</option>
-                              <option value="safety">Safety Check</option>
-                              <option value="route">Routes</option>
-                            </select>
-                            <input
-                              value={aiQuestion}
-                              onChange={(e) => setAiQuestion(e.target.value)}
-                              placeholder="Ask AI Copilot to draft communications, audit safety, or plan packing..."
-                              className="flex-1 rounded-lg border border-[#e2e8f0] bg-white px-3.5 py-2 text-xs text-on-surface outline-none focus:border-primary/30"
-                              disabled={aiIsLoading}
-                            />
-                            <button
-                              type="submit"
-                              disabled={aiIsLoading}
-                              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary/95 transition disabled:opacity-50"
-                            >
-                              Send
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    </div>
-                  </section>
-                )}
 
                 {activeView === "social" && (
                   <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -1694,6 +1586,157 @@ export default function OrganizerDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Floating AI Copilot Widget */}
+      <div className="fixed bottom-[60px] right-2 md:bottom-2 md:right-2 z-50 flex flex-col items-end">
+        {/* Chat Window */}
+        {isCopilotOpen && (
+          <div className="mb-1 w-96 max-w-[calc(100vw-32px)] h-[550px] max-h-[calc(100vh-180px)] md:max-h-[calc(100vh-120px)] bg-white rounded-2xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden transition-all duration-300 animate-scaleIn">
+            {/* Header */}
+            <div className="bg-primary text-on-primary p-4 flex items-center justify-between shadow-md shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">smart_toy</span>
+                <div>
+                  <h4 className="text-xs font-bold text-white">Organizer AI Copilot</h4>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-[9px] text-on-primary/85 font-semibold">Online</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCopilotOpen(false)}
+                className="text-on-primary/70 hover:text-on-primary transition"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            {/* Prompt Templates */}
+            <div className="px-3.5 py-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
+              <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 mb-2">Prompt Templates</p>
+              <div className="flex gap-1.5 overflow-x-auto pb-1.5 chat-scroll max-w-full">
+                {[
+                  {
+                    label: "Safety Audit",
+                    text: "Audit my trip itinerary to ensure we have emergency contingency plans and clear group safety guidelines.",
+                    intent: "safety",
+                  },
+                  {
+                    label: "Announcement",
+                    text: "Draft a departures announcement for our passenger chat room specifying meeting details, rules, and timings.",
+                    intent: "qa",
+                  },
+                  {
+                    label: "Caption",
+                    text: "Create a highly engaging Instagram caption promoting my group travel trip with local adventure details and tags.",
+                    intent: "qa",
+                  },
+                  {
+                    label: "Packing",
+                    text: "Generate a recommended packing list for my travelers based on the destination's climate.",
+                    intent: "packing",
+                  },
+                ].map((tmpl) => (
+                  <button
+                    key={tmpl.label}
+                    type="button"
+                    onClick={() => {
+                      setAiIntent(tmpl.intent);
+                      setAiQuestion(tmpl.text);
+                    }}
+                    className="shrink-0 rounded-lg border border-slate-200/80 bg-white hover:bg-primary/[0.02] hover:border-primary/20 px-2.5 py-1.5 text-left text-[10px] font-bold text-on-surface-variant transition duration-150"
+                  >
+                    {tmpl.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/20 chat-scroll">
+              {aiChat.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-primary text-on-primary rounded-tr-none font-medium"
+                        : "bg-[#f8fafc] text-on-surface border border-slate-200/60 rounded-tl-none copilot-markdown shadow-sm"
+                    }`}
+                  >
+                    {msg.role === "user" ? (
+                      msg.content
+                    ) : (
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {aiIsLoading && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-1.5 rounded-2xl bg-[#f8fafc] border border-slate-200/60 px-3.5 py-2.5 text-xs text-on-surface-variant font-semibold shadow-sm">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary [animation-delay:0.2s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary [animation-delay:0.4s]" />
+                    <span>Thinking...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input Footer */}
+            <form onSubmit={handleAskAICopilot} className="border-t border-slate-100 p-3 bg-white shrink-0">
+              <div className="flex gap-1.5">
+                <select
+                  value={aiIntent}
+                  onChange={(e) => setAiIntent(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[10px] font-bold text-on-surface outline-none focus:border-primary/30"
+                >
+                  <option value="qa">Q&A</option>
+                  <option value="packing">Pack</option>
+                  <option value="safety">Safe</option>
+                  <option value="route">Route</option>
+                </select>
+                <input
+                  value={aiQuestion}
+                  onChange={(e) => setAiQuestion(e.target.value)}
+                  placeholder="Ask AI Copilot..."
+                  className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-on-surface outline-none focus:border-primary/30"
+                  disabled={aiIsLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={aiIsLoading}
+                  className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary hover:bg-primary/95 transition disabled:opacity-50 flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-sm">send</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Floating Button */}
+        <button
+          type="button"
+          onClick={() => setIsCopilotOpen(!isCopilotOpen)}
+          className={`flex h-14 w-14 items-center justify-center rounded-full text-white shadow-2xl transition-all duration-300 transform active:scale-95 ${
+            isCopilotOpen
+              ? "bg-slate-800 hover:bg-slate-700 rotate-90"
+              : "bg-primary hover:bg-primary/95 hover:scale-105"
+          }`}
+          title="Ask AI Copilot"
+        >
+          <span className="material-symbols-outlined text-2xl">
+            {isCopilotOpen ? "close" : "smart_toy"}
+          </span>
+        </button>
+      </div>
     </MainLayout>
   );
 }
