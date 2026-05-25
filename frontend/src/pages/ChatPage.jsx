@@ -595,9 +595,7 @@ export default function ChatPage() {
                 {selectedContact?.name || "Select a chat"}
               </h2>
               <p className="text-xs text-[#6e736a]">
-                {selectedContact?.id === AI_ROOM_ID
-                  ? "Telegram-style AI chat for all travel questions."
-                  : selectedContact?.route || "Companion and trip group rooms will appear here."}
+                {selectedContact?.route || "Companion and trip group rooms will appear here."}
               </p>
             </div>
             <button
