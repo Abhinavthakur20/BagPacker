@@ -26,7 +26,7 @@ export default function LandingPage() {
       try {
         setIsLoadingTrips(true);
         const response = await api.get("/trips?page=1&limit=3", {
-          cacheTtlMs: 3600000, // Cache for 1 hour
+          cacheTtlMs: 86400000, // Cache for 24 hours
           persistCache: true, // Store in localStorage for instant retrieval on next visit
         });
         setTrips(Array.isArray(response?.items) ? response.items : []);

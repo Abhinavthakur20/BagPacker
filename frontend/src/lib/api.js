@@ -51,16 +51,19 @@ const pruneResponseCache = () => {
     }
 };
 
-const getPersistedData = (key) => {
+const getPersistedData = (key, allowStale = false) => {
     try {
         const item = localStorage.getItem(`api_cache_${key}`);
         if (!item) return null;
         const parsed = JSON.parse(item);
         if (parsed.expireAt && parsed.expireAt < Date.now()) {
+            if (allowStale) {
+                return { data: parsed.data, isStale: true };
+            }
             localStorage.removeItem(`api_cache_${key}`);
             return null;
         }
-        return parsed.data;
+        return { data: parsed.data, isStale: false };
     } catch {
         return null;
     }
@@ -104,11 +107,16 @@ async function request(path, options = {}) {
         }
 
         if (persistCache) {
-            const persisted = getPersistedData(requestKey);
+            const persisted = getPersistedData(requestKey, true);
             if (persisted) {
-                // Return persisted data immediately, but we might want to refresh it in the background
-                // if we don't return here. For simplicity, we return it if it's fresh enough.
-                return persisted;
+                if (persisted.isStale) {
+                    // Stale-While-Revalidate: Return the stale cache immediately,
+                    // and fetch the fresh data in the background to update the cache.
+                    request(path, { ...options, forceRefresh: true }).catch((err) =>
+                        console.warn("Background cache refresh failed:", err.message)
+                    );
+                }
+                return persisted.data;
             }
         }
     }
