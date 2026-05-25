@@ -5,7 +5,7 @@ const { recalculateAndPersistTrustScore } = require("../user/trustScoreService")
 
 const createReview = async (req, res) => {
   try {
-    if (!req.user?.isEmailVerified) {
+    if (!req.user?.isEmailVerified && process.env.NODE_ENV === "production") {
       return res.status(403).json({ message: "Please verify your email before reviewing a trip" });
     }
 

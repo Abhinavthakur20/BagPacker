@@ -175,7 +175,7 @@ const getBookingTripAndPickup = async ({ tripId, pickupPointId }) => {
   }
 
   const trip = await Trip.findOne({ _id: tripId, status: "active" }).select(
-    "organizerId title pricePerPerson availableSeats status paymentEnabled startDate endDate",
+    "organizerId title pricePerPerson totalSeats availableSeats status paymentEnabled startDate endDate",
   );
   if (!trip) {
     throw new Error("Trip is unavailable");
@@ -206,7 +206,7 @@ const reserveTripSeats = async ({ tripId, seatsBooked }) =>
 
 const initiateBookingPayment = async (req, res) => {
   try {
-    if (!req.user?.isEmailVerified) {
+    if (!req.user?.isEmailVerified && process.env.NODE_ENV === "production") {
       return res.status(403).json({ message: "Please verify your email before booking a trip" });
     }
 

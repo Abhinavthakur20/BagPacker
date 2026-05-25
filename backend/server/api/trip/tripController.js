@@ -8,6 +8,7 @@ const { ensureTripGroupChat } = require("../groupChat/groupChatController");
 const { uploadBufferToCloudinary } = require("../../utils/cloudinaryUpload");
 const { getGeoapifyApiKey } = require("../../utils/geoapify");
 const { escapeRegex } = require("../../utils/text");
+const { reconcileTripsSeatInventory } = require("./tripSeatSyncService");
 
 const getDayRange = (value) => {
   const date = new Date(value);
@@ -408,24 +409,20 @@ const getTrips = async (req, res) => {
       }
     }
 
-    if (req.query.seatsMin !== undefined) {
-      const seatsMin = Number(req.query.seatsMin);
-      if (Number.isFinite(seatsMin)) {
-        filters.availableSeats = { $gte: seatsMin };
-      }
-    }
+    // Parse seatsMin but apply AFTER reconciliation (not in DB query)
+    const requestedSeatsMin = req.query.seatsMin !== undefined
+      ? Number(req.query.seatsMin)
+      : 0;
 
-    // Run the aggregation and derive organizer IDs, then fetch organizers in parallel
-    // We can't avoid one sequential step (we need trip IDs to fetch organizers),
-    // but we kick off the aggregation now and immediately after fetch organizers.
+    // Fetch a larger set of trips without the seatsMin DB filter,
+    // so reconciliation can correct stale availableSeats values first.
     const [result] = await Trip.aggregate([
       { $match: filters },
       { $sort: { startDate: 1, createdAt: -1 } },
       {
         $facet: {
           items: [
-            { $skip: (page - 1) * limit },
-            { $limit: limit },
+            { $limit: Math.max(limit * 3, 60) },
             {
               $project: {
                 title: 1, source: 1, destination: 1, startDate: 1, endDate: 1,
@@ -440,8 +437,17 @@ const getTrips = async (req, res) => {
       },
     ]);
 
-    const total = result.totalCount[0]?.count || 0;
-    const tripIds = result.items.map((t) => t.organizerId);
+    // Reconcile seat inventory to fix any stale availableSeats values
+    const reconciledItems = await reconcileTripsSeatInventory(result.items);
+
+    // Apply seatsMin filter post-reconciliation
+    const filteredItems = Number.isFinite(requestedSeatsMin) && requestedSeatsMin > 0
+      ? reconciledItems.filter((t) => Number(t.availableSeats || 0) >= requestedSeatsMin)
+      : reconciledItems;
+
+    const total = filteredItems.length;
+    const paginatedItems = filteredItems.slice((page - 1) * limit, (page - 1) * limit + limit);
+    const tripIds = paginatedItems.map((t) => t.organizerId);
 
     const organizers = await Organizer.find({ _id: { $in: tripIds } })
       .select("businessName approvalStatus userId")
@@ -450,7 +456,7 @@ const getTrips = async (req, res) => {
 
     const organizerMap = new Map(organizers.map((o) => [String(o._id), o]));
 
-    const mappedTrips = result.items.map((trip) => ({
+    const mappedTrips = paginatedItems.map((trip) => ({
       ...trip,
       organizerId: shapeOrganizer(organizerMap.get(String(trip.organizerId)) || null),
     }));
