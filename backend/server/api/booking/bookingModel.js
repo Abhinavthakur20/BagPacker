@@ -41,7 +41,7 @@ const bookingSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["created", "paid", "failed", "refund_required", "refunded"],
+      enum: ["created", "verifying", "paid", "failed", "refund_required", "refunded"],
       default: "created",
       index: true,
     },

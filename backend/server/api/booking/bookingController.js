@@ -311,39 +311,63 @@ const verifyBookingPayment = async (req, res) => {
       return res.status(400).json({ message: "Invalid Razorpay order reference" });
     }
 
+    const normalizedPaymentId = String(paymentId || "").trim();
+    const normalizedSignature = String(signature || "").trim();
     const isValidSignature = verifyRazorpaySignature({ orderId, paymentId, signature });
     if (!isValidSignature) {
       booking.paymentStatus = "failed";
-      booking.razorpayPaymentId = String(paymentId || "").trim();
-      booking.razorpaySignature = String(signature || "").trim();
+      booking.razorpayPaymentId = normalizedPaymentId;
+      booking.razorpaySignature = normalizedSignature;
       await booking.save();
       return res.status(400).json({ message: "Payment signature verification failed" });
     }
 
+    const claimedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: booking._id,
+        travelerId: req.user._id,
+        status: "pending",
+        paymentStatus: "created",
+        razorpayOrderId: orderId,
+      },
+      {
+        $set: {
+          paymentStatus: "verifying",
+          razorpayPaymentId: normalizedPaymentId,
+          razorpaySignature: normalizedSignature,
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    if (!claimedBooking) {
+      const latestBooking = await Booking.findById(booking._id).populate("tripId").populate("pickupPointId");
+      if (latestBooking?.status === "confirmed" && latestBooking.paymentStatus === "paid") {
+        return res.status(200).json(latestBooking);
+      }
+      return res.status(409).json({ message: "Payment verification is already in progress" });
+    }
+
     const updatedTrip = await reserveTripSeats({
-      tripId: booking.tripId,
-      seatsBooked: booking.seatsBooked,
+      tripId: claimedBooking.tripId,
+      seatsBooked: claimedBooking.seatsBooked,
     });
 
     if (!updatedTrip) {
-      booking.paymentStatus = "refund_required";
-      booking.razorpayPaymentId = String(paymentId || "").trim();
-      booking.razorpaySignature = String(signature || "").trim();
-      booking.paymentCapturedAt = new Date();
-      await booking.save();
+      claimedBooking.paymentStatus = "refund_required";
+      claimedBooking.paymentCapturedAt = new Date();
+      await claimedBooking.save();
       return res.status(409).json({
         message:
           "Payment succeeded but seats are no longer available. Please contact support for refund.",
       });
     }
 
-    booking.status = "confirmed";
-    booking.paymentStatus = "paid";
-    booking.razorpayPaymentId = String(paymentId || "").trim();
-    booking.razorpaySignature = String(signature || "").trim();
-    booking.paymentCapturedAt = new Date();
-    booking.totalAmount = fromPaise(toPaise(booking.totalAmount));
-    await booking.save();
+    claimedBooking.status = "confirmed";
+    claimedBooking.paymentStatus = "paid";
+    claimedBooking.paymentCapturedAt = new Date();
+    claimedBooking.totalAmount = fromPaise(toPaise(claimedBooking.totalAmount));
+    await claimedBooking.save();
 
     const organizer = await Organizer.findById(updatedTrip.organizerId).select("userId");
     if (organizer?.userId) {
@@ -546,7 +570,7 @@ const cancelBookingByOrganizer = async (req, res) => {
       emitSeatUpdate(updatedTrip._id, updatedTrip.availableSeats);
     }
 
-    const populatedBooking = await populateBookingForTraveler(Booking.findById(booking._id));
+    const populatedBooking = await populateBookingForTraveler(Booking.findById(claimedBooking._id));
     return res.status(200).json(populatedBooking);
   } catch (error) {
     return res.status(500).json({ message: error.message });

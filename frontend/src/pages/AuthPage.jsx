@@ -127,22 +127,11 @@ export default function AuthPage() {
         phone: userForm.phone,
         password: userForm.password,
         role,
+        businessName: role === "organizer" ? organizerForm.businessName : undefined,
+        businessDesc: role === "organizer" ? organizerForm.businessDesc : undefined,
       });
 
       dispatch(setAuth({ token: response.token, user: response.user }));
-
-      if (role === "organizer") {
-        await api.post(
-          "/organizers",
-          {
-            businessName: organizerForm.businessName,
-            businessDesc: organizerForm.businessDesc || "",
-          },
-          {
-            token: response.token,
-          },
-        );
-      }
 
       await showSuccessAlert(
         "Account created",
@@ -184,6 +173,8 @@ export default function AuthPage() {
               const authResponse = await api.post("/auth/google", {
                 credential: response.credential,
                 role: googleRoleRef.current,
+                businessName: googleRoleRef.current === "organizer" ? organizerForm.businessName : undefined,
+                businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
               });
 
               dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
@@ -214,13 +205,15 @@ export default function AuthPage() {
 
     initializeGoogle();
 
+    const googleButtonEl = googleButtonRef.current;
+
     return () => {
       isActive = false;
-      if (googleButtonRef.current) {
-        googleButtonRef.current.innerHTML = "";
+      if (googleButtonEl) {
+        googleButtonEl.innerHTML = "";
       }
     };
-  }, [googleButtonWidth, mode, navigate]);
+  }, [dispatch, googleButtonWidth, mode, navigate, organizerForm.businessDesc, organizerForm.businessName]);
 
   return (
     <MainLayout>

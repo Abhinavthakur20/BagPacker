@@ -13,6 +13,11 @@ const organizerSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    businessDesc: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     gstNumber: {
       type: String,
       unique: true,

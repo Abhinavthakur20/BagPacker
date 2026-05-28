@@ -150,19 +150,11 @@ export default function AuthModal() {
         phone: userForm.phone,
         password: userForm.password,
         role,
+        businessName: role === "organizer" ? organizerForm.businessName : undefined,
+        businessDesc: role === "organizer" ? organizerForm.businessDesc : undefined,
       });
-      let resolvedUser = response.user;
+      const resolvedUser = response.user;
       dispatch(setAuth({ token: response.token, user: resolvedUser }));
-      if (role === "organizer") {
-        const organizerResponse = await api.post("/organizers", {
-          businessName: organizerForm.businessName,
-          businessDesc: organizerForm.businessDesc || "",
-        }, { token: response.token });
-        if (organizerResponse?.user) {
-          resolvedUser = organizerResponse.user;
-          dispatch(setAuth({ token: response.token, user: resolvedUser }));
-        }
-      }
       await showSuccessAlert(
         "Account created",
         role === "organizer"
@@ -201,6 +193,8 @@ export default function AuthModal() {
               const authResponse = await api.post("/auth/google", {
                 credential: response.credential,
                 role: googleRoleRef.current,
+                businessName: googleRoleRef.current === "organizer" ? organizerForm.businessName : undefined,
+                businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
               });
               dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
               await showSuccessAlert("Welcome", "Signed in with Google.");
@@ -228,7 +222,16 @@ export default function AuthModal() {
       isActive = false;
       googleButtonEl.innerHTML = "";
     };
-  }, [isOpen, googleButtonWidth, mode, navigate, closeAuthModal, dispatch]);
+  }, [
+    isOpen,
+    googleButtonWidth,
+    mode,
+    navigate,
+    closeAuthModal,
+    dispatch,
+    organizerForm.businessDesc,
+    organizerForm.businessName,
+  ]);
 
   // Escape key
   useEffect(() => {

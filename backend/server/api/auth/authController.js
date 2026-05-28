@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
+const Organizer = require("../organizer/organizerModel");
 const User = require("../user/userModel");
 const { recalculateAndPersistTrustScore } = require("../user/trustScoreService");
 const { sendMail } = require("../../utils/mailer");
@@ -28,6 +29,20 @@ const generateToken = (user) =>
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 const createRawToken = () => crypto.randomBytes(32).toString("hex");
 const getClientUrl = () => String(process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+const getRequestedRole = (role) => (role === "organizer" ? "organizer" : "traveler");
+
+const createOrganizerProfileForUser = async ({ userId, businessName, businessDesc }) => {
+  const normalizedBusinessName = String(businessName || "").trim();
+  if (!normalizedBusinessName) {
+    throw new Error("Business name is required for organizer signup");
+  }
+
+  return Organizer.create({
+    userId,
+    businessName: normalizedBusinessName,
+    businessDesc: String(businessDesc || "").trim(),
+  });
+};
 
 const sendVerificationEmail = async (user) => {
   const token = createRawToken();
@@ -46,7 +61,8 @@ const sendVerificationEmail = async (user) => {
 
 const register = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, phone, password, businessName, businessDesc } = req.body;
+    const requestedRole = getRequestedRole(req.body.role);
 
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedPhone = phone.trim();
@@ -70,10 +86,28 @@ const register = async (req, res) => {
       email: normalizedEmail,
       phone: normalizedPhone,
       passwordHash,
-      role: "traveler",
+      role: requestedRole,
       authProvider: "local",
     });
-    const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+
+    let organizer = null;
+    try {
+      if (requestedRole === "organizer") {
+        organizer = await createOrganizerProfileForUser({
+          userId: user._id,
+          businessName,
+          businessDesc,
+        });
+      }
+    } catch (profileError) {
+      await User.deleteOne({ _id: user._id });
+      return res.status(400).json({ message: profileError.message });
+    }
+
+    const trustResult = await recalculateAndPersistTrustScore(user._id, {
+      userDoc: user,
+      organizerDoc: organizer,
+    });
     if (trustResult) {
       user.trustScore = trustResult.trustScore;
     }
@@ -155,13 +189,21 @@ const googleAuth = async (req, res) => {
     }
 
     const googlePayload = sanitizeGooglePayload(payload);
+    const requestedRole = getRequestedRole(req.body.role);
+    const requestedBusinessName = String(req.body.businessName || "").trim();
+    const requestedBusinessDesc = String(req.body.businessDesc || "").trim();
+    if (requestedRole === "organizer" && !requestedBusinessName) {
+      return res.status(400).json({ message: "Business name is required for organizer signup" });
+    }
+
     let user = await User.findOne({ email: googlePayload.email });
+    let organizer = null;
 
     if (!user) {
       user = await User.create({
         name: googlePayload.name,
         email: googlePayload.email,
-        role: "traveler",
+        role: requestedRole,
         phone: getFallbackPhone(googlePayload.sub),
         passwordHash: null,
         authProvider: "google",
@@ -169,7 +211,22 @@ const googleAuth = async (req, res) => {
         avatarUrl: googlePayload.picture,
         isEmailVerified: Boolean(payload.email_verified),
       });
-      const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+      if (requestedRole === "organizer") {
+        try {
+          organizer = await createOrganizerProfileForUser({
+            userId: user._id,
+            businessName: requestedBusinessName,
+            businessDesc: requestedBusinessDesc,
+          });
+        } catch (profileError) {
+          await User.deleteOne({ _id: user._id });
+          return res.status(400).json({ message: profileError.message });
+        }
+      }
+      const trustResult = await recalculateAndPersistTrustScore(user._id, {
+        userDoc: user,
+        organizerDoc: organizer,
+      });
       if (trustResult) {
         user.trustScore = trustResult.trustScore;
       }
@@ -184,18 +241,36 @@ const googleAuth = async (req, res) => {
       if (user.authProvider !== "google") shouldUpdate.authProvider = "google";
       if (!user.avatarUrl && googlePayload.picture) shouldUpdate.avatarUrl = googlePayload.picture;
       if (payload.email_verified && !user.isEmailVerified) shouldUpdate.isEmailVerified = true;
+      if (requestedRole === "organizer" && user.role !== "organizer") shouldUpdate.role = "organizer";
+
+      if (requestedRole === "organizer") {
+        organizer = await Organizer.findOne({ userId: user._id });
+        if (!organizer) {
+          organizer = await createOrganizerProfileForUser({
+            userId: user._id,
+            businessName: requestedBusinessName,
+            businessDesc: requestedBusinessDesc,
+          });
+        }
+      }
 
       if (Object.keys(shouldUpdate).length) {
         user = await User.findByIdAndUpdate(user._id, shouldUpdate, {
           returnDocument: "after",
           runValidators: true,
         });
-        const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+        const trustResult = await recalculateAndPersistTrustScore(user._id, {
+          userDoc: user,
+          organizerDoc: organizer,
+        });
         if (trustResult) {
           user.trustScore = trustResult.trustScore;
         }
       } else {
-        const trustResult = await recalculateAndPersistTrustScore(user._id, { userDoc: user });
+        const trustResult = await recalculateAndPersistTrustScore(user._id, {
+          userDoc: user,
+          organizerDoc: organizer,
+        });
         if (trustResult) {
           user.trustScore = trustResult.trustScore;
         }

@@ -2,3 +2,6 @@ SignIn.txt
 BagPacker_Postman_Collection.json
 generatePostman.js
 graphify-out
+.env
+.env.*
+!.env.example

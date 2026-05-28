@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
@@ -123,7 +123,7 @@ export default function CompanionPage() {
 
   useEffect(() => () => clearRouteAnimationTimers(), []);
 
-  const buildSearchQuery = (overrides = {}) => {
+  const buildSearchQuery = useCallback((overrides = {}) => {
     const params = new URLSearchParams({
       page: "1",
       limit: "50",
@@ -151,9 +151,9 @@ export default function CompanionPage() {
     if (vehicleType) params.set("vehicleType", vehicleType);
 
     return params.toString();
-  };
+  }, [destination, requestedSeats, searchGenderPreference, searchVehicleType, source, travelDate]);
 
-  const loadCompanionData = async (overrides = {}) => {
+  const loadCompanionData = useCallback(async (overrides = {}) => {
     if (!loggedIn) return;
 
     try {
@@ -171,7 +171,7 @@ export default function CompanionPage() {
       ).trim();
       const bookingDate = String(
         overrides.travelDate ?? travelDate ?? "",
-        overrides.travelDate ?? travelDate ?? "").trim();
+      ).trim();
       if (bookingSource) bookingParams.set("source", bookingSource);
       if (bookingDestination)
         bookingParams.set("destination", bookingDestination);
@@ -221,11 +221,11 @@ export default function CompanionPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [buildSearchQuery, destination, loggedIn, source, travelDate]);
 
   useEffect(() => {
     loadCompanionData();
-  }, [loggedIn]);
+  }, [loadCompanionData]);
 
   const discoverItems = useMemo(() => {
     const bookingItems = (matches || []).map((item) => ({

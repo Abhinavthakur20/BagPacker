@@ -24,7 +24,7 @@ const heroSlides = [
     image: "https://images.pexels.com/photos/5185614/pexels-photo-5185614.jpeg",
     label: "Beach Adventures",
     eyebrow: "Mumbai, Maharashtra",
-    note: "Curated desert trails with ready-to-join crews",
+    note: "Curated coastal routes with ready-to-join crews",
   },
 ];
 

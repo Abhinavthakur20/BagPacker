@@ -12,7 +12,9 @@ const buildSignature = (paramsToSign, apiSecret) => {
     .update(`${serialized}${apiSecret}`)
     .digest("hex");
 
-  console.log("[cloudinary] algorithm=sha256 sigLength=%s stringToSign=%s", signature.length, serialized);
+  if (process.env.NODE_ENV === "development" && process.env.DEBUG_CLOUDINARY_SIGNATURES === "true") {
+    console.log("[cloudinary] algorithm=sha256 sigLength=%s", signature.length);
+  }
 
   return signature;
 };

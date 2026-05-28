@@ -308,7 +308,10 @@ export default function ChatPage() {
     () => contacts.find((contact) => contact.id !== AI_ROOM_ID) || null,
     [contacts],
   );
-  const roomMessages = messagesByRoom[selectedRoomId] || [];
+  const roomMessages = useMemo(
+    () => messagesByRoom[selectedRoomId] || [],
+    [messagesByRoom, selectedRoomId],
+  );
   const recentRoomMessages = useMemo(
     () =>
       (roomMessages || []).slice(-10).map((item) => ({

@@ -21,6 +21,16 @@ router.post(
     body("password")
       .isLength({ min: 6 })
       .withMessage("Password must be at least 6 characters long"),
+    body("role")
+      .optional()
+      .isIn(["traveler", "organizer"])
+      .withMessage("Valid role is required"),
+    body("businessName")
+      .if(body("role").equals("organizer"))
+      .trim()
+      .notEmpty()
+      .withMessage("Business name is required for organizer signup"),
+    body("businessDesc").optional().isString().withMessage("Business description must be text"),
     validateRequest,
   ],
   register,

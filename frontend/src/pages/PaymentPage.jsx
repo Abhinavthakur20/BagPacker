@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, useSearchParams } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
@@ -48,7 +48,7 @@ export default function PaymentPage() {
     };
   }, []);
 
-  const loadBookings = async () => {
+  const loadBookings = useCallback(async () => {
     if (!isLoggedIn) {
       return;
     }
@@ -59,7 +59,7 @@ export default function PaymentPage() {
     } catch {
       setBookings([]);
     }
-  };
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const loadPage = async () => {
@@ -91,7 +91,7 @@ export default function PaymentPage() {
     };
 
     loadPage();
-  }, [isLoggedIn, tripId]);
+  }, [isLoggedIn, loadBookings, tripId]);
 
   useEffect(() => {
     if (!pickupPointId && tripDetails?.pickupPoints?.length) {

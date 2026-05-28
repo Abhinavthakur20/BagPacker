@@ -54,7 +54,7 @@ const getOrganizerEngagement = async (organizerId) => {
 
 const registerOrganizerProfile = async (req, res) => {
   try {
-    const { businessName, gstNumber, bankAccountDetails } = req.body;
+    const { businessName, businessDesc, gstNumber, bankAccountDetails } = req.body;
 
     const existingOrganizer = await Organizer.findOne({ userId: req.user._id });
 
@@ -77,6 +77,7 @@ const registerOrganizerProfile = async (req, res) => {
     const organizer = await Organizer.create({
       userId: req.user._id,
       businessName: businessName.trim(),
+      businessDesc: businessDesc ? businessDesc.trim() : "",
       gstNumber: gstNumber ? gstNumber.trim() : undefined,
       licenseUrl,
       bankAccountDetails: bankAccountDetails ? bankAccountDetails.trim() : null,

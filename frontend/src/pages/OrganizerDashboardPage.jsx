@@ -120,12 +120,6 @@ export default function OrganizerDashboardPage() {
   ]);
   const [updatingPaymentTripId, setUpdatingPaymentTripId] = useState("");
 
-  const approvalTone =
-    organizer?.approvalStatus === "approved"
-      ? "bg-[#858585] text-[#f94a4a]"
-      : organizer?.approvalStatus === "rejected"
-        ? "bg-error-container text-error"
-        : "bg-[#3d4466] text-[#f94a4a]";
   const canCreateTrips = organizer?.approvalStatus === "approved";
   const previewProfileUrl = organizer?.userId?._id ? `/users/${organizer.userId._id}` : "/trips/search";
 
