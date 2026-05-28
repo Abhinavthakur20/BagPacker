@@ -162,10 +162,22 @@ const toIsoDate = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
-const sanitizeTripAutofill = (payload = {}) => {
+const addDays = (days) => new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+const getRouteDateOffsetDays = ({ source = "", destination = "" }) => {
+  const routeKey = `${source}->${destination}`.toLowerCase();
+  let hash = 0;
+  for (let index = 0; index < routeKey.length; index += 1) {
+    hash = (hash * 31 + routeKey.charCodeAt(index)) % 9973;
+  }
+  return 7 + (hash % 36);
+};
+
+const sanitizeTripAutofill = (payload = {}, context = {}) => {
+  const fallbackStartOffset = getRouteDateOffsetDays(context);
   const startDate =
-    toIsoDate(payload.startDate) || toIsoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-  const endDate = toIsoDate(payload.endDate) || startDate;
+    toIsoDate(payload.startDate) || toIsoDate(addDays(fallbackStartOffset));
+  const endDate = toIsoDate(payload.endDate) || toIsoDate(addDays(fallbackStartOffset + 2)) || startDate;
 
   const itinerary = Array.isArray(payload.itinerary)
     ? payload.itinerary
@@ -199,23 +211,26 @@ const sanitizeTripAutofill = (payload = {}) => {
   };
 };
 
-const buildAutofillFallback = ({ source, destination }) => ({
-  title: `${source} to ${destination} Group Trip`,
-  description: `A well-paced group trip from ${source} to ${destination} with coordinated pickup points and daily activities.`,
-  startDate: toIsoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
-  endDate: toIsoDate(new Date(Date.now() + 9 * 24 * 60 * 60 * 1000)),
-  pricePerPerson: 3500,
-  totalSeats: 12,
-  itinerary: [
-    { dayNumber: 1, activities: `Departure from ${source}, transit, and check-in near ${destination}.`, accommodation: `${destination} (budget hotel/guest house)` },
-    { dayNumber: 2, activities: `Local sightseeing and curated activities around ${destination}.`, accommodation: `${destination}` },
-    { dayNumber: 3, activities: `Return journey from ${destination} to ${source}.`, accommodation: "" },
-  ],
-  pickupPoints: [
-    { location: `${source} central pickup`, time: "06:30 AM", sequence: 1 },
-    { location: `${source} bus stand`, time: "07:00 AM", sequence: 2 },
-  ],
-});
+const buildAutofillFallback = ({ source, destination }) => {
+  const startOffset = getRouteDateOffsetDays({ source, destination });
+  return {
+    title: `${source} to ${destination} Group Trip`,
+    description: `A well-paced group trip from ${source} to ${destination} with coordinated pickup points and daily activities.`,
+    startDate: toIsoDate(addDays(startOffset)),
+    endDate: toIsoDate(addDays(startOffset + 2)),
+    pricePerPerson: 3500,
+    totalSeats: 12,
+    itinerary: [
+      { dayNumber: 1, activities: `Departure from ${source}, transit, and check-in near ${destination}.`, accommodation: `${destination} (budget hotel/guest house)` },
+      { dayNumber: 2, activities: `Local sightseeing and curated activities around ${destination}.`, accommodation: `${destination}` },
+      { dayNumber: 3, activities: `Return journey from ${destination} to ${source}.`, accommodation: "" },
+    ],
+    pickupPoints: [
+      { location: `${source} central pickup`, time: "06:30 AM", sequence: 1 },
+      { location: `${source} bus stand`, time: "07:00 AM", sequence: 2 },
+    ],
+  };
+};
 
 const generateTripAutofill = async (req, res) => {
   try {
@@ -239,13 +254,16 @@ const generateTripAutofill = async (req, res) => {
       const answer = await callGroqCopilot(prompt, { temperature: 0.2, maxTokens: 1200 });
       const parsed = parseJsonObject(answer);
       if (parsed) {
-        suggestion = sanitizeTripAutofill({
-          ...buildAutofillFallback({ source, destination }),
-          ...parsed,
-        });
+        suggestion = sanitizeTripAutofill(
+          {
+            ...buildAutofillFallback({ source, destination }),
+            ...parsed,
+          },
+          { source, destination },
+        );
       }
     } catch (_error) {
-      suggestion = sanitizeTripAutofill(suggestion);
+      suggestion = sanitizeTripAutofill(suggestion, { source, destination });
     }
 
     if (!suggestion.title) {

@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import CityAutocompleteInput from "../components/ui/CityAutocompleteInput";
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 
 const formatTravelDate = (value) =>
@@ -25,6 +25,12 @@ const formatDateTime = (value) =>
     : "";
 
 const getScoreBadge = (score) => `${Math.round(Number(score || 0))}% Fit`;
+const getInitial = (name = "Traveler") =>
+  String(name || "Traveler").trim().charAt(0).toUpperCase() || "T";
+const getAvatarUrl = (value) => {
+  const resolved = resolveMediaUrl(String(value || "").trim());
+  return resolved || "";
+};
 const formatCurrency = (value) =>
   typeof value === "number" && Number.isFinite(value)
     ? `Rs ${Number(value).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
@@ -236,6 +242,7 @@ export default function CompanionPage() {
       requestStatus: item.request?.status || null,
       requestDirection: item.request?.direction || null,
       name: item.name || "Traveler",
+      avatarUrl: getAvatarUrl(item.avatarUrl),
       route: `${item.source} ➔ ${item.destination}`,
       dates: formatTravelDate(item.travelDate),
       matchLabel: item.matchLabel || "Route Match",
@@ -255,8 +262,6 @@ export default function CompanionPage() {
       estimatedCostPerPerson: null,
       note: "Matched via active BagPacker booking.",
       postId: null,
-      image:
-        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80",
     }));
 
     const postItems = (personalPosts || []).map((item) => ({
@@ -267,6 +272,7 @@ export default function CompanionPage() {
       requestStatus: item.request?.status || null,
       requestDirection: item.request?.direction || null,
       name: item.ownerName || "Traveler",
+      avatarUrl: getAvatarUrl(item.ownerAvatarUrl),
       route: `${item.source} ➔ ${item.destination}`,
       dates: formatTravelDate(item.travelDate),
       matchLabel: item.matchLabel || "Route Match",
@@ -292,8 +298,6 @@ export default function CompanionPage() {
           : null,
       note: item.note || "Open personal expedition post.",
       postId: item.postId,
-      image:
-        "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?auto=format&fit=crop&w=400&q=80",
     }));
 
     return [...postItems, ...bookingItems].sort((first, second) => {
@@ -723,104 +727,130 @@ export default function CompanionPage() {
                     {discoverItems.map((item) => (
                       <article
                         key={item.id}
-                        className="group overflow-hidden rounded-[2.5rem] border border-outline-variant/10 bg-surface transition-all hover:shadow-xl hover:-translate-y-1"
+                        className="group flex min-h-[360px] flex-col rounded-3xl border border-outline-variant/15 bg-surface p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl"
                       >
-                        <div className="relative aspect-[3/2] sm:aspect-[5/4] overflow-hidden bg-surface-container-high">
-                          <img
-                            src={item.image}
-                            className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                            alt={item.name}
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-on-surface/60 to-transparent" />
-                          <div className="absolute left-4 top-4 flex gap-2">
-                            <span className="rounded-lg bg-white/20 px-3 py-1 text-[8px] font-black uppercase tracking-widest text-white backdrop-blur-md">
-                              {getScoreBadge(item.score)}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-lg font-black text-on-primary shadow-lg shadow-primary/10">
+                              {item.avatarUrl ? (
+                                <img
+                                  src={item.avatarUrl}
+                                  alt={item.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                getInitial(item.name)
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="truncate font-headline text-xl font-black leading-tight text-on-surface">
+                                {item.name}
+                              </h4>
+                              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                                {item.route}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-1 rounded-xl bg-secondary/10 px-2.5 py-2 text-secondary">
+                            <span className="material-symbols-outlined text-sm">
+                              verified
                             </span>
-                            <span
-                              className={`rounded-lg px-3 py-1 text-[8px] font-black uppercase tracking-widest backdrop-blur-md ${item.verificationStatus === "verified" ? "bg-primary/20 text-white" : "bg-surface-container/20 text-white/60"}`}
-                            >
-                              {item.verificationStatus}
+                            <span className="text-[10px] font-black">
+                              {item.trust}
                             </span>
                           </div>
                         </div>
-                        <div className="p-5 sm:p-6">
-                          <div className="flex items-center justify-between">
-                            <h4 className="truncate font-headline text-lg font-black text-on-surface">
-                              {item.name}
-                            </h4>
-                            <div className="flex items-center gap-1 text-secondary shrink-0">
-                              <span className="material-symbols-outlined text-xs">
-                                verified
-                              </span>
-                              <span className="text-[10px] font-black">
-                                {item.trust}
-                              </span>
-                            </div>
-                          </div>
-                          <p className="mt-1 truncate text-[9px] sm:text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
-                            {item.route}
-                          </p>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <span className="rounded-lg bg-surface-container px-2 py-1 text-[8px] sm:text-[9px] font-bold text-on-surface-variant">
+
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-primary">
+                            {getScoreBadge(item.score)}
+                          </span>
+                          <span
+                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${item.verificationStatus === "verified" ? "bg-secondary/10 text-secondary" : "bg-surface-container text-on-surface-variant"}`}
+                          >
+                            {item.verificationStatus}
+                          </span>
+                          <span
+                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${item.kind === "post" ? "bg-secondary-container text-on-secondary-container" : "bg-primary-container text-on-primary-container"}`}
+                          >
+                            {item.kind === "post" ? "Trip Post" : "Booking Match"}
+                          </span>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+                          <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                              Travel Date
+                            </p>
+                            <p className="mt-1 text-xs font-black text-on-surface">
                               {item.dates}
-                            </span>
-                            <span
-                              className={`rounded-lg px-2 py-1 text-[8px] sm:text-[9px] font-bold text-on-surface-variant ${item.kind === "post" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}
-                            >
-                              {item.kind === "post"
-                                ? "Trip Post"
-                                : "Booking Match"}
-                            </span>
+                            </p>
                           </div>
-                          {item.kind === "post" && (
-                            <div className="mt-4 grid grid-cols-3 gap-2">
-                              <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                                  Distance
-                                </p>
-                                <p className="mt-1 text-[10px] font-black text-on-surface">
-                                  {typeof item.distanceKm === "number"
-                                    ? `${item.distanceKm} km`
-                                    : "N/A"}
-                                </p>
-                              </div>
-                              <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                                  Fuel
-                                </p>
-                                <p className="mt-1 text-[10px] font-black text-on-surface">
-                                  {formatCurrency(item.estimatedFuelCost)}
-                                </p>
-                              </div>
-                              <div className="rounded-lg bg-surface-container-low px-2 py-2 text-center">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                                  Per Person
-                                </p>
-                                <p className="mt-1 text-[10px] font-black text-secondary">
-                                  {formatCurrency(item.estimatedCostPerPerson)}
-                                </p>
-                              </div>
+                          <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                              Match
+                            </p>
+                            <p className="mt-1 truncate text-xs font-black text-on-surface">
+                              {item.matchLabel}
+                            </p>
+                          </div>
+                        </div>
+
+                        {item.kind === "post" && (
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            <div className="rounded-2xl bg-surface-container-low px-2 py-3 text-center">
+                              <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                                Distance
+                              </p>
+                              <p className="mt-1 text-[10px] font-black text-on-surface">
+                                {typeof item.distanceKm === "number"
+                                  ? `${item.distanceKm} km`
+                                  : "N/A"}
+                              </p>
                             </div>
-                          )}
-                          <p className="mt-4 text-xs font-medium text-on-surface-variant line-clamp-2 italic leading-relaxed">
-                            "{item.note}"
-                          </p>
-                          <div className="mt-8 flex gap-3">
-                            <button
-                              onClick={() => onDecision(item, "accept")}
-                              className="flex-1 rounded-xl bg-primary py-3 text-[9px] font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/10 transition active:scale-95"
-                            >
-                              Connect
-                            </button>
-                            <button
-                              onClick={() => onDecision(item, "decline")}
-                              className="flex h-9 w-9 flex items-center justify-center rounded-xl bg-surface-container text-on-surface-variant hover:text-error transition"
-                            >
-                              <span className="material-symbols-outlined text-sm">
-                                close
-                              </span>
-                            </button>
+                            <div className="rounded-2xl bg-surface-container-low px-2 py-3 text-center">
+                              <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                                Fuel
+                              </p>
+                              <p className="mt-1 text-[10px] font-black text-on-surface">
+                                {formatCurrency(item.estimatedFuelCost)}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-surface-container-low px-2 py-3 text-center">
+                              <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+                                Per Person
+                              </p>
+                              <p className="mt-1 text-[10px] font-black text-secondary">
+                                {formatCurrency(item.estimatedCostPerPerson)}
+                              </p>
+                            </div>
                           </div>
+                        )}
+
+                        <p className="mt-5 line-clamp-2 text-sm font-medium leading-6 text-on-surface-variant">
+                          "{item.note}"
+                        </p>
+
+                        <div className="mt-auto flex gap-3 pt-6">
+                          <button
+                            onClick={() => onDecision(item, "accept")}
+                            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-[10px] font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/10 transition active:scale-95"
+                          >
+                            <span className="material-symbols-outlined text-sm">
+                              person_add
+                            </span>
+                            Connect
+                          </button>
+                          <button
+                            onClick={() => onDecision(item, "decline")}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant transition hover:text-error"
+                            aria-label={`Hide ${item.name}`}
+                          >
+                            <span className="material-symbols-outlined text-sm">
+                              close
+                            </span>
+                          </button>
                         </div>
                       </article>
                     ))}
