@@ -42,6 +42,17 @@ const getRequestPriority = (item) => {
   if (item.direction === "outgoing" && item.status === "pending") return 2;
   return 3;
 };
+const SWIPE_THRESHOLD_PX = 96;
+const SWIPE_EXIT_MS = 260;
+
+const clampSwipeRotation = (value) => Math.max(-14, Math.min(14, value / 14));
+const getSwipeIntentOpacity = (value) =>
+  Math.min(1, Math.abs(value) / SWIPE_THRESHOLD_PX);
+
+const wait = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 export default function CompanionPage() {
   const token = useSelector((state) => state.auth.token);
@@ -86,8 +97,16 @@ export default function CompanionPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [pageError, setPageError] = useState("");
+  const [dismissedDiscoverIds, setDismissedDiscoverIds] = useState(
+    () => new Set(),
+  );
+  const [discoverDragOffset, setDiscoverDragOffset] = useState({ x: 0, y: 0 });
+  const [isDiscoverDragging, setIsDiscoverDragging] = useState(false);
+  const [swipeExitDirection, setSwipeExitDirection] = useState(null);
+  const [isDiscoverActionBusy, setIsDiscoverActionBusy] = useState(false);
   const routeProgressTimerRef = useRef(null);
   const routePreviewHideTimerRef = useRef(null);
+  const discoverDragRef = useRef(null);
 
   const clearRouteAnimationTimers = () => {
     if (routeProgressTimerRef.current) {
@@ -316,6 +335,27 @@ export default function CompanionPage() {
     });
   }, [matches, personalPosts]);
 
+  useEffect(() => {
+    const currentIds = new Set(discoverItems.map((item) => item.id));
+    setDismissedDiscoverIds((previousIds) => {
+      const nextIds = new Set(
+        [...previousIds].filter((id) => currentIds.has(id)),
+      );
+      return nextIds.size === previousIds.size ? previousIds : nextIds;
+    });
+  }, [discoverItems]);
+
+  const visibleDiscoverItems = useMemo(
+    () => discoverItems.filter((item) => !dismissedDiscoverIds.has(item.id)),
+    [discoverItems, dismissedDiscoverIds],
+  );
+  const activeDiscoverItem = visibleDiscoverItems[0] || null;
+  const queuedDiscoverItems = visibleDiscoverItems.slice(1, 3);
+  const seenDiscoverCount = Math.max(
+    0,
+    discoverItems.length - visibleDiscoverItems.length,
+  );
+
   const requestRows = useMemo(() => {
     const sentRows = (myRequests.sent || []).map((item) => ({
       key: `sent-${item._id}`,
@@ -443,6 +483,98 @@ export default function CompanionPage() {
     }
   };
 
+  const finishDiscoverSwipe = async (item, type, direction) => {
+    if (!item || isDiscoverActionBusy || swipeExitDirection) return;
+
+    setIsDiscoverActionBusy(true);
+    setIsDiscoverDragging(false);
+    discoverDragRef.current = null;
+    setDiscoverDragOffset({ x: 0, y: 0 });
+    setSwipeExitDirection(direction);
+
+    await wait(SWIPE_EXIT_MS);
+    setDismissedDiscoverIds((previousIds) => {
+      const nextIds = new Set(previousIds);
+      nextIds.add(item.id);
+      return nextIds;
+    });
+    setSwipeExitDirection(null);
+
+    try {
+      await onDecision(item, type);
+    } finally {
+      setIsDiscoverActionBusy(false);
+    }
+  };
+
+  const startDiscoverDrag = (event, item) => {
+    if (
+      !item ||
+      isDiscoverActionBusy ||
+      swipeExitDirection ||
+      (typeof event.button === "number" && event.button !== 0)
+    ) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    discoverDragRef.current = {
+      item,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+    setIsDiscoverDragging(true);
+    setDiscoverDragOffset({ x: 0, y: 0 });
+  };
+
+  const moveDiscoverDrag = (event) => {
+    const dragState = discoverDragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    setDiscoverDragOffset({
+      x: event.clientX - dragState.startX,
+      y: (event.clientY - dragState.startY) * 0.35,
+    });
+  };
+
+  const endDiscoverDrag = (event) => {
+    const dragState = discoverDragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    discoverDragRef.current = null;
+    setIsDiscoverDragging(false);
+
+    const deltaX = event.clientX - dragState.startX;
+    if (Math.abs(deltaX) >= SWIPE_THRESHOLD_PX) {
+      const isRightSwipe = deltaX > 0;
+      finishDiscoverSwipe(
+        dragState.item,
+        isRightSwipe ? "accept" : "decline",
+        isRightSwipe ? "right" : "left",
+      );
+      return;
+    }
+
+    setDiscoverDragOffset({ x: 0, y: 0 });
+  };
+
+  const cancelDiscoverDrag = (event) => {
+    const dragState = discoverDragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    discoverDragRef.current = null;
+    setIsDiscoverDragging(false);
+    setDiscoverDragOffset({ x: 0, y: 0 });
+  };
+
   const createPersonalTripPost = async () => {
     if (!loggedIn) return;
     const normalizedSource = String(postSource || "").trim();
@@ -526,6 +658,202 @@ export default function CompanionPage() {
     } catch (err) {
       showErrorAlert("Update failed", err.message);
     }
+  };
+
+  const renderDiscoverCard = (
+    item,
+    { isActive = false, stackIndex = 0, style = {} } = {},
+  ) => {
+    const declineLabel =
+      item.requestStatus === "pending" && item.requestDirection === "incoming"
+        ? "Decline"
+        : "Skip";
+    const leftIntentOpacity =
+      isActive && discoverDragOffset.x < 0
+        ? getSwipeIntentOpacity(discoverDragOffset.x)
+        : 0;
+    const rightIntentOpacity =
+      isActive && discoverDragOffset.x > 0
+        ? getSwipeIntentOpacity(discoverDragOffset.x)
+        : 0;
+
+    return (
+      <article
+        key={item.id}
+        onPointerDown={
+          isActive ? (event) => startDiscoverDrag(event, item) : undefined
+        }
+        onPointerMove={isActive ? moveDiscoverDrag : undefined}
+        onPointerUp={isActive ? endDiscoverDrag : undefined}
+        onPointerCancel={isActive ? cancelDiscoverDrag : undefined}
+        className={`absolute inset-0 flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-outline-variant/15 bg-surface p-4 shadow-2xl shadow-primary/10 transition-all duration-300 ${
+          isActive
+            ? "cursor-grab select-none touch-pan-y active:cursor-grabbing"
+            : "pointer-events-none select-none"
+        }`}
+        style={{
+          zIndex: 20 - stackIndex,
+          ...style,
+        }}
+      >
+      {isActive && (
+        <>
+          <div
+            className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-full border border-error/20 bg-error-container px-3 py-2 text-[9px] font-black uppercase tracking-widest text-error shadow-sm"
+            style={{ opacity: leftIntentOpacity }}
+          >
+            <span className="material-symbols-outlined text-sm">
+              arrow_back
+            </span>
+            {declineLabel}
+          </div>
+          <div
+            className="pointer-events-none absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary px-3 py-2 text-[9px] font-black uppercase tracking-widest text-on-primary shadow-sm"
+            style={{ opacity: rightIntentOpacity }}
+          >
+            Connect
+            <span className="material-symbols-outlined text-sm">
+              arrow_forward
+            </span>
+          </div>
+        </>
+      )}
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-base font-black text-on-primary shadow-lg shadow-primary/10">
+            {item.avatarUrl ? (
+              <img
+                src={item.avatarUrl}
+                alt={item.name}
+                draggable={false}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              getInitial(item.name)
+            )}
+          </div>
+          <div className="min-w-0">
+            <h4 className="truncate font-headline text-lg font-black leading-tight text-on-surface">
+              {item.name}
+            </h4>
+            <p className="mt-1 truncate text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">
+              {item.route}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 rounded-xl bg-secondary/10 px-2.5 py-2 text-secondary">
+          <span className="material-symbols-outlined text-sm">verified</span>
+          <span className="text-[10px] font-black">{item.trust}</span>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-primary">
+          {getScoreBadge(item.score)}
+        </span>
+        <span
+          className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${item.verificationStatus === "verified" ? "bg-secondary/10 text-secondary" : "bg-surface-container text-on-surface-variant"}`}
+        >
+          {item.verificationStatus}
+        </span>
+        <span
+          className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${item.kind === "post" ? "bg-secondary-container text-on-secondary-container" : "bg-primary-container text-on-primary-container"}`}
+        >
+          {item.kind === "post" ? "Trip Post" : "Booking Match"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-surface-container-low px-3 py-2.5">
+          <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+            Travel Date
+          </p>
+          <p className="mt-1 text-xs font-black text-on-surface">
+            {item.dates}
+          </p>
+        </div>
+        <div className="rounded-xl bg-surface-container-low px-3 py-2.5">
+          <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+            Match
+          </p>
+          <p className="mt-1 truncate text-xs font-black text-on-surface">
+            {item.matchLabel}
+          </p>
+        </div>
+      </div>
+
+      {item.kind === "post" && (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-surface-container-low px-2 py-2.5 text-center">
+            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+              Distance
+            </p>
+            <p className="mt-1 text-[10px] font-black text-on-surface">
+              {typeof item.distanceKm === "number"
+                ? `${item.distanceKm} km`
+              : "N/A"}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-container-low px-2 py-2.5 text-center">
+            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+              Fuel
+            </p>
+            <p className="mt-1 text-[10px] font-black text-on-surface">
+              {formatCurrency(item.estimatedFuelCost)}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-container-low px-2 py-2.5 text-center">
+            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
+              Per Person
+            </p>
+            <p className="mt-1 text-[10px] font-black text-secondary">
+              {formatCurrency(item.estimatedCostPerPerson)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-4 line-clamp-2 text-sm font-medium leading-6 text-on-surface-variant">
+        "{item.note}"
+      </p>
+
+      <div className="mt-auto flex items-center justify-center gap-3 pt-5">
+        <button
+          type="button"
+          disabled={!isActive || isDiscoverActionBusy}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            finishDiscoverSwipe(item, "decline", "left");
+          }}
+          className="flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-full bg-surface-container px-4 text-[9px] font-black uppercase tracking-widest text-on-surface-variant shadow-sm transition hover:text-error active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+          aria-label={`Hide ${item.name}`}
+        >
+          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          <span className="material-symbols-outlined text-lg">close</span>
+          {declineLabel}
+        </button>
+        <button
+          type="button"
+          disabled={!isActive || isDiscoverActionBusy}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            finishDiscoverSwipe(item, "accept", "right");
+          }}
+          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-[10px] font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/10 transition active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+        >
+          <span className="material-symbols-outlined text-lg">person_add</span>
+          Connect
+          <span className="material-symbols-outlined text-lg">
+            arrow_forward
+          </span>
+        </button>
+      </div>
+    </article>
+    );
   };
 
   return (
@@ -723,146 +1051,92 @@ export default function CompanionPage() {
               <div className="space-y-10">
                 {/* ── Discover Tab ── */}
                 {activeTab === "discover" && (
-                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                    {discoverItems.map((item) => (
-                      <article
-                        key={item.id}
-                        className="group flex min-h-[360px] flex-col rounded-3xl border border-outline-variant/15 bg-surface p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-lg font-black text-on-primary shadow-lg shadow-primary/10">
-                              {item.avatarUrl ? (
-                                <img
-                                  src={item.avatarUrl}
-                                  alt={item.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                getInitial(item.name)
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="truncate font-headline text-xl font-black leading-tight text-on-surface">
-                                {item.name}
-                              </h4>
-                              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">
-                                {item.route}
-                              </p>
-                            </div>
-                          </div>
+                  <div className="mx-auto flex w-full max-w-xl flex-col items-center">
+                    {activeDiscoverItem && (
+                      <div className="mb-4 flex w-full items-center justify-between px-2">
+                        <div className="flex items-center gap-2 rounded-full bg-surface-container-low px-3 py-2 text-[9px] font-black uppercase tracking-widest text-on-surface-variant/60">
+                          <span className="material-symbols-outlined text-sm text-primary">
+                            explore
+                          </span>
+                          {Math.min(seenDiscoverCount + 1, discoverItems.length)} /{" "}
+                          {discoverItems.length}
+                        </div>
+                        <div className="rounded-full bg-primary/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary">
+                          {visibleDiscoverItems.length} left
+                        </div>
+                      </div>
+                    )}
 
-                          <div className="flex shrink-0 items-center gap-1 rounded-xl bg-secondary/10 px-2.5 py-2 text-secondary">
-                            <span className="material-symbols-outlined text-sm">
-                              verified
+                    {activeDiscoverItem && (
+                      <div className="mb-4 grid w-full max-w-[420px] grid-cols-2 gap-2">
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-error-container/70 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-error">
+                          <span className="material-symbols-outlined text-sm">
+                            arrow_back
+                          </span>
+                          Left:{" "}
+                          {activeDiscoverItem.requestStatus === "pending" &&
+                          activeDiscoverItem.requestDirection === "incoming"
+                            ? "Decline"
+                            : "Skip"}
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-2 text-[9px] font-black uppercase tracking-widest text-on-primary">
+                          Right: Connect
+                          <span className="material-symbols-outlined text-sm">
+                            arrow_forward
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative h-[540px] max-h-[calc(100vh-230px)] min-h-[460px] w-full max-w-[420px]">
+                      {queuedDiscoverItems.map((item, index) =>
+                        renderDiscoverCard(item, {
+                          stackIndex: index + 1,
+                          style: {
+                            opacity: 0.55 - index * 0.15,
+                            transform: `translateY(${(index + 1) * 14}px) scale(${1 - (index + 1) * 0.045})`,
+                          },
+                        }),
+                      )}
+
+                      {activeDiscoverItem &&
+                        renderDiscoverCard(activeDiscoverItem, {
+                          isActive: true,
+                          style: {
+                            opacity: swipeExitDirection ? 0 : 1,
+                            transform: swipeExitDirection
+                              ? `translateX(${swipeExitDirection === "right" ? "115%" : "-115%"}) rotate(${swipeExitDirection === "right" ? 14 : -14}deg)`
+                              : `translate(${discoverDragOffset.x}px, ${discoverDragOffset.y}px) rotate(${clampSwipeRotation(discoverDragOffset.x)}deg)`,
+                            transition: isDiscoverDragging
+                              ? "none"
+                              : "transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease",
+                          },
+                        })}
+
+                      {discoverItems.length > 0 &&
+                        visibleDiscoverItems.length === 0 &&
+                        !isLoading && (
+                          <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-outline-variant/30 bg-surface-container-low/30 text-center">
+                            <span className="material-symbols-outlined mb-3 text-4xl text-primary/50">
+                              task_alt
                             </span>
-                            <span className="text-[10px] font-black">
-                              {item.trust}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-5 flex flex-wrap gap-2">
-                          <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-primary">
-                            {getScoreBadge(item.score)}
-                          </span>
-                          <span
-                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${item.verificationStatus === "verified" ? "bg-secondary/10 text-secondary" : "bg-surface-container text-on-surface-variant"}`}
-                          >
-                            {item.verificationStatus}
-                          </span>
-                          <span
-                            className={`rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${item.kind === "post" ? "bg-secondary-container text-on-secondary-container" : "bg-primary-container text-on-primary-container"}`}
-                          >
-                            {item.kind === "post" ? "Trip Post" : "Booking Match"}
-                          </span>
-                        </div>
-
-                        <div className="mt-5 grid grid-cols-2 gap-3">
-                          <div className="rounded-2xl bg-surface-container-low px-4 py-3">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                              Travel Date
+                            <p className="text-xs font-black uppercase tracking-widest text-on-surface-variant/40">
+                              Discovery deck complete
                             </p>
-                            <p className="mt-1 text-xs font-black text-on-surface">
-                              {item.dates}
-                            </p>
-                          </div>
-                          <div className="rounded-2xl bg-surface-container-low px-4 py-3">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                              Match
-                            </p>
-                            <p className="mt-1 truncate text-xs font-black text-on-surface">
-                              {item.matchLabel}
-                            </p>
-                          </div>
-                        </div>
-
-                        {item.kind === "post" && (
-                          <div className="mt-3 grid grid-cols-3 gap-2">
-                            <div className="rounded-2xl bg-surface-container-low px-2 py-3 text-center">
-                              <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                                Distance
-                              </p>
-                              <p className="mt-1 text-[10px] font-black text-on-surface">
-                                {typeof item.distanceKm === "number"
-                                  ? `${item.distanceKm} km`
-                                  : "N/A"}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-surface-container-low px-2 py-3 text-center">
-                              <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                                Fuel
-                              </p>
-                              <p className="mt-1 text-[10px] font-black text-on-surface">
-                                {formatCurrency(item.estimatedFuelCost)}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-surface-container-low px-2 py-3 text-center">
-                              <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant/50">
-                                Per Person
-                              </p>
-                              <p className="mt-1 text-[10px] font-black text-secondary">
-                                {formatCurrency(item.estimatedCostPerPerson)}
-                              </p>
-                            </div>
                           </div>
                         )}
 
-                        <p className="mt-5 line-clamp-2 text-sm font-medium leading-6 text-on-surface-variant">
-                          "{item.note}"
-                        </p>
-
-                        <div className="mt-auto flex gap-3 pt-6">
-                          <button
-                            onClick={() => onDecision(item, "accept")}
-                            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-[10px] font-black uppercase tracking-widest text-on-primary shadow-lg shadow-primary/10 transition active:scale-95"
-                          >
-                            <span className="material-symbols-outlined text-sm">
-                              person_add
-                            </span>
-                            Connect
-                          </button>
-                          <button
-                            onClick={() => onDecision(item, "decline")}
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant transition hover:text-error"
-                            aria-label={`Hide ${item.name}`}
-                          >
-                            <span className="material-symbols-outlined text-sm">
-                              close
-                            </span>
-                          </button>
+                      {discoverItems.length === 0 && !isLoading && (
+                        <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-outline-variant/30 bg-surface-container-low/30 text-center">
+                          <p className="text-xs font-black uppercase tracking-widest text-on-surface-variant/40">
+                            No active travelers on this route
+                          </p>
                         </div>
-                      </article>
-                    ))}
-                    {discoverItems.length === 0 && !isLoading && (
-                      <div className="col-span-full flex h-64 flex-col items-center justify-center rounded-[2.5rem] border border-dashed border-outline-variant/30 bg-surface-container-low/30 text-center">
-                        <p className="text-xs font-black text-on-surface-variant/40 uppercase tracking-widest">
-                          No active travelers on this route
-                        </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
                     {isLoading && (
-                      <div className="col-span-full">
+                      <div className="mt-6 w-full">
                         <LoadingPanel
                           label="Scanning Network..."
                           variant="list"

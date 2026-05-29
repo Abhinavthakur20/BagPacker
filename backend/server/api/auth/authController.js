@@ -20,6 +20,7 @@ const sanitizeGooglePayload = (payload) => ({
 });
 
 const getFallbackPhone = (googleSub) => `google-${googleSub.slice(-10)}`;
+const normalizePhone = (phone) => String(phone || "").trim().replace(/[\s()-]/g, "");
 
 const generateToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -65,18 +66,18 @@ const register = async (req, res) => {
     const requestedRole = getRequestedRole(req.body.role);
 
     const normalizedEmail = email.toLowerCase().trim();
-    const normalizedPhone = phone.trim();
-    const existingUser = await User.findOne({
-      $or: [{ email: normalizedEmail }, { phone: normalizedPhone }],
-    });
+    const rawPhone = phone.trim();
+    const normalizedPhone = normalizePhone(phone);
+    const phoneCandidates = [...new Set([rawPhone, normalizedPhone].filter(Boolean))];
 
-    if (existingUser) {
-      return res.status(400).json({
-        message:
-          existingUser.email === normalizedEmail
-            ? "Email is already registered"
-            : "Phone is already registered",
-      });
+    const existingEmailUser = await User.findOne({ email: normalizedEmail }).select("_id");
+    if (existingEmailUser) {
+      return res.status(400).json({ message: "Email is already registered" });
+    }
+
+    const existingPhoneUser = await User.findOne({ phone: { $in: phoneCandidates } }).select("_id");
+    if (existingPhoneUser) {
+      return res.status(400).json({ message: "Phone is already registered" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -129,6 +130,15 @@ const register = async (req, res) => {
       emailVerification,
     });
   } catch (error) {
+    if (error?.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || error.keyValue || {})[0];
+      if (duplicateField === "email") {
+        return res.status(400).json({ message: "Email is already registered" });
+      }
+      if (duplicateField === "phone") {
+        return res.status(400).json({ message: "Phone is already registered" });
+      }
+    }
     return res.status(500).json({ message: error.message });
   }
 };

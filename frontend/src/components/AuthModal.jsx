@@ -70,6 +70,7 @@ export default function AuthModal() {
   useEffect(() => { googleRoleRef.current = role; }, [role]);
 
   const updateUserField = (field, value) => {
+    if (formError) setFormError("");
     setUserForm((prev) => ({ ...prev, [field]: value }));
   };
 

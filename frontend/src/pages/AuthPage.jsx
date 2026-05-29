@@ -74,6 +74,7 @@ export default function AuthPage() {
   }, []);
 
   const updateUserField = (field, value) => {
+    if (formError) setFormError("");
     setUserForm((prev) => ({ ...prev, [field]: value }));
   };
 
