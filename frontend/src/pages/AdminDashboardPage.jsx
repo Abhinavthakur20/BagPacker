@@ -352,7 +352,7 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (activeTab === "operations" && !opsLoaded && !opsLoading) {
+    if ((activeTab === "operations" || activeTab === "overview") && !opsLoaded && !opsLoading) {
       loadOperationsData();
     }
   }, [activeTab, opsLoaded, opsLoading, loadOperationsData]);
