@@ -455,14 +455,15 @@ export default function OrganizerDashboardPage() {
     const fillPercent = totalSeats ? Math.min(100, Math.round((seatsFilled / totalSeats) * 100)) : 0;
     const revenueEstimate = safeNumber(finance?.totals?.grossPaid);
     const cards = [
-      { label: "Total Trips", value: totalTrips, icon: "map", tone: "neutral" },
-      { label: "Active Trips", value: activeTrips, icon: "pace", tone: "neutral" },
+      { label: "Total Trips", value: totalTrips, icon: "map", tone: "neutral", iconBadge: "dash-icon-badge dash-icon-badge-green" },
+      { label: "Active Trips", value: activeTrips, icon: "pace", tone: "neutral", iconBadge: "dash-icon-badge dash-icon-badge-lime" },
       {
         label: "Seats Filled",
         value: `${seatsFilled}/${totalSeats || 0}`,
         helper: `${fillPercent}% occupancy`,
         icon: "group",
         tone: "neutral",
+        iconBadge: "dash-icon-badge dash-icon-badge-amber",
       },
       {
         label: "Gross Paid",
@@ -470,6 +471,7 @@ export default function OrganizerDashboardPage() {
         helper: "Organizer finance snapshot",
         icon: "payments",
         tone: "primary",
+        iconBadge: "dash-icon-badge dash-icon-badge-white",
       },
     ];
 
@@ -510,8 +512,8 @@ export default function OrganizerDashboardPage() {
 
   return (
     <MainLayout hideFooterOnMobile={true}>
-      <div className="flex min-h-[calc(100vh-64px)] bg-[#f8fafc]">
-        <aside className="hidden w-64 flex-col border-r border-outline-variant/30 bg-surface md:flex">
+      <div className="flex min-h-[calc(100vh-64px)] dash-main-bg">
+        <aside className="hidden w-64 flex-col dash-sidebar md:flex">
           <div className="p-6 border-b border-outline-variant/30">
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-primary text-xl font-medium">business_center</span>
@@ -535,19 +537,19 @@ export default function OrganizerDashboardPage() {
               <button
                 key={key}
                 onClick={() => setActiveView(key)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-bold transition-all duration-150 ${
+                className={`dash-sidebar-link flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-bold ${
                   activeView === key
-                    ? "bg-white text-primary border-l-4 border-primary shadow-sm"
-                    : "text-on-surface-variant/80 hover:bg-surface-container hover:text-on-surface"
+                    ? "dash-sidebar-link-active text-primary"
+                    : "text-on-surface-variant/70 hover:text-on-surface"
                 }`}
               >
-                <span className="material-symbols-outlined text-[1.15rem]">{icon}</span>
+                <span className={`material-symbols-outlined text-[1.15rem] ${activeView === key ? "text-primary" : ""}`}>{icon}</span>
                 {label}
               </button>
             ))}
           </nav>
 
-          <div className="mx-4 mb-6 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+          <div className="mx-4 mb-6 rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 font-bold text-primary text-sm">
                 {organizer?.businessName?.charAt(0) || user?.name?.charAt(0) || "O"}
@@ -556,7 +558,7 @@ export default function OrganizerDashboardPage() {
                 <p className="truncate text-xs font-semibold text-on-surface">{organizer?.businessName || user?.name || "Organizer"}</p>
                 <div className={`mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                   organizer?.approvalStatus === "approved"
-                    ? "bg-secondary-fixed/20 text-[#4f6f16]"
+                    ? "bg-primary/10 text-primary"
                     : organizer?.approvalStatus === "rejected"
                       ? "bg-error/10 text-error"
                       : "bg-surface-container-high text-on-surface-variant"
@@ -565,14 +567,14 @@ export default function OrganizerDashboardPage() {
                 </div>
               </div>
             </div>
-            <div className="mt-3.5 space-y-1.5 border-t border-outline-variant/30 pt-3 text-[10px] font-semibold text-on-surface-variant/70">
+            <div className="mt-3.5 space-y-1.5 border-t border-outline-variant/30 pt-3 text-[10px] font-semibold text-on-surface-variant/60">
               <p className="truncate">GST: {organizer?.gstNumber || "N/A"}</p>
               <p className="truncate">Email: {user?.email || "N/A"}</p>
             </div>
           </div>
         </aside>
 
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/10 bg-surface/80 backdrop-blur-xl md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant/20 bg-surface/90 backdrop-blur-xl md:hidden">
           <nav className="flex items-center justify-around px-2 py-3 overflow-x-auto gap-2">
             {[
               ["overview", "space_dashboard", "Home"],
@@ -627,7 +629,7 @@ export default function OrganizerDashboardPage() {
                 )}
                 <button
                   onClick={() => loadDashboard(tripQuery)}
-                  className="flex h-9.5 w-9.5 items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-on-surface-variant transition hover:bg-surface-container-low"
+                  className="flex h-9.5 w-9.5 items-center justify-center rounded-lg border border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant transition hover:bg-surface-container-low"
                   title="Refresh Dashboard"
                 >
                   <span className="material-symbols-outlined text-[1.1rem]">refresh</span>
@@ -643,7 +645,7 @@ export default function OrganizerDashboardPage() {
             )}
 
             {isLoading ? (
-              <div className="flex h-96 flex-col items-center justify-center rounded-3xl border border-outline-variant/20 bg-surface">
+              <div className="flex h-96 flex-col items-center justify-center rounded-3xl border border-outline-variant/20 bg-surface-container-lowest">
                 <LoadingPanel label="Accessing Organizer Terminal..." variant="grid" />
               </div>
             ) : (
@@ -654,24 +656,24 @@ export default function OrganizerDashboardPage() {
                       {dashboard.cards.map((card) => (
                         <article
                           key={card.label}
-                          className="rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md"
+                          className={`rounded-xl p-5 ${card.tone === "primary" ? "dash-stat-card dash-stat-card-accent" : "dash-stat-card"}`}
                         >
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50">
+                              <p className={`text-[10px] font-bold uppercase tracking-wider ${card.tone === "primary" ? "text-white/50" : "text-on-surface-variant/50"}`}>
                                 {card.label}
                               </p>
-                              <p className="mt-1.5 text-xl font-bold text-on-surface">
+                              <p className={`mt-1.5 text-xl font-bold ${card.tone === "primary" ? "text-white" : "text-on-surface"}`}>
                                 {card.value}
                               </p>
                               {card.helper ? (
-                                <p className="mt-1 text-[9px] font-medium text-secondary">
+                                <p className={`mt-1 text-[9px] font-medium ${card.tone === "primary" ? "text-[#7fa11c]" : "text-secondary"}`}>
                                   {card.helper}
                                 </p>
                               ) : null}
                             </div>
-                            <div className="text-on-surface-variant/40 pt-1">
-                              <span className="material-symbols-outlined text-[1.4rem]">{card.icon}</span>
+                            <div className={card.iconBadge}>
+                              <span className="material-symbols-outlined text-[1.1rem]">{card.icon}</span>
                             </div>
                           </div>
                         </article>
@@ -679,24 +681,31 @@ export default function OrganizerDashboardPage() {
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-                      <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
-                        <h3 className="text-base font-bold text-on-surface">
-                          Financial Settlements
-                        </h3>
-                        <p className="text-[11px] font-medium text-on-surface-variant/50">
-                          Overview of paid reserves and processing status
-                        </p>
-
-                        <div className="mt-6 rounded-xl border border-primary/20 bg-primary/[0.02] p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <section className="rounded-xl dash-section p-6">
+                        <div className="flex items-center gap-2.5">
+                          <div className="dash-icon-badge dash-icon-badge-green">
+                            <span className="material-symbols-outlined text-[1rem]">account_balance</span>
+                          </div>
                           <div>
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-primary/70">Available Settlement Balance</p>
-                            <p className="mt-1 text-2xl font-bold text-primary">{formatINR(safeNumber(finance?.totals?.settlementEstimate))}</p>
+                            <h3 className="text-base font-bold text-on-surface">
+                              Financial Settlements
+                            </h3>
+                            <p className="text-[11px] font-medium text-on-surface-variant/50">
+                              Overview of paid reserves and processing status
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 rounded-xl dash-finance-highlight p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-[#7fa11c]">Available Settlement Balance</p>
+                            <p className="mt-1 text-2xl font-bold text-white">{formatINR(safeNumber(finance?.totals?.settlementEstimate))}</p>
                           </div>
                           {safeNumber(finance?.totals?.settlementEstimate) > 0 && (
                             <button
                               type="button"
                               onClick={() => setPayoutModalOpen(true)}
-                              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary/95 transition shadow-sm"
+                              className="rounded-lg bg-[#7fa11c] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#6b8e1e] transition shadow-md"
                             >
                               Request Transfer
                             </button>
@@ -704,15 +713,15 @@ export default function OrganizerDashboardPage() {
                         </div>
 
                         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                          <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-on-surface-variant/50">Gross Paid</p>
-                            <p className="mt-1 text-base font-bold text-on-surface">{formatINR(safeNumber(finance?.totals?.grossPaid))}</p>
+                          <div className="rounded-lg border border-primary/15 bg-primary/[0.04] p-4">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-primary/60">Gross Paid</p>
+                            <p className="mt-1 text-base font-bold text-primary">{formatINR(safeNumber(finance?.totals?.grossPaid))}</p>
                           </div>
-                          <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-on-surface-variant/50">Pending Escrow</p>
-                            <p className="mt-1 text-base font-bold text-on-surface">{formatINR(safeNumber(finance?.totals?.pendingPayment))}</p>
+                          <div className="rounded-lg border border-secondary/15 bg-secondary/[0.04] p-4">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-secondary/60">Pending Escrow</p>
+                            <p className="mt-1 text-base font-bold text-secondary">{formatINR(safeNumber(finance?.totals?.pendingPayment))}</p>
                           </div>
-                          <div className="rounded-lg border border-error/15 bg-error-container/20 p-4">
+                          <div className="rounded-lg border border-error/15 bg-error/[0.04] p-4">
                             <p className="text-[9px] font-bold uppercase tracking-wider text-error/70">Refund Required</p>
                             <p className="mt-1 text-base font-bold text-error">{formatINR(safeNumber(finance?.totals?.refundRequired))}</p>
                           </div>
@@ -735,7 +744,7 @@ export default function OrganizerDashboardPage() {
                             {payoutHistory.map((payout) => (
                               <div
                                 key={payout.id}
-                                className="flex items-center justify-between rounded-lg bg-[#f8fafc] p-3.5 text-xs border border-[#e2e8f0]"
+                                className="flex items-center justify-between rounded-lg bg-surface-container-low p-3.5 text-xs border border-outline-variant/20"
                               >
                                 <div>
                                   <p className="font-semibold text-on-surface">Ref ID: {payout.id}</p>
@@ -756,46 +765,49 @@ export default function OrganizerDashboardPage() {
                       </section>
 
                       <section className="space-y-4">
-                        <div className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
-                          <h3 className="text-base font-bold text-on-surface">
+                        <div className="rounded-xl dash-alert-card p-6">
+                          <h3 className="text-base font-bold text-white">
                             System Alerts
                           </h3>
                           <div className="mt-4 space-y-2">
                             {notifications.length ? (
                               notifications.map((item) => (
-                                <article key={item._id} className={`rounded-lg border px-3.5 py-3 text-xs ${item.isRead ? "border-[#e2e8f0] bg-white text-on-surface-variant/80" : "border-primary/20 bg-primary/[0.01] text-on-surface"}`}>
+                                <article key={item._id} className={`rounded-lg border px-3.5 py-3 text-xs ${item.isRead ? "border-white/10 bg-white/5 text-white/60" : "border-[#7fa11c]/30 bg-[#7fa11c]/10 text-white"}`}>
                                   <p className="font-medium">{item.message}</p>
                                   <div className="mt-2 flex items-center justify-between">
-                                    <span className="text-[10px] font-semibold text-on-surface-variant/50">
+                                    <span className="text-[10px] font-semibold text-white/40">
                                       {formatDateLabel(item.createdAt)}
                                     </span>
                                     {!item.isRead ? (
                                       <button
                                         onClick={() => markNotificationRead(item._id)}
                                         disabled={markingReadId === item._id}
-                                        className="rounded bg-primary px-2.5 py-1 text-[9px] font-semibold text-on-primary disabled:opacity-60"
+                                        className="rounded bg-[#7fa11c] px-2.5 py-1 text-[9px] font-semibold text-white disabled:opacity-60"
                                       >
                                         {markingReadId === item._id ? "..." : "Dismiss"}
                                       </button>
                                     ) : (
-                                      <span className="text-[9px] font-semibold text-on-surface-variant/40">Read</span>
+                                      <span className="text-[9px] font-semibold text-white/30">Read</span>
                                     )}
                                   </div>
                                 </article>
                               ))
                             ) : (
-                              <div className="rounded-lg border border-dashed border-[#e2e8f0] p-6 text-center text-xs font-medium text-on-surface-variant/50">
+                              <div className="rounded-lg border border-dashed border-white/15 p-6 text-center text-xs font-medium text-white/40">
                                 No notifications yet.
                               </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="rounded-xl border border-secondary/20 bg-secondary/[0.02] p-5 text-xs text-on-surface-variant/80">
-                          <p className="font-bold text-secondary mb-1">
-                            Marketplace Compliance Status
-                          </p>
-                          <p className="leading-relaxed text-[11px] font-medium">
+                        <div className="rounded-xl bg-[#7fa11c] p-5 text-xs text-white shadow-md">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="material-symbols-outlined text-sm text-white/80">verified</span>
+                            <p className="font-bold text-white">
+                              Marketplace Compliance Status
+                            </p>
+                          </div>
+                          <p className="leading-relaxed text-[11px] font-medium text-white/85">
                             {canCreateTrips
                               ? "Your profile is verified. You can publish, start, cancel, close, and manage payouts."
                               : "Your profile is under audit. Trip creation is locked until approval."}
@@ -807,7 +819,7 @@ export default function OrganizerDashboardPage() {
                 )}
 
                 {activeView === "trips" && (
-                  <section className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+                  <section className="rounded-xl dash-section overflow-hidden">
                     <div className="flex flex-col gap-4 border-b border-[#e2e8f0]/60 px-6 py-6">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1037,7 +1049,7 @@ export default function OrganizerDashboardPage() {
 
                 {activeView === "travelers" && (
                   <section className="space-y-6">
-                    <div className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+                    <div className="rounded-xl dash-section p-6">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <h3 className="text-base font-bold text-on-surface">
@@ -1065,7 +1077,7 @@ export default function OrganizerDashboardPage() {
                         <div className="mt-6 overflow-hidden rounded-lg border border-[#e2e8f0]">
                           <div className="overflow-x-auto">
                             <table className="w-full border-collapse text-left text-xs">
-                              <thead className="bg-[#f8fafc] border-b border-[#e2e8f0] text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/75">
+                              <thead className="bg-surface-container border-b border-outline-variant/20 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/75">
                                 <tr>
                                   <th className="px-6 py-4">Traveler</th>
                                   <th className="px-6 py-4">Trip Details</th>
@@ -1155,7 +1167,7 @@ export default function OrganizerDashboardPage() {
                 {activeView === "analytics" && (
                   <section className="space-y-6">
                     <div className="grid gap-6 lg:grid-cols-2">
-                      <div className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+                      <div className="rounded-xl dash-section p-6">
                         <h3 className="text-base font-bold text-on-surface">
                           Seat Map Occupancy
                         </h3>
@@ -1278,7 +1290,7 @@ export default function OrganizerDashboardPage() {
                         )}
                       </div>
 
-                      <div className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm flex flex-col justify-between">
+                      <div className="rounded-xl dash-section p-6 flex flex-col justify-between">
                         <div>
                           <h3 className="text-base font-bold text-on-surface">
                             Earnings Simulator
@@ -1355,7 +1367,7 @@ export default function OrganizerDashboardPage() {
                 {activeView === "social" && (
                   <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
                     <section className="space-y-6">
-                      <article className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+                      <article className="rounded-xl dash-section p-6">
                         <h3 className="text-base font-bold text-on-surface">
                           Media Composer
                         </h3>
@@ -1434,7 +1446,7 @@ export default function OrganizerDashboardPage() {
                         ) : null}
                       </article>
 
-                      <article className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+                      <article className="rounded-xl dash-section p-6">
                         <h3 className="text-base font-bold text-on-surface">
                           Gallery Archive
                         </h3>
@@ -1468,7 +1480,7 @@ export default function OrganizerDashboardPage() {
                     </section>
 
                     <aside className="space-y-6">
-                      <div className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+                      <div className="rounded-xl dash-section p-6">
                         <h3 className="text-base font-bold text-on-surface">
                           Profile Audit
                         </h3>
