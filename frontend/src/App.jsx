@@ -5,7 +5,6 @@ import { useLocation } from "react-router-dom";
 import { useAuthModal } from "./context/AuthModalContext";
 import LocomotiveScroll from "locomotive-scroll";
 import "locomotive-scroll/dist/locomotive-scroll.css";
-import AlertHost from "./components/ui/AlertHost";
 import LoadingPanel from "./components/ui/LoadingPanel";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RoleRoute from "./components/RoleRoute";
@@ -249,7 +248,6 @@ function App() {
       </Suspense>
       </ErrorBoundary>
       <AuthModal />
-      <AlertHost />
     </div>
     </AuthModalProvider>
   );
