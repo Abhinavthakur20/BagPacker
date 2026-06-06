@@ -7,6 +7,7 @@ const {
   initiateBookingPayment,
   getMyBookings,
   markBookingRefundedByOrganizer,
+  testCompleteBookingByTraveler,
   verifyBookingPayment,
 } = require("../api/booking/bookingController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -58,6 +59,12 @@ router.put(
   roleMiddleware(["traveler"]),
   [param("id").isMongoId().withMessage("Valid booking id is required"), validateRequest],
   cancelBooking,
+);
+router.put(
+  "/:id/test-complete",
+  roleMiddleware(["traveler"]),
+  [param("id").isMongoId().withMessage("Valid booking id is required"), validateRequest],
+  testCompleteBookingByTraveler,
 );
 router.put(
   "/:id/complete",

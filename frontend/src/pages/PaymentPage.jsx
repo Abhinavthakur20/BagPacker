@@ -11,19 +11,50 @@ import {
   showSuccessAlert,
 } from "../lib/alerts";
 
+const getOrganizerUserId = (booking) => {
+  const organizer = booking?.tripId?.organizerId;
+  const userId = organizer?.userId;
+  return userId?._id || userId || organizer?._id || organizer || null;
+};
+
+const isBookingFeedbackReady = (booking) => {
+  const status = String(booking?.status || "").toLowerCase();
+  if (status === "completed") {
+    return true;
+  }
+  if (status !== "confirmed") {
+    return false;
+  }
+
+  const endDate = new Date(booking?.tripId?.endDate || 0);
+  return Number.isFinite(endDate.getTime()) && endDate < new Date();
+};
+
+const isBookingTestCompletable = (booking) => {
+  const status = String(booking?.status || "").toLowerCase();
+  const paymentStatus = String(booking?.paymentStatus || "").toLowerCase();
+  return status === "confirmed" && paymentStatus === "paid";
+};
+
 export default function PaymentPage() {
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = Boolean(token);
+  const isTestFinishEnabled =
+    import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_FINISH_TRIP === "true";
   const [searchParams] = useSearchParams();
   const [tripDetails, setTripDetails] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
   const [seats, setSeats] = useState(Number(searchParams.get("seats") || 1));
   const [pickupPointId, setPickupPointId] = useState(
     searchParams.get("pickupPointId") || "",
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+  const [finishingBookingId, setFinishingBookingId] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isRazorpayReady, setIsRazorpayReady] = useState(Boolean(window.Razorpay));
@@ -48,13 +79,16 @@ export default function PaymentPage() {
     };
   }, []);
 
-  const loadBookings = useCallback(async () => {
+  const loadBookings = useCallback(async ({ forceRefresh = false } = {}) => {
     if (!isLoggedIn) {
       return;
     }
 
     try {
-      const response = await api.get("/bookings/my?page=1&limit=30", { cacheTtlMs: 20000 });
+      const response = await api.get("/bookings/my?page=1&limit=30", {
+        cacheTtlMs: 20000,
+        forceRefresh,
+      });
       setBookings(Array.isArray(response?.items) ? response.items : []);
     } catch {
       setBookings([]);
@@ -218,12 +252,69 @@ export default function PaymentPage() {
         setSuccessMessage("Payment successful and booking confirmed.");
       }
       await showSuccessAlert("Payment successful", "Your trip booking is confirmed.");
-      await loadBookings();
+      await loadBookings({ forceRefresh: true });
     } catch (submitError) {
       setError(submitError.message);
       await showErrorAlert("Booking failed", submitError.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const finishBookingForTesting = async (booking) => {
+    const result = await showConfirmAlert({
+      title: "Finish trip for testing?",
+      text: "This marks your booking as completed so the feedback form becomes available.",
+      confirmButtonText: "Finish Trip",
+      tone: "warning",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      setFinishingBookingId(booking._id);
+      setError("");
+      await api.put(`/bookings/${booking._id}/test-complete`, {});
+      await loadBookings({ forceRefresh: true });
+      await showSuccessAlert("Trip finished", "You can now leave feedback for this booking.");
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Could not finish trip", requestError.message);
+    } finally {
+      setFinishingBookingId("");
+    }
+  };
+
+  const submitReview = async () => {
+    if (!selectedBookingForReview) {
+      return;
+    }
+
+    try {
+      setIsReviewSubmitting(true);
+      setError("");
+      const revieweeId = getOrganizerUserId(selectedBookingForReview);
+      if (!revieweeId) {
+        throw new Error("Organizer details are still loading. Please refresh and try again.");
+      }
+
+      await api.post("/reviews", {
+        bookingId: selectedBookingForReview._id,
+        revieweeId,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      });
+
+      setSelectedBookingForReview(null);
+      setReviewForm({ rating: 5, comment: "" });
+      await showSuccessAlert("Feedback submitted", "Thank you for sharing your trip experience.");
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Could not submit feedback", requestError.message);
+    } finally {
+      setIsReviewSubmitting(false);
     }
   };
 
@@ -429,6 +520,27 @@ export default function PaymentPage() {
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#f94a4a]">
                         {booking.status}
                       </p>
+                      <div className="mt-4 flex flex-wrap gap-2 lg:justify-end">
+                        {isBookingFeedbackReady(booking) ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBookingForReview(booking)}
+                            className="rounded-xl bg-secondary px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#2d2000]"
+                          >
+                            Leave Feedback
+                          </button>
+                        ) : null}
+                        {isTestFinishEnabled && isBookingTestCompletable(booking) ? (
+                          <button
+                            type="button"
+                            onClick={() => finishBookingForTesting(booking)}
+                            disabled={finishingBookingId === booking._id}
+                            className="rounded-xl bg-surface-container-high px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {finishingBookingId === booking._id ? "Finishing..." : "Finish Trip (Test)"}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -441,6 +553,80 @@ export default function PaymentPage() {
           )}
         </section>
       </div>
+
+      {selectedBookingForReview ? (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-on-surface/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface p-6 shadow-2xl sm:p-8">
+            <div className="flex items-center justify-between border-b border-outline-variant/10 pb-5">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-outline">
+                  Trip Feedback
+                </p>
+                <h2 className="mt-1 font-manrope text-xl font-extrabold text-primary">
+                  {selectedBookingForReview.tripId?.title || "Your trip"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBookingForReview(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-6">
+              <div>
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.14em] text-outline">
+                  Rating
+                </p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewForm((current) => ({ ...current, rating: star }))}
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${
+                        star <= reviewForm.rating
+                          ? "bg-secondary text-[#2d2000]"
+                          : "bg-surface-container-low text-outline"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined">
+                        {star <= reviewForm.rating ? "star" : "star_outline"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="grid gap-3">
+                <span className="text-xs font-black uppercase tracking-[0.14em] text-outline">
+                  Feedback
+                </span>
+                <textarea
+                  value={reviewForm.comment}
+                  onChange={(event) =>
+                    setReviewForm((current) => ({ ...current, comment: event.target.value }))
+                  }
+                  rows={4}
+                  placeholder="How was the coordination, safety, and overall experience?"
+                  className="w-full rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-4 text-sm text-on-surface outline-none transition focus:border-primary/40"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={submitReview}
+                disabled={isReviewSubmitting}
+                className="w-full rounded-2xl bg-primary px-5 py-4 text-xs font-black uppercase tracking-[0.14em] text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isReviewSubmitting ? "Submitting..." : "Submit Feedback"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </MainLayout>
   );
 }

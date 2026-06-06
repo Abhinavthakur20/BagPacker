@@ -5,7 +5,7 @@ import MainLayout from "../components/MainLayout";
 import LoadingPanel from "../components/ui/LoadingPanel";
 import { formatINR } from "../data/mockData";
 import { api, resolveMediaUrl } from "../lib/api";
-import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
+import { showConfirmAlert, showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { setUser } from "../store/authSlice";
 
 const formatDateLabel = (value) => {
@@ -84,17 +84,39 @@ const getTicketLifecycle = (booking) => {
   };
 };
 
+const isBookingFeedbackReady = (booking) => {
+  const bookingStatus = String(booking?.status || "").toLowerCase();
+  if (bookingStatus === "completed") {
+    return true;
+  }
+  if (bookingStatus !== "confirmed") {
+    return false;
+  }
+
+  const endTs = new Date(booking?.tripId?.endDate || 0).getTime();
+  return Number.isFinite(endTs) && endTs < Date.now();
+};
+
+const isBookingTestCompletable = (booking) => {
+  const bookingStatus = String(booking?.status || "").toLowerCase();
+  const paymentStatus = String(booking?.paymentStatus || "").toLowerCase();
+  return bookingStatus === "confirmed" && paymentStatus === "paid";
+};
+
 export default function TravelerDashboardPage() {
   const dispatch = useDispatch();
   const storedUser = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
   const isLoggedIn = Boolean(token);
+  const isTestFinishEnabled =
+    import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_FINISH_TRIP === "true";
   const [profile, setProfile] = useState(storedUser);
   const [activeTab, setActiveTab] = useState("overview");
   const [bookings, setBookings] = useState([]);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+  const [finishingBookingId, setFinishingBookingId] = useState("");
   const [companionRequests, setCompanionRequests] = useState({ sent: [], received: [] });
   const [notifications, setNotifications] = useState([]);
   const [recommendedTrips, setRecommendedTrips] = useState([]);
@@ -220,6 +242,34 @@ export default function TravelerDashboardPage() {
       showErrorAlert("Submission failed", err.message);
     } finally {
       setIsReviewSubmitting(false);
+    }
+  };
+
+  const finishBookingForTesting = async (booking) => {
+    const result = await showConfirmAlert({
+      title: "Finish trip for testing?",
+      text: "This marks your booking as completed so the feedback form becomes available.",
+      confirmButtonText: "Finish Trip",
+      tone: "warning",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      setFinishingBookingId(booking._id);
+      setError("");
+      const updatedBooking = await api.put(`/bookings/${booking._id}/test-complete`, {});
+      setBookings((current) =>
+        current.map((item) => (item._id === updatedBooking?._id ? updatedBooking : item)),
+      );
+      await showSuccessAlert("Trip finished", "You can now leave feedback for this booking.");
+    } catch (requestError) {
+      setError(requestError.message);
+      await showErrorAlert("Could not finish trip", requestError.message);
+    } finally {
+      setFinishingBookingId("");
     }
   };
 
@@ -510,11 +560,13 @@ export default function TravelerDashboardPage() {
                               <div className="flex flex-wrap items-center gap-3">
                                 <h4 className="truncate font-headline text-lg sm:text-xl font-black text-on-surface">{booking.tripId?.title}</h4>
                                 <span className={`rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${
-                                  booking.status === "confirmed"
-                                    ? new Date(booking.tripId?.endDate) < new Date() ? "bg-primary/10 text-primary" : "bg-success-container text-on-success-container"
+                                  booking.status === "completed"
+                                    ? "bg-primary/10 text-primary"
+                                    : booking.status === "confirmed"
+                                      ? new Date(booking.tripId?.endDate) < new Date() ? "bg-primary/10 text-primary" : "bg-success-container text-on-success-container"
                                     : "bg-warning-container text-on-warning-container"
                                 }`}>
-                                  {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? "Completed" : booking.status}
+                                  {booking.status === "completed" || (booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date()) ? "Completed" : booking.status}
                                 </span>
                               </div>
                               <div className="mt-2 flex items-center gap-2 text-xs sm:text-sm font-bold text-on-surface-variant">
@@ -528,13 +580,26 @@ export default function TravelerDashboardPage() {
                               </div>
                             </div>
                             <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4 md:border-none md:pt-0 md:text-right">
-                              {booking.status === "confirmed" && new Date(booking.tripId?.endDate) < new Date() ? (
-                                <button
-                                  onClick={() => setSelectedBookingForReview(booking)}
-                                  className="w-full md:w-auto rounded-2xl bg-secondary px-6 py-3 text-[10px] font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02]"
-                                >
-                                  Leave Review
-                                </button>
+                              {isBookingFeedbackReady(booking) || (isTestFinishEnabled && isBookingTestCompletable(booking)) ? (
+                                <div className="flex w-full flex-col gap-2 md:w-auto md:items-end">
+                                  {isBookingFeedbackReady(booking) ? (
+                                    <button
+                                      onClick={() => setSelectedBookingForReview(booking)}
+                                      className="w-full rounded-2xl bg-secondary px-6 py-3 text-[10px] font-black uppercase tracking-widest text-on-secondary shadow-lg transition hover:scale-[1.02] md:w-auto"
+                                    >
+                                      Leave Review
+                                    </button>
+                                  ) : null}
+                                  {isTestFinishEnabled && isBookingTestCompletable(booking) ? (
+                                    <button
+                                      onClick={() => finishBookingForTesting(booking)}
+                                      disabled={finishingBookingId === booking._id}
+                                      className="w-full rounded-2xl bg-surface-container-high px-6 py-3 text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+                                    >
+                                      {finishingBookingId === booking._id ? "Finishing..." : "Finish Trip (Test)"}
+                                    </button>
+                                  ) : null}
+                                </div>
                               ) : (
                                 <div className="w-full md:w-auto flex items-center justify-between md:block">
                                   <div className="md:hidden">

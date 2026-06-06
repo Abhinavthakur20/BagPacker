@@ -663,6 +663,50 @@ const completeBooking = async (req, res) => {
   }
 };
 
+const testCompleteBookingByTraveler = async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({ message: "Test trip completion is disabled in production" });
+    }
+
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      travelerId: req.user._id,
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.status === "cancelled") {
+      return res.status(400).json({ message: "Cancelled bookings cannot be completed" });
+    }
+
+    if (booking.status === "completed") {
+      const alreadyCompleted = await populateBookingForTraveler(Booking.findById(booking._id));
+      return res.status(200).json(alreadyCompleted);
+    }
+
+    if (booking.status !== "confirmed" || booking.paymentStatus !== "paid") {
+      return res.status(400).json({ message: "Only confirmed paid bookings can be finished for testing" });
+    }
+
+    booking.status = "completed";
+    await booking.save();
+
+    await Notification.create({
+      userId: req.user._id,
+      type: "trip_alert",
+      message: "Your booking has been marked as completed for feedback testing.",
+    });
+
+    const populatedBooking = await populateBookingForTraveler(Booking.findById(booking._id));
+    return res.status(200).json(populatedBooking);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   initiateBookingPayment,
   verifyBookingPayment,
@@ -671,4 +715,5 @@ module.exports = {
   cancelBookingByOrganizer,
   markBookingRefundedByOrganizer,
   completeBooking,
+  testCompleteBookingByTraveler,
 };
