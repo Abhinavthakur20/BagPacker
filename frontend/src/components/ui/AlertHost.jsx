@@ -126,31 +126,31 @@ export default function AlertHost() {
       <div
         role="alertdialog"
         aria-modal={isConfirm ? "true" : "false"}
-        className={`w-full overflow-hidden rounded-3xl bg-surface ring-1 shadow-[0_20px_60px_rgba(15,23,42,0.22)] ${
-          isConfirm ? "max-w-2xl" : "max-w-2xl"
+        className={`overflow-hidden rounded-xl bg-surface ring-1 shadow-[0_18px_42px_rgba(15,23,42,0.2)] ${
+          isConfirm ? "w-full max-w-2xl" : "w-[min(calc(100vw-2rem),34rem)]"
         } ${styles.ring}`}
       >
-        <div className={`relative bg-gradient-to-r ${styles.gradient} px-5 pb-2 pt-2`}>
-          <span className={`absolute left-0 top-0 h-full w-1.5 ${styles.accent}`} />
-          <div className="ml-1 flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
+        <div className={`relative bg-gradient-to-r ${styles.gradient} px-4 py-2`}>
+          <span className={`absolute left-0 top-0 h-full w-1 ${styles.accent}`} />
+          <div className="ml-1 flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
               <span
-                className={`material-symbols-outlined mt-0.5 rounded-2xl p-1.5 text-[18px] ${styles.iconWrap}`}
+                className={`material-symbols-outlined rounded-lg p-1.5 text-[18px] ${styles.iconWrap}`}
               >
                 {styles.icon}
               </span>
               <div className="min-w-0">
-                <p className={`inline-block rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${styles.chip}`}>
+                <p className={`inline-block rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${styles.chip}`}>
                   {styles.label}
                 </p>
-                <h2 className={`text-base font-black leading-tight ${styles.title}`}>
+                <h2 className={`truncate text-base font-black leading-tight ${styles.title}`}>
                   {activeAlert.title}
                 </h2>
               </div>
             </div>
             <button
               onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
-              className="material-symbols-outlined rounded-xl p-1 text-on-surface-variant/70 transition hover:bg-black/5 hover:text-on-surface"
+              className="material-symbols-outlined rounded-lg p-1 text-on-surface-variant/70 transition hover:bg-black/5 hover:text-on-surface"
               aria-label="Close alert"
             >
               close
@@ -158,16 +158,16 @@ export default function AlertHost() {
           </div>
         </div>
 
-        <div className="px-5 pb-3 pt-2">
-          <p className="text-sm leading-relaxed text-on-surface-variant">
+        <div className={`px-4 py-3 ${isConfirm ? "" : "sm:flex sm:items-center sm:justify-between sm:gap-4"}`}>
+          <p className="min-w-0 text-sm leading-snug text-on-surface-variant">
             {activeAlert.text || "Please review this action before continuing."}
           </p>
 
-          <div className="mt-2 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+          <div className={`flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end ${isConfirm ? "mt-3" : "mt-3 sm:mt-0"}`}>
             {isConfirm ? (
               <button
                 onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
-                className="rounded-xl bg-surface-container-low px-4 py-2.5 text-sm font-bold text-on-surface transition hover:bg-surface-container"
+                className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-bold text-on-surface transition hover:bg-surface-container"
               >
                 {activeAlert.cancelButtonText || "Cancel"}
               </button>
@@ -175,7 +175,7 @@ export default function AlertHost() {
 
             <button
               onClick={() => closeAlert({ isConfirmed: true, isDismissed: false })}
-              className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${styles.button}`}
+              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-bold transition ${styles.button}`}
             >
               {activeAlert.confirmButtonText || "Okay"}
             </button>
