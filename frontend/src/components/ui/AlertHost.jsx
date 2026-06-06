@@ -100,9 +100,11 @@ export default function AlertHost() {
       return undefined;
     }
 
+    const textLength = String(activeAlert.text || "").length;
+    const displayMs = Math.min(5200, Math.max(3200, 2600 + textLength * 18));
     const timer = window.setTimeout(() => {
       closeAlert({ isConfirmed: true, isDismissed: false });
-    }, 2600);
+    }, displayMs);
 
     return () => window.clearTimeout(timer);
   }, [activeAlert, closeAlert]);
@@ -115,7 +117,7 @@ export default function AlertHost() {
 
   return createPortal(
     <div
-      className={`fixed z-[120] ${
+      className={`fixed z-[10000] ${
         isConfirm
           ? "inset-0 grid place-items-center bg-black/35 px-4 py-6 backdrop-blur-[2px]"
           : "right-4 top-4 sm:right-6 sm:top-6"

@@ -234,9 +234,9 @@ export default function TravelerDashboardPage() {
         rating: reviewForm.rating,
         comment: reviewForm.comment,
       });
-      await showSuccessAlert("Thank You!", "Your review has been submitted.");
       setSelectedBookingForReview(null);
       setReviewForm({ rating: 5, comment: "" });
+      void showSuccessAlert("Thank You!", "Your review has been submitted.");
     } catch (err) {
       console.error("Failed to submit review:", err);
       showErrorAlert("Submission failed", err.message);

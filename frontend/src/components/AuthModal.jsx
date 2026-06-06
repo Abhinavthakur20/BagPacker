@@ -102,9 +102,9 @@ export default function AuthModal() {
         password: loginForm.password,
       });
       dispatch(setAuth({ token: response.token, user: response.user }));
-      await showSuccessAlert("Welcome back", "Login successful.");
       closeAuthModal();
       navigate(getDashboardPath(response.user?.role));
+      void showSuccessAlert("Welcome back", "Login successful.");
     } catch (error) {
       setFormError(error.message);
       await showErrorAlert("Login failed", error.message);
@@ -156,14 +156,14 @@ export default function AuthModal() {
       });
       const resolvedUser = response.user;
       dispatch(setAuth({ token: response.token, user: resolvedUser }));
-      await showSuccessAlert(
+      closeAuthModal();
+      navigate(getDashboardPath(resolvedUser?.role));
+      void showSuccessAlert(
         "Account created",
         role === "organizer"
           ? "Your organizer account was created. Approval may still be pending."
           : "Your traveler account is ready.",
       );
-      closeAuthModal();
-      navigate(getDashboardPath(resolvedUser?.role));
     } catch (error) {
       setFormError(error.message);
       await showErrorAlert("Signup failed", error.message);
@@ -198,9 +198,9 @@ export default function AuthModal() {
                 businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
               });
               dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
-              await showSuccessAlert("Welcome", "Signed in with Google.");
               closeAuthModal();
               navigate(getDashboardPath(authResponse.user?.role));
+              void showSuccessAlert("Welcome", "Signed in with Google.");
             } catch (error) {
               setFormError(error.message);
               await showErrorAlert("Google sign-in failed", error.message);
