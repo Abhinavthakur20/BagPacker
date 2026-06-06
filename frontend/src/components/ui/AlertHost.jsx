@@ -5,7 +5,7 @@ import { subscribeToAlerts } from "../../lib/alerts";
 const toneMap = {
   success: {
     icon: "task_alt",
-    iconWrap: "bg-emerald-100 text-emerald-700",
+    iconWrap: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     chip: "bg-emerald-100 text-emerald-700",
     gradient: "from-emerald-500/18 to-teal-500/8",
     ring: "ring-emerald-200/70",
@@ -16,7 +16,7 @@ const toneMap = {
   },
   error: {
     icon: "error",
-    iconWrap: "bg-rose-100 text-rose-700",
+    iconWrap: "bg-rose-50 text-rose-700 ring-rose-200",
     chip: "bg-rose-100 text-rose-700",
     gradient: "from-rose-500/18 to-orange-500/8",
     ring: "ring-rose-200/80",
@@ -27,7 +27,7 @@ const toneMap = {
   },
   info: {
     icon: "info",
-    iconWrap: "bg-sky-100 text-sky-700",
+    iconWrap: "bg-sky-50 text-sky-700 ring-sky-200",
     chip: "bg-sky-100 text-sky-700",
     gradient: "from-sky-500/18 to-cyan-500/8",
     ring: "ring-sky-200/80",
@@ -37,7 +37,7 @@ const toneMap = {
     label: "Notice",
   },
   warning: {
-    iconWrap: "bg-amber-100 text-amber-700",
+    iconWrap: "bg-amber-50 text-amber-700 ring-amber-200",
     chip: "bg-amber-100 text-amber-700",
     gradient: "from-amber-500/18 to-yellow-500/8",
     ring: "ring-amber-200/80",
@@ -126,59 +126,58 @@ export default function AlertHost() {
       <div
         role="alertdialog"
         aria-modal={isConfirm ? "true" : "false"}
-        className={`overflow-hidden rounded-xl bg-surface ring-1 shadow-[0_18px_42px_rgba(15,23,42,0.2)] ${
-          isConfirm ? "w-full max-w-2xl" : "w-[min(calc(100vw-2rem),34rem)]"
+        className={`overflow-hidden rounded-lg border border-outline-variant/20 bg-surface shadow-[0_18px_42px_rgba(15,23,42,0.18)] ${
+          isConfirm ? "w-full max-w-xl" : "w-[min(calc(100vw-2rem),36rem)]"
         } ${styles.ring}`}
       >
-        <div className={`relative bg-gradient-to-r ${styles.gradient} px-4 py-2`}>
+        <div className="relative flex gap-3 px-4 py-3.5">
           <span className={`absolute left-0 top-0 h-full w-1 ${styles.accent}`} />
-          <div className="ml-1 flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span
-                className={`material-symbols-outlined rounded-lg p-1.5 text-[18px] ${styles.iconWrap}`}
-              >
-                {styles.icon}
-              </span>
+          <span
+            className={`material-symbols-outlined mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[20px] ring-1 ${styles.iconWrap}`}
+          >
+            {styles.icon}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className={`inline-block rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${styles.chip}`}>
+                <p className={`mb-1 inline-block rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${styles.chip}`}>
                   {styles.label}
                 </p>
                 <h2 className={`truncate text-base font-black leading-tight ${styles.title}`}>
                   {activeAlert.title}
                 </h2>
               </div>
-            </div>
-            <button
-              onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
-              className="material-symbols-outlined rounded-lg p-1 text-on-surface-variant/70 transition hover:bg-black/5 hover:text-on-surface"
-              aria-label="Close alert"
-            >
-              close
-            </button>
-          </div>
-        </div>
-
-        <div className={`px-4 py-3 ${isConfirm ? "" : "sm:flex sm:items-center sm:justify-between sm:gap-4"}`}>
-          <p className="min-w-0 text-sm leading-snug text-on-surface-variant">
-            {activeAlert.text || "Please review this action before continuing."}
-          </p>
-
-          <div className={`flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end ${isConfirm ? "mt-3" : "mt-3 sm:mt-0"}`}>
-            {isConfirm ? (
               <button
                 onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
-                className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-bold text-on-surface transition hover:bg-surface-container"
+                className="material-symbols-outlined -mr-1 -mt-1 rounded-lg p-1 text-on-surface-variant/70 transition hover:bg-black/5 hover:text-on-surface"
+                aria-label="Close alert"
               >
-                {activeAlert.cancelButtonText || "Cancel"}
+                close
               </button>
-            ) : null}
+            </div>
 
-            <button
-              onClick={() => closeAlert({ isConfirmed: true, isDismissed: false })}
-              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-bold transition ${styles.button}`}
-            >
-              {activeAlert.confirmButtonText || "Okay"}
-            </button>
+            <p className="mt-2 text-sm leading-snug text-on-surface-variant">
+              {activeAlert.text || "Please review this action before continuing."}
+            </p>
+
+            <div className={`flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end ${isConfirm ? "mt-4" : "mt-3"}`}>
+              {isConfirm ? (
+                <button
+                  onClick={() => closeAlert({ isConfirmed: false, isDismissed: true })}
+                  className="rounded-md bg-surface-container-low px-4 py-2 text-sm font-bold text-on-surface transition hover:bg-surface-container"
+                >
+                  {activeAlert.cancelButtonText || "Cancel"}
+                </button>
+              ) : null}
+
+              <button
+                onClick={() => closeAlert({ isConfirmed: true, isDismissed: false })}
+                className={`shrink-0 rounded-md px-4 py-2 text-sm font-bold transition ${styles.button}`}
+              >
+                {activeAlert.confirmButtonText || "Okay"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
