@@ -30,6 +30,26 @@ const getSocketUrl = () => {
   return window.location.origin;
 };
 
+const SENDER_COLORS = [
+  "#10b981", // Emerald
+  "#3b82f6", // Blue
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#f59e0b", // Amber
+  "#06b6d4", // Cyan
+  "#f97316", // Orange
+];
+
+const getSenderColor = (name) => {
+  if (!name) return SENDER_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % SENDER_COLORS.length;
+  return SENDER_COLORS[index];
+};
+
 export default function ChatPage() {
   const [searchParams] = useSearchParams();
   const token = useSelector((state) => state.auth.token);
@@ -119,6 +139,7 @@ export default function ChatPage() {
             {
               id: messageId,
               sender: isMine ? "me" : "other",
+              senderName: payload.sender,
               text: payload.message,
               time: new Date(payload.timestamp || Date.now()).toLocaleTimeString("en-IN", {
                 hour: "numeric",
