@@ -60,7 +60,7 @@ export default function TopNav() {
   })();
 
   return (
-    <nav className="fixed top-0 z-[100] w-full border-b border-outline-variant/10 bg-surface/80 backdrop-blur-xl shadow-sm">
+    <nav className="fixed top-0 z-[100] w-full border-b border-outline-variant/10 bg-[#f3f4f6]/80 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 md:px-10">
         {/* ── Logo ── */}
         <NavLink to="/" className="group inline-flex items-center gap-3">
@@ -151,7 +151,7 @@ export default function TopNav() {
           isMobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t border-outline-variant/10 bg-surface px-6 pb-10 pt-4">
+        <div className="border-t border-outline-variant/10 bg-[#f3f4f6] px-6 pb-10 pt-4">
           <div className="grid gap-2">
             {resolvedNavLinks.map((item) => (
               <NavLink
