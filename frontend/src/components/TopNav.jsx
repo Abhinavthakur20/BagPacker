@@ -72,7 +72,7 @@ export default function TopNav() {
             />
           </div>
           <span className="font-headline text-2xl font-black tracking-tighter text-on-surface">
-            Bag<span className="text-secondary">Packer</span>
+            Bag <span className="text-secondary">Packer</span>
           </span>
         </NavLink>
 

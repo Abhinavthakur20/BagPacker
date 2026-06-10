@@ -42,7 +42,7 @@ export default function Footer() {
                 <img src="/logo.png" alt="BagPacker" className="h-full w-full object-contain" />
               </div>
               <p className="font-headline text-2xl font-black tracking-tight text-white">
-                Bag<span className="text-secondary-container">Packer</span>
+                Bag <span className="text-secondary-container">Packer</span>
               </p>
             </div>
             
@@ -214,7 +214,7 @@ export default function Footer() {
 
         {/* Bottom Rights */}
         <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-surface/60 md:mt-12 md:flex-row md:items-center md:justify-between">
-          <p>© {year} BagPacker Expedition Tech. All rights reserved.</p>
+          <p>© {year} Bag Packer Expedition Tech. All rights reserved.</p>
           <p className="font-bold">Built for modern Indian explorers.</p>
         </div>
       </div>
