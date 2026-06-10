@@ -66,64 +66,46 @@ export default function TopPicksSection({ trips = [], isLoading = false, error =
               return (
                 <article
                   key={trip._id}
-                  className="group cursor-pointer overflow-hidden rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest shadow-[0_8px_30px_rgba(28,28,24,0.05)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(1,45,29,0.15)]"
+                  className="group cursor-pointer overflow-hidden rounded-3xl shadow-[0_8px_30px_rgba(28,28,24,0.1)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(28,28,24,0.16)]"
                   onClick={() => navigate(`/trips/${trip._id}`)}
                 >
-                  {/* Image Container */}
-                  <div className="relative h-56 overflow-hidden">
+                  <div className="relative h-80 overflow-hidden">
                     <img
                       src={optimizedImage}
                       alt={trip.title}
                       loading="lazy"
                       decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/30" />
 
-                    {/* Top glassmorphic badges */}
-                    <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4">
-                      <div className="flex items-center gap-2.5 rounded-full bg-black/25 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur-md border border-white/10">
+                    <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-4">
+                      <div className="flex items-center gap-3 text-[11px] font-semibold text-white/90">
                         <span className="inline-flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[13px]">visibility</span>
+                          <span className="material-symbols-outlined text-[14px]">visibility</span>
                           {trip.views || 0}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[13px]">share</span>
+                          <span className="material-symbols-outlined text-[14px]">share</span>
                           {trip.shares || 0}
                         </span>
                       </div>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md border border-white/10">
-                        <span className="material-symbols-outlined text-[12px]">calendar_month</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+                        <span className="material-symbols-outlined text-[14px]">calendar_month</span>
                         {getTripDurationLabel(trip.startDate, trip.endDate)}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Content Container */}
-                  <div className="flex flex-col gap-3 p-6">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-secondary uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-sm">distance</span>
-                      {trip.destination || "Adventure"}
-                    </div>
-
-                    <h3 className="line-clamp-1 font-headline text-lg font-black text-on-surface transition-colors group-hover:text-secondary">
-                      {trip.title}
-                    </h3>
-
-                    {/* Price and Action Footer */}
-                    <div className="mt-2 flex items-end justify-between border-t border-outline-variant/10 pt-4">
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">
-                          Starting from
-                        </p>
-                        <p className="mt-0.5 font-headline text-2xl font-black text-primary">
-                          {formatPrice(trip.pricePerPerson)}
-                        </p>
-                      </div>
-                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-secondary opacity-0 transition-all duration-300 transform translate-x-2 group-hover:opacity-100 group-hover:translate-x-0">
-                        Details
-                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                      </span>
+                    <div className="absolute inset-x-0 bottom-0 p-5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
+                        Starting from
+                      </p>
+                      <p className="mt-0.5 font-headline text-2xl font-black text-white">
+                        {formatPrice(trip.pricePerPerson)}
+                      </p>
+                      <p className="mt-1 line-clamp-1 text-sm font-bold text-white/90">
+                        {trip.title} · {trip.destination}
+                      </p>
                     </div>
                   </div>
                 </article>

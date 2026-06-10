@@ -380,43 +380,51 @@ export default function SearchPage() {
                   <Link
                     key={trip.id}
                     to={`/trips/${trip.id}`}
-                    className="group relative flex flex-col overflow-hidden rounded-[1.6rem] border border-outline-variant/15 bg-surface-container-lowest shadow-[0_8px_30px_rgba(28,28,24,0.05)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(1,45,29,0.15)]"
+                    className="group relative flex flex-col overflow-hidden rounded-2xl sm:rounded-[1.6rem] bg-surface-container-lowest shadow-[0_4px_20px_rgba(28,28,24,0.08)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(1,45,29,0.18)]"
                   >
                     {/* ── Image with gradient overlay ── */}
-                    <div className="relative h-40 sm:h-56 w-full overflow-hidden">
+                    <div className="relative h-32 sm:h-60 w-full overflow-hidden">
                       <img
                         src={trip.images[activeImageIndex] || campfireImage}
                         alt={trip.title}
                         className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                       />
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
                       {/* Top badges row */}
-                      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3 sm:p-4">
-                        <span className="rounded-full bg-white/20 px-2.5 py-1 text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md border border-white/10">
+                      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-2 sm:p-4">
+                        <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[7px] sm:px-3 sm:py-1 sm:text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
                           {trip.duration}
                         </span>
                         {pageStartIndex + index === 0 ? (
-                          <span className="flex items-center gap-0.5 sm:gap-1 rounded-full bg-secondary px-2 py-0.5 sm:px-3 sm:py-1 text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-white shadow-lg border border-secondary-fixed/20">
+                          <span className="flex items-center gap-0.5 sm:gap-1 rounded-full bg-secondary px-1.5 py-0.5 sm:px-2.5 sm:py-1 text-[7px] sm:text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
                             <span className="material-symbols-outlined text-[10px] sm:text-xs">local_fire_department</span>
-                            <span>Trending</span>
+                            <span className="hidden sm:inline">Trending</span><span className="sm:hidden">Hot</span>
                           </span>
                         ) : trustScore >= 75 ? (
-                          <span className="hidden sm:flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md border border-white/10">
+                          <span className="hidden sm:flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-md">
                             <span className="material-symbols-outlined text-xs">verified</span>
                             {trustScore}% Trust
                           </span>
                         ) : null}
                       </div>
 
+                      {/* Bottom overlay: price + location */}
+                      <div className="absolute inset-x-0 bottom-0 p-2 sm:p-4">
+                        <p className="text-[7px] sm:text-[9px] font-bold uppercase tracking-widest text-white/60">From</p>
+                        <p className="font-headline text-base sm:text-2xl font-black text-white drop-shadow-lg">
+                          {formatINR(trip.price)}
+                        </p>
+                      </div>
+
                       {/* Carousel dots */}
                       {imageCount > 1 ? (
-                        <div className="absolute bottom-3 right-3 flex items-center gap-1">
+                        <div className="absolute bottom-4 right-4 flex items-center gap-1">
                           {trip.images.map((_, dotIndex) => (
                             <span
                               key={`${trip.id}-dot-${dotIndex}`}
-                              className={`h-1 rounded-full transition-all ${
-                                dotIndex === activeImageIndex ? "w-3 bg-white" : "w-1 bg-white/40"
+                              className={`h-1.5 rounded-full transition-all ${
+                                dotIndex === activeImageIndex ? "w-4 bg-white" : "w-1.5 bg-white/40"
                               }`}
                             />
                           ))}
@@ -425,31 +433,30 @@ export default function SearchPage() {
                     </div>
 
                     {/* ── Card body ── */}
-                    <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] sm:text-xs font-medium text-on-surface-variant">
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm text-secondary">distance</span>
-                          <span className="truncate max-w-[100px] sm:max-w-none">{trip.route}</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm text-secondary">calendar_today</span>
-                          <span>{trip.dateRange}</span>
-                        </span>
-                      </div>
-
-                      <h2 className="line-clamp-2 font-headline text-sm sm:text-base font-black leading-snug text-on-surface transition-colors group-hover:text-secondary">
+                    <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-3 sm:p-5">
+                      <h2 className="line-clamp-2 font-headline text-xs sm:text-[1.05rem] font-black leading-snug text-on-surface">
                         {trip.title}
                       </h2>
 
+                      <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                        <span className="material-symbols-outlined text-sm text-primary">route</span>
+                        {trip.route}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                        <span className="material-symbols-outlined text-sm text-primary">calendar_month</span>
+                        <span>{trip.dateRange}</span>
+                      </div>
+
                       {/* Seat fill bar */}
-                      <div className="mt-2 space-y-1.5">
-                        <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
-                          <span className="text-on-surface-variant/60">{seatsFilled} joined</span>
-                          <span className={trip.seatsLeft <= 3 ? "text-error" : "text-on-surface-variant/60"}>
+                      <div className="mt-auto space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
+                          <span className="text-on-surface-variant">{seatsFilled} joined</span>
+                          <span className={trip.seatsLeft <= 3 ? "text-error" : "text-on-surface-variant"}>
                             {trip.seatsLeft} left
                           </span>
                         </div>
-                        <div className="h-1 overflow-hidden rounded-full bg-outline-variant/15">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-outline-variant/15">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-700"
                             style={{ width: `${fillPercent}%` }}
@@ -457,20 +464,18 @@ export default function SearchPage() {
                         </div>
                       </div>
 
-                      {/* Organizer & Price footer */}
-                      <div className="mt-auto flex items-center justify-between border-t border-outline-variant/10 pt-4">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary/10 text-[9px] sm:text-[11px] font-black text-primary">
+                      {/* Organizer row */}
+                      <div className="flex items-center justify-between border-t border-outline-variant/10 pt-2 sm:pt-3">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <div className="flex h-5 w-5 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-primary/10 text-[8px] sm:text-[10px] font-black text-primary">
                             {trip.organizer?.charAt(0) || "O"}
                           </div>
-                          <span className="text-[10px] sm:text-xs font-bold text-on-surface-variant truncate max-w-[80px] sm:max-w-none">{trip.organizer}</span>
+                          <span className="text-[9px] sm:text-xs font-bold text-on-surface-variant truncate max-w-[60px] sm:max-w-none">{trip.organizer}</span>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[8px] font-bold uppercase tracking-widest text-on-surface-variant/60">From</p>
-                          <p className="font-headline text-sm sm:text-lg font-black text-primary">
-                            {formatINR(trip.price)}
-                          </p>
-                        </div>
+                        <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-secondary opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                          Explore
+                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        </span>
                       </div>
                     </div>
                   </Link>
