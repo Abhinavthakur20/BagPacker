@@ -7,8 +7,8 @@ const getDesktopLinkClass = ({ isActive }) =>
   [
     "nav-link relative inline-flex items-center px-4 py-2 text-sm font-headline font-bold tracking-tight transition-all duration-300 rounded-xl",
     isActive
-      ? "bg-primary/10 text-primary"
-      : "text-on-surface-variant/80 hover:bg-surface-container-high hover:text-on-surface",
+      ? "bg-white/10 text-white"
+      : "text-white/70 hover:bg-white/5 hover:text-white",
   ].join(" ");
 
 export default function TopNav() {
@@ -60,19 +60,19 @@ export default function TopNav() {
   })();
 
   return (
-    <nav className="fixed top-0 z-[100] w-full border-b border-outline-variant/10 bg-[#f3f4f6]/80 backdrop-blur-xl shadow-sm">
+    <nav className="fixed top-0 z-[100] w-full border-b border-white/10 bg-black/95 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 md:px-10">
         {/* ── Logo ── */}
         <NavLink to="/" className="group inline-flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-primary/5 transition-all duration-300 group-hover:bg-primary/10 group-hover:scale-105">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white/10 transition-all duration-300 group-hover:bg-white/15 group-hover:scale-105 border border-white/5">
             <img 
               src="/logo.png" 
               alt="BagPacker Logo" 
               className="h-full w-full object-contain p-1"
             />
           </div>
-          <span className="font-headline text-2xl font-black tracking-tighter text-on-surface">
-            Bag<span className="text-secondary">Packer</span>
+          <span className="font-headline text-2xl font-black tracking-tighter text-white">
+            Bag<span className="text-secondary-container">Packer</span>
           </span>
         </NavLink>
 
@@ -95,7 +95,7 @@ export default function TopNav() {
             <NavLink
               to="/profile"
               aria-label="Open profile"
-              className="group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-outline-variant/20 bg-surface-container-low transition-all duration-300 hover:bg-surface-container-high"
+              className="group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10"
             >
               {user?.avatarUrl ? (
                 <img
@@ -104,7 +104,7 @@ export default function TopNav() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="material-symbols-outlined text-[1.4rem] text-on-surface-variant transition-colors group-hover:text-primary">
+                <span className="material-symbols-outlined text-[1.4rem] text-white/70 transition-colors group-hover:text-white">
                   account_circle
                 </span>
               )}
@@ -114,7 +114,7 @@ export default function TopNav() {
               <button
                 type="button"
                 onClick={() => openAuthModal("login")}
-                className="rounded-xl px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-all duration-300 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.97]"
+                className="rounded-xl px-5 py-2.5 text-sm font-bold text-white/75 transition-all duration-300 hover:bg-white/5 hover:text-white active:scale-[0.97]"
               >
                 Login
               </button>
@@ -137,7 +137,7 @@ export default function TopNav() {
           }
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-low text-on-surface-variant transition-all duration-300 hover:bg-surface-container-high hover:text-on-surface md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white md:hidden"
         >
           <span className="material-symbols-outlined text-[1.35rem]">
             {isMobileMenuOpen ? "close" : "menu"}
@@ -151,7 +151,7 @@ export default function TopNav() {
           isMobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t border-outline-variant/10 bg-[#f3f4f6] px-6 pb-10 pt-4">
+        <div className="border-t border-white/10 bg-black px-6 pb-10 pt-4">
           <div className="grid gap-2">
             {resolvedNavLinks.map((item) => (
               <NavLink
@@ -161,8 +161,8 @@ export default function TopNav() {
                 className={({ isActive }) =>
                   `rounded-xl px-5 py-4 text-sm font-bold transition-all duration-200 ${
                     isActive
-                      ? "bg-primary text-on-primary shadow-lg shadow-primary/10"
-                      : "text-on-surface-variant hover:bg-surface-container-high"
+                      ? "bg-white/10 text-white shadow-lg"
+                      : "text-white/70 hover:bg-white/5"
                   }`
                 }
               >
@@ -171,18 +171,18 @@ export default function TopNav() {
             ))}
           </div>
 
-          <div className="mt-6 border-t border-outline-variant/10 pt-6">
+          <div className="mt-6 border-t border-white/10 pt-6">
             {isLoggedIn ? (
               <NavLink
                 to="/profile"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-surface-container-high px-5 text-sm font-bold text-on-surface shadow-sm"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 px-5 text-sm font-bold text-white shadow-sm"
               >
                 {user?.avatarUrl ? (
                   <img
                     src={user.avatarUrl}
                     alt={user.name}
-                    className="h-10 w-10 shrink-0 rounded-full object-cover border border-outline-variant/20"
+                    className="h-10 w-10 shrink-0 rounded-full object-cover border border-white/10"
                   />
                 ) : (
                   <span className="material-symbols-outlined text-[1.2rem]">
@@ -196,7 +196,7 @@ export default function TopNav() {
                 <button
                   type="button"
                   onClick={() => { setIsMobileMenuOpen(false); openAuthModal("login"); }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-outline-variant/20 px-4 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/10 px-4 text-sm font-bold text-white/85 hover:bg-white/5"
                 >
                   Login
                 </button>
