@@ -34,7 +34,7 @@ export default function StorySection({ campfireImage }) {
           The smarter way to see the world.
         </h2>
         <p className="mt-6 max-w-xl leading-relaxed text-on-surface-variant">
-          BagPacker is more than a booking platform. It is a social layer for
+          Bag Packer is more than a booking platform. It is a social layer for
           travel. We vet our organizers and verify traveler identities so you
           can focus on the mountains, not the logistics.
         </p>
