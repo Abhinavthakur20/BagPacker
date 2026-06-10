@@ -289,6 +289,7 @@ export default function ChatPage() {
         const normalized = (Array.isArray(history?.items) ? history.items : []).map((item) => ({
             id: String(item._id),
             sender: String(item.senderId) === String(user?._id) ? "me" : "other",
+            senderName: item.senderName,
             text: item.message,
           time: new Date(item.sentAt || Date.now()).toLocaleTimeString("en-IN", {
             hour: "numeric",
@@ -530,6 +531,7 @@ export default function ChatPage() {
         {
           id: clientMessageId,
           sender: "me",
+          senderName: user?.name,
           text: trimmedMessage,
           time: messageTime,
         },
@@ -703,6 +705,14 @@ export default function ChatPage() {
                           : ""
                       }`}
                     >
+                      {selectedContact?.type === "trip_group" && message.sender !== "me" && message.senderName && (
+                        <div
+                          className="text-xs font-bold mb-1"
+                          style={{ color: getSenderColor(message.senderName) }}
+                        >
+                          {message.senderName}
+                        </div>
+                      )}
                       {message.sender !== "me" && selectedRoomId === AI_ROOM_ID ? (
                         <ReactMarkdown>{message.text}</ReactMarkdown>
                       ) : (
