@@ -103,6 +103,207 @@ const isBookingTestCompletable = (booking) => {
   return bookingStatus === "confirmed" && paymentStatus === "paid";
 };
 
+const downloadTicketPDF = (booking, profile) => {
+  const ticketCode = getTicketCode(booking);
+  const startDateStr = formatDateLabel(booking?.tripId?.startDate);
+  const passengerName = profile?.name || "Traveler";
+  const pickupPoint = booking?.pickupPointId?.location || "Main Terminal";
+  const seats = booking?.seatsBooked || 1;
+  const tripTitle = booking?.tripId?.title || "Trip";
+  const route = `${booking?.tripId?.source || "Source"} → ${booking?.tripId?.destination || "Destination"}`;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    showErrorAlert("Popup Blocked", "Please allow popups to download your e-ticket PDF.");
+    return;
+  }
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>E-Ticket - ${ticketCode}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #1b2822;
+            margin: 0;
+            padding: 40px;
+            background-color: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .ticket-container {
+            max-width: 650px;
+            margin: 0 auto;
+            border: 2px dashed #dbd7cd;
+            border-radius: 24px;
+            padding: 35px;
+            position: relative;
+            background-color: #f6f4ee;
+          }
+          .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #dbd7cd;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            color: #124f38;
+          }
+          .logo span {
+            color: #f94a4a;
+          }
+          .ticket-badge {
+            background-color: #124f38;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 6px 14px;
+            border-radius: 20px;
+          }
+          .trip-title {
+            font-size: 22px;
+            font-weight: 900;
+            margin: 0 0 6px 0;
+            color: #1b2822;
+          }
+          .trip-route {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f94a4a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 25px 0;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-cols: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+          .info-box {
+            background: #ffffff;
+            border: 1px solid #dbd7cd;
+            border-radius: 16px;
+            padding: 16px;
+          }
+          .info-label {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #6f736b;
+            letter-spacing: 1.2px;
+            margin-bottom: 5px;
+          }
+          .info-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1b2822;
+          }
+          .ticket-footer {
+            border-top: 2px dashed #dbd7cd;
+            padding-top: 25px;
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .barcode-area {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #1b2822;
+            border: 1px solid #dbd7cd;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #ffffff;
+            font-weight: bold;
+          }
+          .notice {
+            font-size: 10px;
+            color: #6f736b;
+            line-height: 1.5;
+            max-width: 320px;
+          }
+          @media print {
+            body {
+              padding: 0;
+              background: #ffffff;
+            }
+            .ticket-container {
+              border: 2px dashed #1b2822;
+              background-color: #f6f4ee;
+            }
+            .info-box {
+              border: 1px solid #dbd7cd;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket-container">
+          <div class="ticket-header">
+            <div class="logo">BAG<span>PACKER</span></div>
+            <div class="ticket-badge">BOARDING PASS</div>
+          </div>
+          
+          <h2 class="trip-title">${tripTitle}</h2>
+          <div class="trip-route">${route}</div>
+          
+          <div class="info-grid">
+            <div class="info-box">
+              <div class="info-label">Passenger Name</div>
+              <div class="info-value">${passengerName}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Ticket ID</div>
+              <div class="info-value" style="font-family: 'Space Mono', monospace;">${ticketCode}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Departure Date</div>
+              <div class="info-value">${startDateStr}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Seats Booked</div>
+              <div class="info-value">${seats} ${seats > 1 ? "Seats" : "Seat"}</div>
+            </div>
+            <div class="info-box" style="grid-column: span 2;">
+              <div class="info-label">Pickup Location</div>
+              <div class="info-value">${pickupPoint}</div>
+            </div>
+          </div>
+          
+          <div class="ticket-footer">
+            <div class="notice">
+              Please present a digital or printed copy of this boarding pass at the check-in counter or pickup point.
+            </div>
+            <div class="barcode-area">
+              ${ticketCode}
+            </div>
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
 export default function TravelerDashboardPage() {
   const dispatch = useDispatch();
   const storedUser = useSelector((state) => state.auth.user);
@@ -662,9 +863,13 @@ export default function TravelerDashboardPage() {
                               <span className="material-symbols-outlined text-secondary">verified</span>
                               <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Digital Boarding Pass</p>
                             </div>
-                            <span className="rounded-xl bg-surface-container-low px-3 py-2 text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
-                              PDF coming soon
-                            </span>
+                            <button
+                              onClick={() => downloadTicketPDF(booking, profile)}
+                              className="flex items-center gap-1 rounded-xl bg-surface-container-high hover:bg-surface-container-highest px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary transition"
+                            >
+                              <span className="material-symbols-outlined text-xs">download</span>
+                              Download PDF
+                            </button>
                           </div>
                         </article>
                       );
