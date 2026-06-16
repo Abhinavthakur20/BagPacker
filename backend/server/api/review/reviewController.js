@@ -11,6 +11,11 @@ const createReview = async (req, res) => {
 
     const { revieweeId, bookingId, rating, comment } = req.body;
 
+    const numericRating = Number(rating);
+    if (Number.isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+      return res.status(400).json({ message: "Rating must be a number between 1 and 5" });
+    }
+
     const booking = await Booking.findOne({
       _id: bookingId,
       travelerId: req.user._id,
