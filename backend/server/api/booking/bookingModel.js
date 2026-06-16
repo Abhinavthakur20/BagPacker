@@ -22,6 +22,10 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value",
+      },
     },
     totalAmount: {
       type: Number,
