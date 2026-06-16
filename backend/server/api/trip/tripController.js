@@ -60,7 +60,17 @@ const TRIP_IMAGE_TRANSFORMATIONS = {
   dpr: "auto",
 };
 
+/**
+ * Safely parses a JSON array or returns the array itself if already parsed.
+ *
+ * @param {string|Array} value - The input value to parse.
+ * @returns {Array|null} The parsed array, or null if parsing fails or input is invalid.
+ */
 const parseJsonArray = (value) => {
+  if (!value) {
+    return null;
+  }
+
   if (Array.isArray(value)) {
     return value;
   }
