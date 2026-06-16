@@ -10,7 +10,16 @@ const { getGeoapifyApiKey } = require("../../utils/geoapify");
 const { escapeRegex } = require("../../utils/text");
 const { reconcileTripsSeatInventory } = require("./tripSeatSyncService");
 
+/**
+ * Calculates the start and end of the day for a given date input.
+ *
+ * @param {string|Date} value - The input date value.
+ * @returns {Object|null} An object with start and end Date bounds, or null if invalid/empty.
+ */
 const getDayRange = (value) => {
+  if (!value) {
+    return null;
+  }
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
