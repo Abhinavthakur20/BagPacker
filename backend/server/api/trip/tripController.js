@@ -87,14 +87,25 @@ const parseJsonArray = (value) => {
   return null;
 };
 
+/**
+ * Normalizes input values to booleans. Supports booleans, numeric representations,
+ * and common truthy/falsy strings.
+ *
+ * @param {*} value - The input value.
+ * @param {boolean} [fallback=false] - The fallback boolean if value is unrecognized.
+ * @returns {boolean} The resolved boolean.
+ */
 const parseBooleanInput = (value, fallback = false) => {
   if (typeof value === "boolean") {
     return value;
   }
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
-    if (normalized === "true") return true;
-    if (normalized === "false") return false;
+    if (normalized === "true" || normalized === "1" || normalized === "yes") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "no") return false;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
   }
   return fallback;
 };
