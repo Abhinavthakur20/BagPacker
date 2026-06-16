@@ -60,10 +60,10 @@ export default function StorySection({ campfireImage }) {
         </div>
 
         <div className="mt-8 flex flex-wrap gap-4">
-          <button className="rounded-xl bg-primary px-8 py-3.5 font-bold text-white shadow-[0_4px_16px_rgba(1,45,29,0.25)] transition hover:shadow-[0_8px_30px_rgba(1,45,29,0.35)] active:scale-[0.98]">
+          <button id="btn-start-journey" className="rounded-xl bg-primary px-8 py-3.5 font-bold text-white shadow-[0_4px_16px_rgba(1,45,29,0.25)] transition hover:shadow-[0_8px_30px_rgba(1,45,29,0.35)] active:scale-[0.98]">
             Start Your Journey
           </button>
-          <button className="rounded-xl border border-outline-variant px-8 py-3.5 font-semibold text-primary transition hover:border-primary hover:bg-primary-fixed/30">
+          <button id="btn-how-it-works" className="rounded-xl border border-outline-variant px-8 py-3.5 font-semibold text-primary transition hover:border-primary hover:bg-primary-fixed/30">
             How it Works
           </button>
         </div>
