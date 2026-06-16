@@ -809,6 +809,12 @@ const deleteTrip = async (req, res) => {
   }
 };
 
+/**
+ * Starts a scheduled trip, making it currently in progress.
+ *
+ * @param {Object} req - Express request object containing parameter `id`.
+ * @param {Object} res - Express response object.
+ */
 const startTrip = async (req, res) => {
   try {
     const organizer = await Organizer.findOne({ userId: req.user._id, approvalStatus: "approved" });
@@ -831,6 +837,7 @@ const startTrip = async (req, res) => {
 
     trip.startedAt = new Date();
     await trip.save();
+    console.log(`Trip started: ID ${trip._id} by Organizer ${organizer._id}`);
     clearTripCache();
 
     return res.status(200).json(trip);
