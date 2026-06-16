@@ -447,9 +447,8 @@ const getTrips = async (req, res) => {
     }
 
     // Parse seatsMin but apply AFTER reconciliation (not in DB query)
-    const requestedSeatsMin = req.query.seatsMin !== undefined
-      ? Number(req.query.seatsMin)
-      : 0;
+    const parsedSeats = Number(req.query.seatsMin);
+    const requestedSeatsMin = Number.isFinite(parsedSeats) ? Math.max(0, parsedSeats) : 0;
 
     // Fetch a larger set of trips without the seatsMin DB filter,
     // so reconciliation can correct stale availableSeats values first.
