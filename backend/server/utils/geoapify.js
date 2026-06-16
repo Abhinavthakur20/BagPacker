@@ -1,3 +1,9 @@
+/**
+ * Extracts the raw Geoapify API key from environment variables, handling
+ * both standalone keys and full API URL configurations with key query param.
+ *
+ * @returns {string} The parsed Geoapify API key, or empty string if not found.
+ */
 const getGeoapifyApiKey = () => {
   const rawValue = String(process.env.GEOAPIFY_API_KEY || "").trim();
   if (!rawValue) {
