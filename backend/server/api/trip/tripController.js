@@ -304,6 +304,13 @@ const getCitySuggestions = async (req, res) => {
   }
 };
 
+/**
+ * Validates the parsed itinerary and pickup points arrays structure and fields.
+ *
+ * @param {Array} [parsedItinerary] - The parsed itinerary array.
+ * @param {Array} [parsedPickupPoints] - The parsed pickup points array.
+ * @returns {string} Validation error message, or empty string if valid.
+ */
 const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
   if (parsedItinerary !== undefined) {
     if (!Array.isArray(parsedItinerary)) {
