@@ -89,8 +89,11 @@ const getClosenessLabel = (dayDifference) => {
 
 const normalizeGenderPreference = (value) => {
   const normalizedValue = String(value || "").trim().toUpperCase();
-  if (normalizedValue === "M" || normalizedValue === "F") {
-    return normalizedValue;
+  if (normalizedValue === "M" || normalizedValue === "MALE") {
+    return "M";
+  }
+  if (normalizedValue === "F" || normalizedValue === "FEMALE") {
+    return "F";
   }
   return "Any";
 };
