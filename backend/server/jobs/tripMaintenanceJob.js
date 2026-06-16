@@ -3,14 +3,21 @@ const Booking = require("../api/booking/bookingModel");
 
 const STALE_PENDING_BOOKING_MS = 30 * 60 * 1000;
 
+/**
+ * Executes a maintenance cycle on the database:
+ * - Completes active trips that have ended.
+ * - Completes confirmed bookings for ended trips.
+ * - Cancels stale pending bookings that have expired.
+ *
+ * @returns {Promise<Object>} Statistics about completed and cancelled records.
+ */
 const runTripMaintenanceJob = async () => {
   const now = new Date();
   const staleBookingCutoff = new Date(now.getTime() - STALE_PENDING_BOOKING_MS);
-  const endedTripIds = (
-    await Trip.find({
-      endDate: { $lt: now },
-    }).select("_id")
-  ).map((trip) => trip._id);
+  const endedTrips = await Trip.find({
+    endDate: { $lt: now },
+  }).select("_id") || [];
+  const endedTripIds = Array.isArray(endedTrips) ? endedTrips.map((trip) => trip._id) : [];
 
   const [completedTripsResult, completedBookingsResult, staleBookingsResult] = await Promise.all([
     Trip.updateMany(
