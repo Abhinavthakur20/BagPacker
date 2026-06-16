@@ -442,7 +442,7 @@ const getTrips = async (req, res) => {
     if (req.query.priceMax !== undefined) {
       const priceMax = Number(req.query.priceMax);
       if (Number.isFinite(priceMax)) {
-        filters.pricePerPerson = { $lte: priceMax };
+        filters.pricePerPerson = { $lte: Math.max(0, priceMax) };
       }
     }
 
