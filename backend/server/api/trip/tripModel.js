@@ -83,6 +83,13 @@ const tripSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+tripSchema.pre("save", function (next) {
+  if (this.startDate && this.endDate && this.endDate < this.startDate) {
+    return next(new Error("End date cannot be before start date"));
+  }
+  next();
+});
+
 tripSchema.index({ status: 1, startDate: 1, createdAt: -1 });
 tripSchema.index({ organizerId: 1, status: 1, createdAt: -1 });
 tripSchema.index({ source: 1, destination: 1, startDate: 1, status: 1, transportType: 1 });
