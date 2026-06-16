@@ -20,7 +20,17 @@ const getCachedUser = (userId) => {
   return cacheEntry.user;
 };
 
+const pruneUserCache = () => {
+  const now = Date.now();
+  for (const [key, value] of authUserCache.entries()) {
+    if (value && value.expiresAt <= now) {
+      authUserCache.delete(key);
+    }
+  }
+};
+
 const setCachedUser = (user) => {
+  pruneUserCache();
   authUserCache.set(String(user._id), {
     user,
     expiresAt: Date.now() + AUTH_USER_CACHE_TTL_MS,
