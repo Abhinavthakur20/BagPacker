@@ -34,6 +34,8 @@ const run = () => {
   assert.equal(getClosenessLabel(2), "2 days apart");
 
   assert.equal(normalizeGenderPreference("f"), "F");
+  assert.equal(normalizeGenderPreference("MALE"), "M");
+  assert.equal(normalizeGenderPreference("FEMALE"), "F");
   assert.equal(normalizeGenderPreference(""), "Any");
   assert.equal(normalizeVehicleType("CAR"), "car");
   assert.equal(normalizeVehicleType("train"), null);

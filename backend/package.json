@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server/index.js",
   "scripts": {
-    "test": "node server/api/companion/companionUtils.test.js",
+    "test": "node server/api/companion/companionUtils.test.js && node server/utils/utils.test.js",
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "seed:admin": "node server/seedAdmin.js",
