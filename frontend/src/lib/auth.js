@@ -22,7 +22,11 @@ export function getStoredUser() {
     if (!rawUser) return null;
 
     try {
-        return JSON.parse(rawUser);
+        const parsed = JSON.parse(rawUser);
+        if (parsed && typeof parsed === "object") {
+            return parsed;
+        }
+        return null;
     } catch {
         return null;
     }
