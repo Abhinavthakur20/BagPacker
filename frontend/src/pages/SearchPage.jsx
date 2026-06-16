@@ -27,6 +27,12 @@ const getTripDuration = (startDate, endDate) => {
   return `${totalDays} Days, ${totalNights} Nights`;
 };
 
+const formatDateSafe = (dateString, options) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString("en-IN", options);
+};
+
 const mapTrip = (trip) => ({
   images:
     Array.isArray(trip.images) && trip.images.length
@@ -41,7 +47,7 @@ const mapTrip = (trip) => ({
   route: `${trip.source} -> ${trip.destination}`,
   location: trip.destination,
   date: trip.startDate,
-  dateRange: `${new Date(trip.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} - ${new Date(trip.endDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`,
+  dateRange: `${formatDateSafe(trip.startDate, { day: "numeric", month: "short" })} - ${formatDateSafe(trip.endDate, { day: "numeric", month: "short", year: "numeric" })}`,
   duration: getTripDuration(trip.startDate, trip.endDate),
   seatsLeft: trip.availableSeats,
   price: trip.pricePerPerson,
