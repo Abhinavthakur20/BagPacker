@@ -69,9 +69,11 @@ export default function LandingPage() {
   const onSubmit = (event) => {
     event.preventDefault();
     const params = new URLSearchParams();
-    if (form.from.trim()) params.set("from", form.from.trim());
-    if (form.to.trim()) params.set("to", form.to.trim());
-    if (form.date) params.set("date", form.date);
+    const fromVal = String(form?.from || "").trim();
+    const toVal = String(form?.to || "").trim();
+    if (fromVal) params.set("from", fromVal);
+    if (toVal) params.set("to", toVal);
+    if (form?.date) params.set("date", form.date);
     navigate(`/trips/search?${params.toString()}`);
   };
 
