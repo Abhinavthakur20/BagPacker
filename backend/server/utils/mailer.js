@@ -39,6 +39,10 @@ const getTransporter = () => {
 };
 
 const sendMail = async ({ to, subject, text, html }) => {
+  if (!to || !subject) {
+    return { delivered: false, skipped: true, reason: "Missing recipient (to) or subject" };
+  }
+
   const config = getMailConfig();
   const transporter = getTransporter();
   if (!transporter) {
