@@ -20,7 +20,7 @@ const cloneData = (value) => {
 };
 
 const getTokenFingerprint = (token) => {
-    if (!token) return "";
+    if (!token || typeof token !== "string") return "";
     // Use last 8 chars as a short fingerprint to avoid leaking full token in memory keys
     return token.slice(-8);
 };
