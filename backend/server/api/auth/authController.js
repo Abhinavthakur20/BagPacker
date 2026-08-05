@@ -31,6 +31,44 @@ const hashToken = (token) => crypto.createHash("sha256").update(token).digest("h
 const createRawToken = () => crypto.randomBytes(32).toString("hex");
 const getClientUrl = () => String(process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
 const getRequestedRole = (role) => (role === "organizer" ? "organizer" : "traveler");
+const DEMO_ACCOUNT = {
+  name: "Recruiter Demo",
+  email: "recruiter.demo@bagpacker.com",
+  phone: "demo-recruiter",
+  password: "Demo@123",
+  role: "traveler",
+};
+
+const isDemoLoginRequest = ({ email, password }) =>
+  String(email || "").toLowerCase().trim() === DEMO_ACCOUNT.email && password === DEMO_ACCOUNT.password;
+
+const ensureDemoUser = async (existingUser) => {
+  const passwordHash = await bcrypt.hash(DEMO_ACCOUNT.password, 10);
+
+  if (existingUser) {
+    existingUser.name = DEMO_ACCOUNT.name;
+    existingUser.passwordHash = passwordHash;
+    existingUser.authProvider = "local";
+    existingUser.role = DEMO_ACCOUNT.role;
+    existingUser.verificationStatus = "verified";
+    existingUser.trustScore = Math.max(existingUser.trustScore || 0, 85);
+    existingUser.isBanned = false;
+    existingUser.isEmailVerified = true;
+    return existingUser.save();
+  }
+
+  return User.create({
+    name: DEMO_ACCOUNT.name,
+    email: DEMO_ACCOUNT.email,
+    phone: DEMO_ACCOUNT.phone,
+    passwordHash,
+    authProvider: "local",
+    role: DEMO_ACCOUNT.role,
+    verificationStatus: "verified",
+    trustScore: 85,
+    isEmailVerified: true,
+  });
+};
 
 const createOrganizerProfileForUser = async ({ userId, businessName, businessDesc }) => {
   const normalizedBusinessName = String(businessName || "").trim();
@@ -145,7 +183,13 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email.toLowerCase().trim() });
+    const normalizedEmail = req.body.email.toLowerCase().trim();
+    const isDemoLogin = isDemoLoginRequest(req.body);
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (isDemoLogin) {
+      user = await ensureDemoUser(user);
+    }
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });

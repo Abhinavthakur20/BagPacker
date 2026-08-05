@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
+import { DEMO_LOGIN_ACCOUNT } from "../lib/demoAccount";
 import { getDashboardPath, loadGoogleScript } from "../lib/auth";
 import { setAuth } from "../store/authSlice";
 import { useAuthModal } from "../context/AuthModalContext";
@@ -89,8 +90,8 @@ export default function AuthModal() {
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  const onLogin = async () => {
-    if (!loginForm.email || !loginForm.password) {
+  const loginWithCredentials = async ({ email, password }) => {
+    if (!email || !password) {
       setFormError("Please enter email and password.");
       return;
     }
@@ -98,8 +99,8 @@ export default function AuthModal() {
       setIsSubmitting(true);
       setFormError("");
       const response = await api.post("/auth/login", {
-        email: loginForm.email,
-        password: loginForm.password,
+        email,
+        password,
       });
       dispatch(setAuth({ token: response.token, user: response.user }));
       closeAuthModal();
@@ -111,6 +112,16 @@ export default function AuthModal() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const onLogin = () => loginWithCredentials(loginForm);
+
+  const onDemoLogin = () => {
+    setLoginForm({
+      email: DEMO_LOGIN_ACCOUNT.email,
+      password: DEMO_LOGIN_ACCOUNT.password,
+    });
+    return loginWithCredentials(DEMO_LOGIN_ACCOUNT);
   };
 
   const onForgotPassword = async () => {
@@ -324,6 +335,30 @@ export default function AuthModal() {
               <div>
                 <h1 className="font-headline text-xl font-extrabold text-primary">Welcome Back</h1>
                 <p className="mt-1 text-sm text-on-surface-variant">Continue your journey with BagPacker.</p>
+                <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 p-3.5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+                        {DEMO_LOGIN_ACCOUNT.label}
+                      </p>
+                      <p className="mt-1 break-all text-sm font-semibold text-on-surface">
+                        {DEMO_LOGIN_ACCOUNT.email}
+                      </p>
+                      <p className="text-sm text-on-surface-variant">
+                        Password: <span className="font-semibold text-on-surface">{DEMO_LOGIN_ACCOUNT.password}</span>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onDemoLogin}
+                      disabled={isSubmitting}
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-surface px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">login</span>
+                      Demo Login
+                    </button>
+                  </div>
+                </div>
                 <form autoComplete="off" className="mt-4 space-y-3.5">
                     <input
                       className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-4 py-2.5 outline-none transition focus:border-primary"

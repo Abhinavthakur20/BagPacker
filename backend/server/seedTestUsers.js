@@ -8,6 +8,15 @@ dotenv.config();
 
 const testUsers = [
   {
+    name: "Recruiter Demo",
+    email: "recruiter.demo@bagpacker.com",
+    phone: "demo-recruiter",
+    password: "Demo@123",
+    role: "traveler",
+    verificationStatus: "verified",
+    trustScore: 85,
+  },
+  {
     name: "Rohan Organizer",
     email: "organizer1@bagpacker.com",
     phone: "9000000001",
@@ -107,6 +116,7 @@ const seedTestUsers = async () => {
 
     console.log("Test users seeded successfully.");
     console.log("Use these credentials for real UI testing:");
+    console.log("recruiter.demo@bagpacker.com / Demo@123 (recruiter demo)");
     console.log("organizer1@bagpacker.com / Test@123 (approved organizer)");
     console.log("traveler1@bagpacker.com / Test@123");
     console.log("traveler2@bagpacker.com / Test@123");

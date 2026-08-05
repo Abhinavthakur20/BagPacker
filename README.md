@@ -157,6 +157,17 @@ npm run dev
 Frontend: `http://localhost:5173`  
 Backend health: `http://localhost:5000/api/health`
 
+### Recruiter demo login
+
+The login screen shows a one-click demo account so reviewers can enter without creating their own account:
+
+```text
+Email: recruiter.demo@bagpacker.com
+Password: Demo@123
+```
+
+The backend auto-provisions this account on first successful demo login.
+
 ---
 
 ## Key Scripts
