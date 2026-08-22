@@ -4,7 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { DEMO_LOGIN_ACCOUNT } from "../lib/demoAccount";
-import { getDashboardPath, loadGoogleScript } from "../lib/auth";
+import {
+  clearGoogleIdentityCallback,
+  getDashboardPath,
+  initializeGoogleIdentity,
+} from "../lib/auth";
 import { setAuth } from "../store/authSlice";
 import { useAuthModal } from "../context/AuthModalContext";
 
@@ -191,35 +195,36 @@ export default function AuthModal() {
     if (!googleButtonEl || !googleClientId) return undefined;
     let isActive = true;
 
+    const handleGoogleCredential = async (response) => {
+      if (!response?.credential) return;
+      try {
+        setIsSubmitting(true);
+        setFormError("");
+        const authResponse = await api.post("/auth/google", {
+          credential: response.credential,
+          role: googleRoleRef.current,
+          businessName: googleRoleRef.current === "organizer" ? organizerForm.businessName : undefined,
+          businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
+        });
+        dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
+        closeAuthModal();
+        navigate(getDashboardPath(authResponse.user?.role));
+        void showSuccessAlert("Welcome", "Signed in with Google.");
+      } catch (error) {
+        setFormError(error.message);
+        await showErrorAlert("Google sign-in failed", error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
     const initializeGoogle = async () => {
       try {
-        const google = await loadGoogleScript(googleClientId);
-        if (!isActive || !googleButtonEl) return;
-        google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            if (!response?.credential) return;
-            try {
-              setIsSubmitting(true);
-              setFormError("");
-              const authResponse = await api.post("/auth/google", {
-                credential: response.credential,
-                role: googleRoleRef.current,
-                businessName: googleRoleRef.current === "organizer" ? organizerForm.businessName : undefined,
-                businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
-              });
-              dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
-              closeAuthModal();
-              navigate(getDashboardPath(authResponse.user?.role));
-              void showSuccessAlert("Welcome", "Signed in with Google.");
-            } catch (error) {
-              setFormError(error.message);
-              await showErrorAlert("Google sign-in failed", error.message);
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
+        const google = await initializeGoogleIdentity({
+          clientId: googleClientId,
+          callback: handleGoogleCredential,
         });
+        if (!isActive || !googleButtonEl) return;
         google.accounts.id.renderButton(googleButtonEl, {
           theme: "outline", size: "large",
           text: mode === "signup" ? "signup_with" : "signin_with",
@@ -232,6 +237,7 @@ export default function AuthModal() {
     initializeGoogle();
     return () => {
       isActive = false;
+      clearGoogleIdentityCallback(handleGoogleCredential);
       googleButtonEl.innerHTML = "";
     };
   }, [

@@ -2,6 +2,8 @@ const TOKEN_KEY = "bagpacker_token";
 const USER_KEY = "bagpacker_user";
 const AUTH_FLAG_KEY = "bagpacker_auth";
 let authTokenGetter = null;
+let googleIdentityClientId = "";
+let googleIdentityCallback = null;
 
 export function setAuthTokenGetter(getter) {
     authTokenGetter = typeof getter === "function" ? getter : null;
@@ -76,6 +78,31 @@ export function loadGoogleScript(clientId) {
         script.onerror = () => reject(new Error("Failed to load Google sign-in script."));
         document.head.appendChild(script);
     });
+}
+
+export async function initializeGoogleIdentity({ clientId, callback }) {
+    const google = await loadGoogleScript(clientId);
+    googleIdentityCallback = typeof callback === "function" ? callback : null;
+
+    if (googleIdentityClientId !== clientId) {
+        google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) => {
+                if (googleIdentityCallback) {
+                    googleIdentityCallback(response);
+                }
+            },
+        });
+        googleIdentityClientId = clientId;
+    }
+
+    return google;
+}
+
+export function clearGoogleIdentityCallback(callback) {
+    if (!callback || googleIdentityCallback === callback) {
+        googleIdentityCallback = null;
+    }
 }
 
 export function updateStoredUser(user) {

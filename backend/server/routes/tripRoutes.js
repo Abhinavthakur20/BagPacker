@@ -15,6 +15,21 @@ const upload = require("../middleware/uploadMiddleware");
 const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
+const handleTripImageUpload = (req, res, next) => {
+  upload.array("tripImages", 10)(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+
+    const isMulterError = error.name === "MulterError";
+    return res.status(400).json({
+      message: isMulterError
+        ? "Trip image upload failed. Each file must be JPG, PNG, WEBP, or PDF and no larger than 5 MB."
+        : error.message,
+    });
+  });
+};
+
 const isNonEmptyArrayPayload = (value) => {
   if (Array.isArray(value)) {
     return value.length > 0;
@@ -76,13 +91,16 @@ router.post(
   "/",
   authMiddleware,
   roleMiddleware(["organizer"]),
-  upload.array("tripImages", 10),
+  handleTripImageUpload,
   [
     body("title").trim().notEmpty().withMessage("Title is required"),
     body("source").trim().notEmpty().withMessage("Source is required"),
     body("destination").trim().notEmpty().withMessage("Destination is required"),
     body("startDate").isISO8601().withMessage("Valid startDate is required"),
     body("endDate").isISO8601().withMessage("Valid endDate is required"),
+    body("endDate")
+      .custom((value, { req }) => new Date(value) >= new Date(req.body.startDate))
+      .withMessage("End date cannot be before start date"),
     body("pricePerPerson").isFloat({ min: 0 }).withMessage("Valid pricePerPerson is required"),
     body("totalSeats").isInt({ min: 1 }).withMessage("Valid totalSeats is required"),
     body("transportType")
@@ -107,7 +125,7 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware(["organizer"]),
-  upload.array("tripImages", 10),
+  handleTripImageUpload,
   [
     param("id").isMongoId().withMessage("Valid trip id is required"),
     body("title").optional().trim().notEmpty().withMessage("Title is required"),
@@ -115,6 +133,12 @@ router.put(
     body("destination").optional().trim().notEmpty().withMessage("Destination is required"),
     body("startDate").optional().isISO8601().withMessage("Valid startDate is required"),
     body("endDate").optional().isISO8601().withMessage("Valid endDate is required"),
+    body("endDate")
+      .optional()
+      .custom((value, { req }) => (
+        !req.body.startDate || new Date(value) >= new Date(req.body.startDate)
+      ))
+      .withMessage("End date cannot be before start date"),
     body("pricePerPerson").optional().isFloat({ min: 0 }).withMessage("Valid pricePerPerson is required"),
     body("totalSeats").optional().isInt({ min: 1 }).withMessage("Valid totalSeats is required"),
     body("transportType")

@@ -13,7 +13,7 @@ function createPerformanceEntryObserver(type, callback) {
 }
 
 export function setupWebVitalsMonitoring() {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.VITE_ENABLE_WEB_VITALS_LOGS !== "true") {
     return;
   }
 

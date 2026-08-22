@@ -6,7 +6,11 @@ import campfireImage from "../assets/images/landing/story/HomeDesign.webp";
 import { api } from "../lib/api";
 import { showErrorAlert, showSuccessAlert } from "../lib/alerts";
 import { DEMO_LOGIN_ACCOUNT } from "../lib/demoAccount";
-import { getDashboardPath, loadGoogleScript } from "../lib/auth";
+import {
+  clearGoogleIdentityCallback,
+  getDashboardPath,
+  initializeGoogleIdentity,
+} from "../lib/auth";
 import { setAuth } from "../store/authSlice";
 
 export default function AuthPage() {
@@ -168,38 +172,38 @@ export default function AuthPage() {
 
     let isActive = true;
 
+    const handleGoogleCredential = async (response) => {
+      if (!response?.credential) return;
+
+      try {
+        setIsSubmitting(true);
+        setFormError("");
+
+        const authResponse = await api.post("/auth/google", {
+          credential: response.credential,
+          role: googleRoleRef.current,
+          businessName: googleRoleRef.current === "organizer" ? organizerForm.businessName : undefined,
+          businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
+        });
+
+        dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
+        await showSuccessAlert("Welcome", "Signed in with Google.");
+        navigate(getDashboardPath(authResponse.user?.role));
+      } catch (error) {
+        setFormError(error.message);
+        await showErrorAlert("Google sign-in failed", error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
     const initializeGoogle = async () => {
       try {
-        const google = await loadGoogleScript(googleClientId);
-        if (!isActive || !googleButtonRef.current) return;
-
-        google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            if (!response?.credential) return;
-
-            try {
-              setIsSubmitting(true);
-              setFormError("");
-
-              const authResponse = await api.post("/auth/google", {
-                credential: response.credential,
-                role: googleRoleRef.current,
-                businessName: googleRoleRef.current === "organizer" ? organizerForm.businessName : undefined,
-                businessDesc: googleRoleRef.current === "organizer" ? organizerForm.businessDesc : undefined,
-              });
-
-              dispatch(setAuth({ token: authResponse.token, user: authResponse.user }));
-              await showSuccessAlert("Welcome", "Signed in with Google.");
-              navigate(getDashboardPath(authResponse.user?.role));
-            } catch (error) {
-              setFormError(error.message);
-              await showErrorAlert("Google sign-in failed", error.message);
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
+        const google = await initializeGoogleIdentity({
+          clientId: googleClientId,
+          callback: handleGoogleCredential,
         });
+        if (!isActive || !googleButtonRef.current) return;
 
         google.accounts.id.renderButton(googleButtonRef.current, {
           theme: "outline",
@@ -221,6 +225,7 @@ export default function AuthPage() {
 
     return () => {
       isActive = false;
+      clearGoogleIdentityCallback(handleGoogleCredential);
       if (googleButtonEl) {
         googleButtonEl.innerHTML = "";
       }

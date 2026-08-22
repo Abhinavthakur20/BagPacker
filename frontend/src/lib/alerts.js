@@ -29,8 +29,6 @@ const showNotice = ({ icon, title, text = "", confirmButtonText = "Okay" }) =>
     timer: noticeTimers[icon] || noticeTimers.info,
     timerProgressBar: true,
     confirmButtonText,
-    heightAuto: false,
-    returnFocus: false,
     scrollbarPadding: false,
     customClass: {
       ...commonClasses,

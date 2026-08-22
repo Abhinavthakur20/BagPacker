@@ -112,6 +112,21 @@ const parseBooleanInput = (value, fallback = false) => {
 
 const normalizeCityName = (value = "") => String(value || "").trim().replace(/\s+/g, " ");
 
+const normalizePositiveInteger = (value) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 1 ? number : null;
+};
+
+const normalizeNonNegativeNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+};
+
+const normalizeRequiredDate = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const buildSuggestionValue = ({ city, state, country }) =>
   normalizeCityName([city, state, country].filter(Boolean).join(", "));
 
@@ -347,6 +362,41 @@ const validateTripArrays = (parsedItinerary, parsedPickupPoints) => {
   }
 
   return "";
+};
+
+const buildDuplicateValueMessage = (items, field, label) => {
+  const seen = new Set();
+  for (const item of items || []) {
+    const value = Number(item?.[field]);
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+    if (seen.has(value)) {
+      return `${label} values must be unique`;
+    }
+    seen.add(value);
+  }
+  return "";
+};
+
+const getKnownTripErrorStatus = (error) => {
+  if (error?.name === "ValidationError" || error?.name === "CastError") {
+    return 400;
+  }
+  if (error?.code === 11000) {
+    return 400;
+  }
+  if (String(error?.message || "").includes("Cloudinary")) {
+    return 502;
+  }
+  return 500;
+};
+
+const getKnownTripErrorMessage = (error, fallback = "Trip request failed") => {
+  if (error?.code === 11000) {
+    return "Itinerary day numbers and pickup point sequences must be unique.";
+  }
+  return error?.message || fallback;
 };
 
 const TRIP_CACHE = new Map();
@@ -589,6 +639,38 @@ const createTrip = async (req, res) => {
       return res.status(400).json({ message: arrayValidationMessage });
     }
 
+    const startDateValue = normalizeRequiredDate(startDate);
+    const endDateValue = normalizeRequiredDate(endDate);
+    const totalSeatsValue = normalizePositiveInteger(totalSeats);
+    const pricePerPersonValue = normalizeNonNegativeNumber(pricePerPerson);
+
+    if (!startDateValue || !endDateValue) {
+      return res.status(400).json({ message: "Valid start and end dates are required" });
+    }
+    if (endDateValue < startDateValue) {
+      return res.status(400).json({ message: "End date cannot be before start date" });
+    }
+    if (totalSeatsValue === null) {
+      return res.status(400).json({ message: "Total seats must be at least 1" });
+    }
+    if (pricePerPersonValue === null) {
+      return res.status(400).json({ message: "Price per person must be 0 or higher" });
+    }
+
+    const duplicateItineraryMessage = buildDuplicateValueMessage(
+      parsedItinerary,
+      "dayNumber",
+      "Itinerary dayNumber",
+    );
+    const duplicatePickupMessage = buildDuplicateValueMessage(
+      parsedPickupPoints,
+      "sequence",
+      "Pickup point sequence",
+    );
+    if (duplicateItineraryMessage || duplicatePickupMessage) {
+      return res.status(400).json({ message: duplicateItineraryMessage || duplicatePickupMessage });
+    }
+
     const tripImages = await uploadTripImages(req.files);
 
     const trip = await Trip.create({
@@ -598,11 +680,11 @@ const createTrip = async (req, res) => {
       source: source.trim(),
       destination: destination.trim(),
       transportType: String(transportType || "bus").trim(),
-      startDate,
-      endDate,
-      pricePerPerson,
-      totalSeats,
-      availableSeats: totalSeats,
+      startDate: startDateValue,
+      endDate: endDateValue,
+      pricePerPerson: pricePerPersonValue,
+      totalSeats: totalSeatsValue,
+      availableSeats: totalSeatsValue,
       paymentEnabled: parseBooleanInput(paymentEnabled, true),
       images: tripImages,
     });
@@ -634,7 +716,9 @@ const createTrip = async (req, res) => {
       pickupPoints: createdPickupPoints,
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res
+      .status(getKnownTripErrorStatus(error))
+      .json({ message: getKnownTripErrorMessage(error, "Trip creation failed") });
   }
 };
 
@@ -662,6 +746,20 @@ const updateTrip = async (req, res) => {
       return res.status(400).json({ message: arrayValidationMessage });
     }
 
+    const duplicateItineraryMessage = buildDuplicateValueMessage(
+      parsedItinerary,
+      "dayNumber",
+      "Itinerary dayNumber",
+    );
+    const duplicatePickupMessage = buildDuplicateValueMessage(
+      parsedPickupPoints,
+      "sequence",
+      "Pickup point sequence",
+    );
+    if (duplicateItineraryMessage || duplicatePickupMessage) {
+      return res.status(400).json({ message: duplicateItineraryMessage || duplicatePickupMessage });
+    }
+
     [
       "title",
       "description",
@@ -684,16 +782,21 @@ const updateTrip = async (req, res) => {
     }
 
     if (req.body.totalSeats !== undefined) {
+      const totalSeatsValue = normalizePositiveInteger(req.body.totalSeats);
+      if (totalSeatsValue === null) {
+        return res.status(400).json({ message: "Total seats must be at least 1" });
+      }
+
       const bookedSeats = trip.totalSeats - trip.availableSeats;
 
-      if (req.body.totalSeats < bookedSeats) {
+      if (totalSeatsValue < bookedSeats) {
         return res.status(400).json({
           message: "Total seats cannot be lower than already booked seats",
         });
       }
 
-      trip.totalSeats = req.body.totalSeats;
-      trip.availableSeats = req.body.totalSeats - bookedSeats;
+      trip.totalSeats = totalSeatsValue;
+      trip.availableSeats = totalSeatsValue - bookedSeats;
     }
 
     const retainedImages =
@@ -748,7 +851,9 @@ const updateTrip = async (req, res) => {
       pickupPoints: finalPickupPoints,
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res
+      .status(getKnownTripErrorStatus(error))
+      .json({ message: getKnownTripErrorMessage(error, "Trip update failed") });
   }
 };
 

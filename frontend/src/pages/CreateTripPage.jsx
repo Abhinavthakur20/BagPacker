@@ -44,6 +44,42 @@ const preventWheelNumberChange = (event) => {
   event.currentTarget.blur();
 };
 
+const validateTripDraft = ({ tripForm, itinerary, pickupPoints }) => {
+  const title = String(tripForm.title || "").trim();
+  const source = String(tripForm.source || "").trim();
+  const destination = String(tripForm.destination || "").trim();
+  const startDate = tripForm.startDate ? new Date(tripForm.startDate) : null;
+  const endDate = tripForm.endDate ? new Date(tripForm.endDate) : null;
+  const totalSeats = Number(tripForm.totalSeats);
+  const pricePerPerson = Number(tripForm.pricePerPerson);
+
+  if (!title) return "Trip title is required.";
+  if (!source) return "Source city is required.";
+  if (!destination) return "Destination is required.";
+  if (!startDate || Number.isNaN(startDate.getTime())) return "Start date is required.";
+  if (!endDate || Number.isNaN(endDate.getTime())) return "End date is required.";
+  if (endDate < startDate) return "End date cannot be before start date.";
+  if (!Number.isInteger(totalSeats) || totalSeats < 1) {
+    return "Total seats must be at least 1.";
+  }
+  if (!Number.isFinite(pricePerPerson) || pricePerPerson < 0) {
+    return "Price per person must be 0 or higher.";
+  }
+  if (!itinerary.length || itinerary.some((item) => !String(item.activities || "").trim())) {
+    return "Each itinerary day must include activities.";
+  }
+  if (
+    !pickupPoints.length ||
+    pickupPoints.some(
+      (item) => !String(item.location || "").trim() || !String(item.time || "").trim(),
+    )
+  ) {
+    return "Each pickup point must include location and time.";
+  }
+
+  return "";
+};
+
 export default function CreateTripPage() {
   const token = useSelector((state) => state.auth.token);
   const isLoggedIn = Boolean(token);
@@ -606,6 +642,13 @@ export default function CreateTripPage() {
   };
 
   const submitTrip = async () => {
+    const validationMessage = validateTripDraft({ tripForm, itinerary, pickupPoints });
+    if (validationMessage) {
+      setError(validationMessage);
+      await showErrorAlert("Trip details incomplete", validationMessage);
+      return;
+    }
+
     const result = await showConfirmAlert({
       title: isEditMode ? "Save trip changes?" : "Create this trip?",
       text: isEditMode
@@ -625,26 +668,26 @@ export default function CreateTripPage() {
 
       const normalizedItinerary = itinerary.map((item, index) => ({
         dayNumber: Number(item.dayNumber || index + 1),
-        activities: item.activities,
-        accommodation: item.accommodation || null,
+        activities: String(item.activities || "").trim(),
+        accommodation: item.accommodation ? String(item.accommodation).trim() : null,
       }));
       const normalizedPickupPoints = pickupPoints.map((item, index) => ({
-        location: item.location,
-        time: item.time,
+        location: String(item.location || "").trim(),
+        time: String(item.time || "").trim(),
         sequence: Number(item.sequence || index + 1),
       }));
 
       const payload = new FormData();
-      payload.append("title", tripForm.title);
-      payload.append("source", tripForm.source);
-      payload.append("destination", tripForm.destination);
+      payload.append("title", String(tripForm.title || "").trim());
+      payload.append("source", String(tripForm.source || "").trim());
+      payload.append("destination", String(tripForm.destination || "").trim());
       payload.append("transportType", tripForm.transportType);
       payload.append("startDate", tripForm.startDate);
       payload.append("endDate", tripForm.endDate);
       payload.append("totalSeats", String(Number(tripForm.totalSeats)));
       payload.append("pricePerPerson", String(Number(tripForm.pricePerPerson)));
       payload.append("paymentEnabled", String(Boolean(tripForm.paymentEnabled)));
-      payload.append("description", tripForm.description);
+      payload.append("description", String(tripForm.description || "").trim());
       payload.append("itinerary", JSON.stringify(normalizedItinerary));
       payload.append("pickupPoints", JSON.stringify(normalizedPickupPoints));
       if (isEditMode) {
