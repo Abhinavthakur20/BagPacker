@@ -83,11 +83,10 @@ const tripSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-tripSchema.pre("save", function (next) {
+tripSchema.pre("save", function () {
   if (this.startDate && this.endDate && this.endDate < this.startDate) {
-    return next(new Error("End date cannot be before start date"));
+    throw new Error("End date cannot be before start date");
   }
-  next();
 });
 
 tripSchema.index({ status: 1, startDate: 1, createdAt: -1 });
